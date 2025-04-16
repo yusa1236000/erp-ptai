@@ -1,11 +1,11 @@
-<!-- src/views/sales/SalesOrderList.vue -->
+<!-- src/views/sales/SalesReturnList.vue -->
 <template>
-    <div class="sales-orders">
+    <div class="sales-returns">
         <!-- Search and Filter Section -->
         <div class="page-actions">
             <SearchFilter
                 v-model:value="searchQuery"
-                placeholder="Cari order..."
+                placeholder="Cari pengembalian..."
                 @search="handleSearch"
                 @clear="clearSearch"
             >
@@ -14,13 +14,10 @@
                         <label>Status</label>
                         <select v-model="statusFilter" @change="applyFilters">
                             <option value="">Semua Status</option>
-                            <option value="Draft">Draft</option>
-                            <option value="Confirmed">Dikonfirmasi</option>
-                            <option value="Processing">Diproses</option>
-                            <option value="Shipped">Dikirim</option>
-                            <option value="Delivered">Terkirim</option>
-                            <option value="Invoiced">Difakturkan</option>
-                            <option value="Closed">Selesai</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Processed">Diproses</option>
+                            <option value="Completed">Selesai</option>
+                            <option value="Cancelled">Dibatalkan</option>
                         </select>
                     </div>
 
@@ -40,8 +37,8 @@
                 </template>
 
                 <template #actions>
-                    <button class="btn btn-primary" @click="createOrder">
-                        <i class="fas fa-plus"></i> Buat Order
+                    <button class="btn btn-primary" @click="createReturn">
+                        <i class="fas fa-plus"></i> Buat Pengembalian
                     </button>
                 </template>
             </SearchFilter>
@@ -75,17 +72,17 @@
         <!-- DataTable Component -->
         <DataTable
             :columns="columns"
-            :items="orders"
+            :items="returns"
             :is-loading="isLoading"
-            keyField="so_id"
-            emptyIcon="fas fa-file-invoice"
-            emptyTitle="Tidak ada order"
-            emptyMessage="Tidak ada order yang tersedia untuk ditampilkan."
+            keyField="return_id"
+            emptyIcon="fas fa-undo-alt"
+            emptyTitle="Tidak ada pengembalian"
+            emptyMessage="Tidak ada data pengembalian yang tersedia untuk ditampilkan."
             @sort="handleSort"
         >
             <!-- Custom cell templates -->
-            <template #so_number="{ value }">
-                <div class="order-number">{{ value }}</div>
+            <template #return_number="{ value }">
+                <div class="return-number">{{ value }}</div>
             </template>
 
             <template #customer="{ item }">
@@ -96,8 +93,10 @@
                 </div>
             </template>
 
-            <template #total="{ value }">
-                <div class="order-total">{{ formatCurrency(value) }}</div>
+            <template #invoice="{ item }">
+                <div class="invoice-info">
+                    {{ item.invoice?.invoice_number || "-" }}
+                </div>
             </template>
 
             <template #status="{ value }">
@@ -115,23 +114,30 @@
                     <button
                         class="action-btn view"
                         title="Lihat Detail"
-                        @click="viewOrder(item)"
+                        @click="viewReturn(item)"
                     >
                         <i class="fas fa-eye"></i>
                     </button>
                     <button
-                        v-if="canEditOrder(item)"
+                        v-if="canEditReturn(item)"
                         class="action-btn edit"
-                        title="Edit Order"
-                        @click="editOrder(item)"
+                        title="Edit Pengembalian"
+                        @click="editReturn(item)"
                     >
                         <i class="fas fa-edit"></i>
                     </button>
-
                     <button
-                        v-if="canDeleteOrder(item)"
+                        v-if="item.status === 'Pending'"
+                        class="action-btn process"
+                        title="Proses Pengembalian"
+                        @click="confirmProcess(item)"
+                    >
+                        <i class="fas fa-check-circle"></i>
+                    </button>
+                    <button
+                        v-if="canDeleteReturn(item)"
                         class="action-btn delete"
-                        title="Hapus Order"
+                        title="Hapus Pengembalian"
                         @click="confirmDelete(item)"
                     >
                         <i class="fas fa-trash"></i>
@@ -155,27 +161,37 @@
         <ConfirmationModal
             v-if="showDeleteModal"
             title="Konfirmasi Hapus"
-            :message="`Apakah Anda yakin ingin menghapus order <strong>${orderToDelete.so_number}</strong>?<br>Tindakan ini tidak dapat dibatalkan.`"
+            :message="`Apakah Anda yakin ingin menghapus pengembalian <strong>${returnToDelete.return_number}</strong>?<br>Tindakan ini tidak dapat dibatalkan.`"
             confirm-button-text="Hapus"
             confirm-button-class="btn btn-danger"
-            @confirm="deleteOrder"
+            @confirm="deleteReturn"
             @close="closeDeleteModal"
+        />
+
+        <!-- Process Confirmation Modal -->
+        <ConfirmationModal
+            v-if="showProcessModal"
+            title="Konfirmasi Proses"
+            :message="`Apakah Anda yakin ingin memproses pengembalian <strong>${returnToProcess.return_number}</strong>?<br>Stok barang akan diperbarui dan status pengembalian akan berubah menjadi 'Diproses'.`"
+            confirm-button-text="Proses"
+            confirm-button-class="btn btn-primary"
+            @confirm="processReturn"
+            @close="closeProcessModal"
         />
     </div>
 </template>
 
 <script>
-import { ref, onMounted, reactive } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import axios from "axios";
-
+import SalesReturnService from "@/services/SalesReturnService";
 import DataTable from "@/components/common/DataTable.vue";
 import SearchFilter from "@/components/common/SearchFilter.vue";
 import PaginationComponent from "@/components/common/Pagination.vue";
 import ConfirmationModal from "@/components/common/ConfirmationModal.vue";
 
 export default {
-    name: "SalesOrderList",
+    name: "SalesReturnList",
     components: {
         DataTable,
         SearchFilter,
@@ -184,7 +200,7 @@ export default {
     },
     setup() {
         const router = useRouter();
-        const orders = ref([]);
+        const returns = ref([]);
         const isLoading = ref(true);
 
         // Pagination
@@ -203,20 +219,22 @@ export default {
         });
 
         // Sort
-        const sortKey = ref("so_id");
+        const sortKey = ref("return_id");
         const sortOrder = ref("desc");
 
-        // Delete modal
+        // Modals
         const showDeleteModal = ref(false);
-        const orderToDelete = ref({});
+        const returnToDelete = ref({});
+        const showProcessModal = ref(false);
+        const returnToProcess = ref({});
 
         // Table columns
         const columns = [
             {
-                key: "so_number",
-                label: "No. Order",
+                key: "return_number",
+                label: "No. Pengembalian",
                 sortable: true,
-                template: "so_number",
+                template: "return_number",
             },
             {
                 key: "customer",
@@ -225,14 +243,14 @@ export default {
                 template: "customer",
             },
             {
-                key: "so_date",
-                label: "Tanggal Order",
-                sortable: true,
-                template: "date",
+                key: "invoice",
+                label: "No. Faktur",
+                sortable: false,
+                template: "invoice",
             },
             {
-                key: "expected_delivery",
-                label: "Pengiriman",
+                key: "return_date",
+                label: "Tanggal",
                 sortable: true,
                 template: "date",
             },
@@ -243,15 +261,14 @@ export default {
                 template: "status",
             },
             {
-                key: "total_amount",
-                label: "Total",
-                sortable: true,
-                template: "total",
+                key: "return_reason",
+                label: "Alasan",
+                sortable: false,
             },
         ];
 
-        // Fetch orders
-        const fetchOrders = async () => {
+        // Fetch returns
+        const fetchReturns = async () => {
             isLoading.value = true;
 
             try {
@@ -272,18 +289,22 @@ export default {
                     params.date_range = dateRangeFilter.value;
                 }
 
-                const response = await axios.get("/orders", {
-                    params,
-                });
+                const response = await SalesReturnService.getReturns(params);
+                returns.value = response.data;
 
-                orders.value = response.data.data;
-                totalItems.value =
-                    response.data.meta?.total || orders.value.length;
-                totalPages.value =
-                    response.data.meta?.last_page ||
-                    Math.ceil(totalItems.value / itemsPerPage.value);
+                // Set pagination data if available in response
+                if (response.meta) {
+                    totalItems.value = response.meta.total;
+                    totalPages.value = response.meta.last_page;
+                } else {
+                    // If no pagination from API, calculate locally
+                    totalItems.value = returns.value.length;
+                    totalPages.value = Math.ceil(
+                        totalItems.value / itemsPerPage.value
+                    );
+                }
             } catch (error) {
-                console.error("Error fetching sales orders:", error);
+                console.error("Error fetching sales returns:", error);
                 alert("Terjadi kesalahan saat memuat data. Silakan coba lagi.");
             } finally {
                 isLoading.value = false;
@@ -293,7 +314,7 @@ export default {
         // Filters and pagination methods
         const handleSearch = () => {
             currentPage.value = 1;
-            fetchOrders();
+            fetchReturns();
         };
 
         const clearSearch = () => {
@@ -303,35 +324,35 @@ export default {
 
         const applyFilters = () => {
             currentPage.value = 1;
-            fetchOrders();
+            fetchReturns();
         };
 
         const handleSort = (sortData) => {
             sortKey.value = sortData.key;
             sortOrder.value = sortData.order;
-            fetchOrders();
+            fetchReturns();
         };
 
         const goToPage = (page) => {
             currentPage.value = page;
-            fetchOrders();
+            fetchReturns();
         };
 
         // CRUD operations
-        const createOrder = () => {
-            router.push("/sales/orders/create");
+        const createReturn = () => {
+            router.push("/sales/returns/create");
         };
 
-        const viewOrder = (order) => {
-            router.push(`/sales/orders/${order.so_id}`);
+        const viewReturn = (item) => {
+            router.push(`/sales/returns/${item.return_id}`);
         };
 
-        const editOrder = (order) => {
-            router.push(`/sales/orders/${order.so_id}/edit`);
+        const editReturn = (item) => {
+            router.push(`/sales/returns/${item.return_id}/edit`);
         };
 
-        const confirmDelete = (order) => {
-            orderToDelete.value = order;
+        const confirmDelete = (item) => {
+            returnToDelete.value = item;
             showDeleteModal.value = true;
         };
 
@@ -339,18 +360,47 @@ export default {
             showDeleteModal.value = false;
         };
 
-        const deleteOrder = async () => {
+        const deleteReturn = async () => {
             try {
-                await axios.delete(`/orders/${orderToDelete.value.so_id}`);
-                fetchOrders(); // Refresh list after delete
+                await SalesReturnService.deleteReturn(
+                    returnToDelete.value.return_id
+                );
+                fetchReturns(); // Refresh list after delete
                 showDeleteModal.value = false;
-                alert("Order berhasil dihapus");
+                alert("Pengembalian berhasil dihapus");
             } catch (error) {
-                console.error("Error deleting order:", error);
+                console.error("Error deleting return:", error);
                 if (error.response?.data?.message) {
                     alert(error.response.data.message);
                 } else {
-                    alert("Terjadi kesalahan saat menghapus order");
+                    alert("Terjadi kesalahan saat menghapus pengembalian");
+                }
+            }
+        };
+
+        const confirmProcess = (item) => {
+            returnToProcess.value = item;
+            showProcessModal.value = true;
+        };
+
+        const closeProcessModal = () => {
+            showProcessModal.value = false;
+        };
+
+        const processReturn = async () => {
+            try {
+                await SalesReturnService.processReturn(
+                    returnToProcess.value.return_id
+                );
+                fetchReturns(); // Refresh list after processing
+                showProcessModal.value = false;
+                alert("Pengembalian berhasil diproses");
+            } catch (error) {
+                console.error("Error processing return:", error);
+                if (error.response?.data?.message) {
+                    alert(error.response.data.message);
+                } else {
+                    alert("Terjadi kesalahan saat memproses pengembalian");
                 }
             }
         };
@@ -366,30 +416,16 @@ export default {
             });
         };
 
-        const formatCurrency = (value) => {
-            return new Intl.NumberFormat("id-ID", {
-                style: "currency",
-                currency: "IDR",
-                minimumFractionDigits: 0,
-            }).format(value || 0);
-        };
-
         const getStatusLabel = (status) => {
             switch (status) {
-                case "Draft":
-                    return "Draft";
-                case "Confirmed":
-                    return "Dikonfirmasi";
-                case "Processing":
+                case "Pending":
+                    return "Pending";
+                case "Processed":
                     return "Diproses";
-                case "Shipped":
-                    return "Dikirim";
-                case "Delivered":
-                    return "Terkirim";
-                case "Invoiced":
-                    return "Difakturkan";
-                case "Closed":
+                case "Completed":
                     return "Selesai";
+                case "Cancelled":
+                    return "Dibatalkan";
                 default:
                     return status;
             }
@@ -397,44 +433,35 @@ export default {
 
         const getStatusClass = (status) => {
             switch (status) {
-                case "Draft":
-                    return "status-draft";
-                case "Confirmed":
-                    return "status-confirmed";
-                case "Processing":
-                    return "status-processing";
-                case "Shipped":
-                    return "status-shipped";
-                case "Delivered":
-                    return "status-delivered";
-                case "Invoiced":
-                    return "status-invoiced";
-                case "Closed":
-                    return "status-closed";
+                case "Pending":
+                    return "status-pending";
+                case "Processed":
+                    return "status-processed";
+                case "Completed":
+                    return "status-completed";
+                case "Cancelled":
+                    return "status-cancelled";
                 default:
                     return "";
             }
         };
 
-        const canEditOrder = (order) => {
-            // Only allow edit for orders that are not delivered, invoiced or closed
-            return !["Delivered", "Invoiced", "Closed"].includes(order.status);
+        const canEditReturn = (item) => {
+            // Can only edit returns that are in pending status
+            return item.status === "Pending";
         };
 
-        const canDeleteOrder = (order) => {
-            // Only allow delete if there are no deliveries or invoices
-            return (
-                order.deliveries?.length === 0 &&
-                order.salesInvoices?.length === 0
-            );
+        const canDeleteReturn = (item) => {
+            // Can only delete returns that are not processed or completed
+            return !["Processed", "Completed"].includes(item.status);
         };
 
         onMounted(() => {
-            fetchOrders();
+            fetchReturns();
         });
 
         return {
-            orders,
+            returns,
             columns,
             isLoading,
             currentPage,
@@ -446,31 +473,35 @@ export default {
             dateRangeFilter,
             customDateRange,
             showDeleteModal,
-            orderToDelete,
+            returnToDelete,
+            showProcessModal,
+            returnToProcess,
             handleSearch,
             clearSearch,
             applyFilters,
             handleSort,
             goToPage,
-            createOrder,
-            viewOrder,
-            editOrder,
+            createReturn,
+            viewReturn,
+            editReturn,
+            confirmProcess,
+            processReturn,
+            closeProcessModal,
             confirmDelete,
             closeDeleteModal,
-            deleteOrder,
+            deleteReturn,
             formatDate,
-            formatCurrency,
             getStatusLabel,
             getStatusClass,
-            canEditOrder,
-            canDeleteOrder,
+            canEditReturn,
+            canDeleteReturn,
         };
     },
 };
 </script>
 
 <style scoped>
-.sales-orders {
+.sales-returns {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -509,7 +540,7 @@ export default {
     font-size: 0.875rem;
 }
 
-.order-number {
+.return-number {
     font-weight: 500;
     color: var(--primary-color);
 }
@@ -523,8 +554,9 @@ export default {
     font-weight: 500;
 }
 
-.order-total {
+.invoice-info {
     font-weight: 500;
+    color: var(--gray-600);
 }
 
 .status-badge {
@@ -535,39 +567,24 @@ export default {
     font-weight: 500;
 }
 
-.status-draft {
-    background-color: #e2e8f0;
-    color: #475569;
-}
-
-.status-confirmed {
-    background-color: #dbeafe;
-    color: #2563eb;
-}
-
-.status-processing {
-    background-color: #ede9fe;
-    color: #7c3aed;
-}
-
-.status-shipped {
+.status-pending {
     background-color: #fef3c7;
     color: #d97706;
 }
 
-.status-delivered {
+.status-processed {
+    background-color: #dbeafe;
+    color: #2563eb;
+}
+
+.status-completed {
     background-color: #d1fae5;
     color: #059669;
 }
 
-.status-invoiced {
-    background-color: #e0f2fe;
-    color: #0284c7;
-}
-
-.status-closed {
-    background-color: #cbd5e1;
-    color: #1e293b;
+.status-cancelled {
+    background-color: #fee2e2;
+    color: #dc2626;
 }
 
 .actions-cell {
@@ -595,6 +612,10 @@ export default {
 
 .action-btn.edit {
     color: var(--warning-color);
+}
+
+.action-btn.process {
+    color: var(--success-color);
 }
 
 .action-btn.delete {

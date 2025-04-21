@@ -51,8 +51,11 @@ import VendorEdit from "../views/purchasing/VendorEdit.vue";
 // Import components Warehouse
 import WarehouseList from "../views/inventory/WarehouseList.vue";
 import WarehouseDetail from "../views/inventory/WarehouseDetail.vue";
-import WarehouseZoneDetail from "../views/inventory/WarehouseZoneDetail.vue";
-import WarehouseLocationForm from "../views/inventory/WarehouseLocationForm.vue";
+//import WarehouseZoneDetail from "../views/inventory/WarehouseZoneDetail.vue";
+//import WarehouseLocationForm from "../views/inventory/WarehouseLocationForm.vue";
+import ZonesList from "../views/inventory/ZonesList.vue";
+import LocationsList from "../views/inventory/LocationsList.vue";
+import LocationInventory from "../views/inventory/LocationInventory.vue";
 
 // Import the Sales Return components
 import SalesReturnList from "@/views/sales/SalesReturnList.vue";
@@ -426,26 +429,26 @@ const routes = [
 
             // Warehouse zone and location management
             {
+                path: "/warehouses/:id",
+                name: "WarehouseZones",
+                component: ZonesList,
+                props: true,
+                meta: { requiresAuth: true },
+              },
+              {
                 path: "/warehouses/:warehouseId/zones/:zoneId",
-                name: "WarehouseZoneDetail",
-                component: WarehouseZoneDetail,
+                name: "WarehouseLocations",
+                component: LocationsList,
                 props: true,
                 meta: { requiresAuth: true },
-            },
-            {
-                path: "/warehouses/:warehouseId/zones/:zoneId/locations/add",
-                name: "AddWarehouseLocation",
-                component: WarehouseLocationForm,
+              },
+              {
+                path: "/warehouses/:warehouseId/zones/:zoneId/locations/:locationId/inventory",
+                name: "LocationInventory",
+                component: LocationInventory,
                 props: true,
                 meta: { requiresAuth: true },
-            },
-            {
-                path: "/warehouses/:warehouseId/zones/:zoneId/locations/:locationId/edit",
-                name: "EditWarehouseLocation",
-                component: WarehouseLocationForm,
-                props: true,
-                meta: { requiresAuth: true },
-            },
+              },
             // Admin Routes
             {
                 path: "admin/users",

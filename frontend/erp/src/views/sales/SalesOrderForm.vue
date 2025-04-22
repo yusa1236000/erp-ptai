@@ -394,6 +394,20 @@ export default {
             }
         };
 
+        // Helper function to convert snake_case keys to camelCase recursively
+        const toCamelCase = (obj) => {
+            if (Array.isArray(obj)) {
+                return obj.map(v => toCamelCase(v));
+            } else if (obj !== null && obj.constructor === Object) {
+                return Object.keys(obj).reduce((result, key) => {
+                    const camelKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+                    result[camelKey] = toCamelCase(obj[key]);
+                    return result;
+                }, {});
+            }
+            return obj;
+        };
+
         // Load order data if in edit mode
         const loadOrder = async () => {
             if (!isEditMode.value) {
@@ -407,19 +421,22 @@ export default {
 
             try {
                 const response = await axios.get(`/orders/${route.params.id}`);
-                const order = response.data.data;
+                let order = response.data.data;
+
+                // Convert order keys to camelCase
+                order = toCamelCase(order);
 
                 // Set form data
                 form.value = {
-                    so_id: order.so_id,
-                    so_number: order.so_number,
-                    so_date: order.so_date.substr(0, 10),
-                    customer_id: order.customer_id,
-                    quotation_id: order.quotation_id || "",
-                    payment_terms: order.payment_terms || "",
-                    delivery_terms: order.delivery_terms || "",
-                    expected_delivery: order.expected_delivery
-                        ? order.expected_delivery.substr(0, 10)
+                    so_id: order.soId,
+                    so_number: order.soNumber,
+                    so_date: order.soDate.substr(0, 10),
+                    customer_id: order.customerId,
+                    quotation_id: order.quotationId || "",
+                    payment_terms: order.paymentTerms || "",
+                    delivery_terms: order.deliveryTerms || "",
+                    expected_delivery: order.expectedDelivery
+                        ? order.expectedDelivery.substr(0, 10)
                         : "",
                     status: order.status,
                     lines: [],
@@ -428,11 +445,11 @@ export default {
                 // Set line items
                 if (order.salesOrderLines && order.salesOrderLines.length > 0) {
                     form.value.lines = order.salesOrderLines.map((line) => ({
-                        line_id: line.line_id,
-                        item_id: line.item_id,
-                        unit_price: line.unit_price,
+                        line_id: line.lineId,
+                        item_id: line.itemId,
+                        unit_price: line.unitPrice,
                         quantity: line.quantity,
-                        uom_id: line.uom_id,
+                        uom_id: line.uomId,
                         discount: line.discount || 0,
                         tax: line.tax || 0,
                         subtotal: line.subtotal,

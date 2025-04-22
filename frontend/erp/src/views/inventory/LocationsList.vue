@@ -192,7 +192,7 @@
   
       const fetchZone = async () => {
         try {
-          const response = await axios.get(`/api/warehouses/${warehouseId.value}/zones/${zoneId.value}`);
+          const response = await axios.get(`/warehouses/${warehouseId.value}/zones/${zoneId.value}`);
           zone.value = response.data.data;
         } catch (err) {
           console.error('Error fetching zone:', err);
@@ -205,7 +205,7 @@
         error.value = null;
         
         try {
-          const response = await axios.get(`/api/zones/${zoneId.value}/locations`);
+          const response = await axios.get(`/zones/${zoneId.value}/locations`);
           locations.value = response.data.data;
           await fetchLocationItemCounts();
         } catch (err) {
@@ -219,7 +219,7 @@
       const fetchLocationItemCounts = async () => {
         for (const location of locations.value) {
           try {
-            const response = await axios.get(`/api/zones/${zoneId.value}/locations/${location.location_id}/inventory`);
+            const response = await axios.get(`/zones/${zoneId.value}/locations/${location.location_id}/inventory`);
             locationItemCounts.value[location.location_id] = response.data.data.inventory.length || 0;
           } catch (err) {
             console.error(`Error fetching inventory for location ${location.location_id}:`, err);
@@ -258,9 +258,9 @@
         
         try {
           if (isEditing.value) {
-            await axios.put(`/api/zones/${zoneId.value}/locations/${locationToDelete.value.location_id}`, locationForm);
+            await axios.put(`/zones/${zoneId.value}/locations/${locationToDelete.value.location_id}`, locationForm);
           } else {
-            await axios.post(`/api/zones/${zoneId.value}/locations`, locationForm);
+            await axios.post(`/zones/${zoneId.value}/locations`, locationForm);
           }
           
           await fetchLocations();
@@ -284,7 +284,7 @@
         isDeleting.value = true;
         
         try {
-          await axios.delete(`/api/zones/${zoneId.value}/locations/${locationToDelete.value.location_id}`);
+          await axios.delete(`/zones/${zoneId.value}/locations/${locationToDelete.value.location_id}`);
           await fetchLocations();
           showDeleteModal.value = false;
         } catch (err) {

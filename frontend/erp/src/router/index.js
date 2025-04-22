@@ -10,7 +10,12 @@ import ItemDetail from "../views/inventory/ItemDetail.vue";
 import UnitOfMeasureList from "../views/inventory/UnitOfMeasureList.vue";
 import UnitOfMeasureDetail from "../views/inventory/UnitOfMeasureDetail.vue";
 // import WarehousesList from "../views/inventory/WarehousesList.vue";
-import StockTransactions from "../views/inventory/StockTransactions.vue";
+//import StockTransactions from "../views/inventory/StockTransactions.vue";
+import StockTransactionsList from '../views/inventory/StockTransactionsList.vue';
+import StockTransactionForm from '../views/inventory/StockTransactionForm.vue';
+import StockTransactionDetail from '../views/inventory/StockTransactionDetail.vue';
+import ItemMovementHistory from '../views/inventory/ItemMovementHistory.vue';
+import StockTransferForm from '../views/inventory/StockTransferForm.vue';
 import StockAdjustments from "../views/inventory/StockAdjustments.vue";
 import ItemCategories from "../views/inventory/ItemCategories.vue";
 import ItemCategoriesEnhanced from "../views/inventory/ItemCategoriesEnhanced.vue";
@@ -139,11 +144,38 @@ const routes = [
             // props: true
             // },
             // Stock Operations Routes
+            // {
+            //     path: "stock-transactions",
+            //     name: "StockTransactions",
+            //     component: StockTransactions,
+            // },
             {
-                path: "stock-transactions",
-                name: "StockTransactions",
-                component: StockTransactions,
-            },
+                path: '/stock-transactions',
+                name: 'StockTransactions',
+                component: StockTransactionsList
+              },
+              {
+                path: '/stock-transactions/create',
+                name: 'CreateStockTransaction',
+                component: StockTransactionForm
+              },
+              {
+                path: '/stock-transactions/:id',
+                name: 'StockTransactionDetail',
+                component: StockTransactionDetail,
+                props: true
+              },
+              {
+                path: '/stock-transactions/items/:itemId/movement',
+                name: 'ItemMovementHistory',
+                component: ItemMovementHistory,
+                props: true
+              },
+              {
+                path: '/stock-transactions/transfer',
+                name: 'StockTransfer',
+                component: StockTransferForm
+              },
             {
                 path: "/sales/customers",
                 name: "customers.index",
@@ -429,7 +461,7 @@ const routes = [
 
             // Warehouse zone and location management
             {
-                path: "/warehouses/:id",
+                path: "/warehouses/:id/zones",
                 name: "WarehouseZones",
                 component: ZonesList,
                 props: true,

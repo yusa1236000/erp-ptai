@@ -16,7 +16,7 @@ class BOM extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'product_id',
+        'item_id',
         'bom_code',
         'revision',
         'effective_date',
@@ -32,9 +32,9 @@ class BOM extends Model
     /**
      * Get the product that owns the BOM.
      */
-    public function product(): BelongsTo
+    public function item(): BelongsTo
     {
-        return $this->belongsTo(Product::class, 'product_id', 'product_id');
+        return $this->belongsTo(Item::class, 'item_id', 'item_id');
     }
 
     /**

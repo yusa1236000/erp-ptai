@@ -81,13 +81,13 @@
                     <div class="info-grid">
                         <div class="info-group">
                             <label>Nomor Order</label>
-                            <div class="info-value">{{ order.so_number }}</div>
+                            <div class="info-value">{{ order.soNumber }}</div>
                         </div>
 
                         <div class="info-group">
                             <label>Tanggal Order</label>
                             <div class="info-value">
-                                {{ formatDate(order.so_date) }}
+                                {{ formatDate(order.soDate) }}
                             </div>
                         </div>
 
@@ -152,7 +152,7 @@
                         <div class="info-group">
                             <label>Kode Pelanggan</label>
                             <div class="info-value">
-                                {{ order.customer.customer_code }}
+                                {{ order.customer.customerCode }}
                             </div>
                         </div>
 
@@ -166,14 +166,14 @@
                         <div class="info-group">
                             <label>NPWP</label>
                             <div class="info-value">
-                                {{ order.customer.tax_id || "-" }}
+                                {{ order.customer.taxId || "-" }}
                             </div>
                         </div>
 
                         <div class="info-group">
                             <label>Contact Person</label>
                             <div class="info-value">
-                                {{ order.customer.contact_person || "-" }}
+                                {{ order.customer.contactPerson || "-" }}
                             </div>
                         </div>
 
@@ -230,11 +230,11 @@
                                         </div>
                                     </td>
                                     <td class="right">
-                                        {{ formatCurrency(line.unit_price) }}
+                                        {{ formatCurrency(line.unitPrice) }}
                                     </td>
                                     <td class="right">{{ line.quantity }}</td>
                                     <td class="center">
-                                        {{ getUomSymbol(line.uom_id) }}
+                                        {{ getUomSymbol(line.uomId) }}
                                     </td>
                                     <td class="right">
                                         {{
@@ -296,7 +296,7 @@
                                         Total
                                     </td>
                                     <td colspan="2" class="totals-value">
-                                        {{ formatCurrency(order.total_amount) }}
+                                        {{ formatCurrency(order.totalAmount) }}
                                     </td>
                                 </tr>
                             </tfoot>
@@ -469,6 +469,20 @@ export default {
         const loadData = async () => {
             isLoading.value = true;
 
+            // Helper function to convert snake_case keys to camelCase recursively
+            const toCamelCase = (obj) => {
+                if (Array.isArray(obj)) {
+                    return obj.map(v => toCamelCase(v));
+                } else if (obj !== null && obj.constructor === Object) {
+                    return Object.keys(obj).reduce((result, key) => {
+                        const camelKey = key.replace(/_([a-z])/g, g => g[1].toUpperCase());
+                        result[camelKey] = toCamelCase(obj[key]);
+                        return result;
+                    }, {});
+                }
+                return obj;
+            };
+
             try {
                 // Load unit of measures for reference
                 const uomResponse = await axios.get("/unit-of-measures");
@@ -476,9 +490,9 @@ export default {
 
                 // Load order details
                 const orderResponse = await axios.get(
-                    `/orders/${route.params.id}`
+                    `orders/${route.params.id}`
                 );
-                order.value = orderResponse.data.data;
+                order.value = toCamelCase(orderResponse.data.data);
             } catch (error) {
                 console.error("Error loading order:", error);
                 order.value = null;
@@ -589,7 +603,7 @@ export default {
         };
 
         const editOrder = () => {
-            router.push(`/sales/orders/${order.value.so_id}/edit`);
+            router.push(`/sales/orders/${order.value.soId}/edit`);
         };
 
         const viewQuotation = () => {
@@ -608,7 +622,7 @@ export default {
 
         // Print order
         const printOrder = () => {
-            router.push(`/sales/orders/${order.value.so_id}/print`);
+            router.push(`/sales/orders/${order.value.soId}/print`);
         };
 
         // Confirm order
@@ -620,12 +634,30 @@ export default {
             showConfirmModal.value = false;
         };
 
-        const confirmOrderAction = async () => {
+const confirmOrderAction = async () => {
             try {
-                await axios.put(`/sales/orders/${order.value.so_id}`, {
-                    ...order.value,
+                // Mapping data ke format backend (snake_case dan nama field sesuai)
+                const payload = {
+                    so_number: order.value.soNumber,
+                    so_date: order.value.soDate,
+                    customer_id: order.value.customer.customerId,
+                    quotation_id: order.value.quotationId || null,
+                    payment_terms: order.value.paymentTerms || null,
+                    delivery_terms: order.value.deliveryTerms || null,
+                    expected_delivery: order.value.expectedDelivery || null,
                     status: "Confirmed",
-                });
+                    lines: order.value.salesOrderLines.map(line => ({
+                        line_id: line.lineId || null,
+                        item_id: line.item.itemId,
+                        unit_price: line.unitPrice,
+                        quantity: line.quantity,
+                        uom_id: line.uomId,
+                        discount: line.discount || 0,
+                        tax: line.tax || 0
+                    }))
+                };
+
+                await axios.put(`orders/${order.value.soId}`, payload);
 
                 // Reload the order to get the updated data
                 loadData();
@@ -641,13 +673,13 @@ export default {
         // Create a delivery
         const createDelivery = () => {
             router.push(
-                `/sales/deliveries/create?order_id=${order.value.so_id}`
+                `/sales/deliveries/create?order_id=${order.value.soId}`
             );
         };
 
         // Create an invoice
         const createInvoice = () => {
-            router.push(`/sales/invoices/create?order_id=${order.value.so_id}`);
+            router.push(`/sales/invoices/create?order_id=${order.value.soId}`);
         };
 
         onMounted(() => {

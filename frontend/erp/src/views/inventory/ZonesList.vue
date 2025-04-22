@@ -193,7 +193,7 @@
   
       const fetchWarehouse = async () => {
         try {
-          const response = await axios.get(`/api/warehouses/${warehouseId.value}`);
+          const response = await axios.get(`/warehouses/${warehouseId.value}`);
           warehouse.value = response.data.data;
         } catch (err) {
           console.error('Error fetching warehouse:', err);
@@ -206,7 +206,7 @@
         error.value = null;
         
         try {
-          const response = await axios.get(`/api/warehouses/${warehouseId.value}/zones`);
+          const response = await axios.get(`/warehouses/${warehouseId.value}/zones`);
           zones.value = response.data.data;
         } catch (err) {
           console.error('Error fetching zones:', err);
@@ -248,9 +248,9 @@
         
         try {
           if (isEditing.value) {
-            await axios.put(`/api/warehouses/${warehouseId.value}/zones/${zoneToDelete.value.zone_id}`, zoneForm);
+            await axios.put(`/warehouses/${warehouseId.value}/zones/${zoneToDelete.value.zone_id}`, zoneForm);
           } else {
-            await axios.post(`/api/warehouses/${warehouseId.value}/zones`, zoneForm);
+            await axios.post(`/warehouses/${warehouseId.value}/zones`, zoneForm);
           }
           
           await fetchZones();
@@ -275,7 +275,7 @@
         isDeleting.value = true;
         
         try {
-          await axios.delete(`/api/warehouses/${warehouseId.value}/zones/${zoneToDelete.value.zone_id}`);
+          await axios.delete(`/warehouses/${warehouseId.value}/zones/${zoneToDelete.value.zone_id}`);
           await fetchZones();
           showDeleteModal.value = false;
         } catch (err) {

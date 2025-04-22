@@ -237,7 +237,7 @@
         
         try {
           // Fetch location details
-          const locationResponse = await axios.get(`/api/zones/${zoneId.value}/locations/${locationId.value}/inventory`);
+          const locationResponse = await axios.get(`/zones/${zoneId.value}/locations/${locationId.value}/inventory`);
           location.value = locationResponse.data.data.location;
           zone.value = locationResponse.data.data.zone;
           warehouse.value = locationResponse.data.data.warehouse;
@@ -327,7 +327,7 @@
             reference_number: adjustmentForm.reference || null
           };
           
-          await axios.post(`/api/items/${selectedItem.value.item_id}/update-stock`, payload);
+          await axios.post(`/items/${selectedItem.value.item_id}/update-stock`, payload);
           
           // Refresh inventory data
           await fetchLocationData();

@@ -12,7 +12,7 @@
             <button class="btn-secondary" @click="editWarehouse" v-if="warehouse">
               <i class="fas fa-edit mr-2"></i> Edit Details
             </button>
-            <router-link :to="`/warehouses/${warehouseId}`" class="btn-primary">
+            <router-link :to="`/warehouses/${warehouseId}/zones`" class="btn-primary">
               <i class="fas fa-map mr-2"></i> Manage Zones
             </router-link>
           </div>
@@ -98,7 +98,7 @@
       <div class="details-card">
         <div class="card-header">
           <h3 class="card-title">Warehouse Structure</h3>
-          <router-link :to="`/warehouses/${warehouseId}`" class="btn-text">
+          <router-link :to="`/warehouses/${warehouseId}/zones`" class="btn-text">
             <i class="fas fa-external-link-alt mr-1"></i> Manage Zones
           </router-link>
         </div>
@@ -126,7 +126,7 @@
 
           <div v-if="zonesCount === 0" class="empty-zones-message">
             <p>This warehouse doesn't have any zones yet.</p>
-            <router-link :to="`/warehouses/${warehouseId}`" class="btn-primary btn-sm mt-2">
+            <router-link :to="`/warehouses/${warehouseId}/zones`" class="btn-primary btn-sm mt-2">
               <i class="fas fa-plus-circle mr-1"></i> Add Zones
             </router-link>
           </div>

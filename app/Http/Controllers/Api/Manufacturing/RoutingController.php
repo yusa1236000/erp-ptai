@@ -17,7 +17,7 @@ class RoutingController extends Controller
      */
     public function index()
     {
-        $routings = Routing::with(['product'])->get();
+        $routings = Routing::with(['item'])->get();
         return response()->json(['data' => $routings]);
     }
 
@@ -30,7 +30,7 @@ class RoutingController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'product_id' => 'required|integer|exists:Product,product_id',
+            'item_id' => 'required|integer|exists:items,item_id',
             'routing_code' => 'required|string|max:50',
             'revision' => 'required|string|max:10',
             'effective_date' => 'required|date',
@@ -53,7 +53,7 @@ class RoutingController extends Controller
         DB::beginTransaction();
         try {
             $routing = Routing::create([
-                'product_id' => $request->product_id,
+                'item_id' => $request->item_id,
                 'routing_code' => $request->routing_code,
                 'revision' => $request->revision,
                 'effective_date' => $request->effective_date,
@@ -96,7 +96,7 @@ class RoutingController extends Controller
      */
     public function show($id)
     {
-        $routing = Routing::with(['product', 'routingOperations.workCenter', 'routingOperations.unitOfMeasure'])->find($id);
+        $routing = Routing::with(['item', 'routingOperations.workCenter', 'routingOperations.unitOfMeasure'])->find($id);
         
         if (!$routing) {
             return response()->json(['message' => 'Routing not found'], 404);
@@ -121,7 +121,7 @@ class RoutingController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'product_id' => 'sometimes|required|integer|exists:Product,product_id',
+            'item_id' => 'sometimes|required|integer|exists:items,item_id',
             'routing_code' => 'sometimes|required|string|max:50',
             'revision' => 'sometimes|required|string|max:10',
             'effective_date' => 'sometimes|required|date',

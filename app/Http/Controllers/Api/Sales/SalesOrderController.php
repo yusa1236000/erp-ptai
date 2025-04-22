@@ -250,22 +250,114 @@ class SalesOrderController extends Controller
             return response()->json(['message' => 'Cannot update a ' . $order->status . ' sales order'], 400);
         }
 
-        $validator = Validator::make($request->all(), [
+        $validatorRules = [
             'so_number' => 'required|unique:SalesOrder,so_number,' . $id . ',so_id',
             'so_date' => 'required|date',
             'customer_id' => 'required|exists:Customer,customer_id',
             'payment_terms' => 'nullable|string',
             'delivery_terms' => 'nullable|string',
             'expected_delivery' => 'nullable|date',
-            'status' => 'required|string|max:50'
-        ]);
+            'status' => 'required|string|max:50',
+            'lines' => 'required|array',
+            'lines.*.item_id' => 'required|exists:items,item_id',
+            'lines.*.unit_price' => 'required|numeric|min:0',
+            'lines.*.quantity' => 'required|numeric|min:0',
+            'lines.*.uom_id' => 'required|exists:unit_of_measures,uom_id',
+            'lines.*.discount' => 'nullable|numeric|min:0',
+            'lines.*.tax' => 'nullable|numeric|min:0',
+        ];
+
+        $validator = Validator::make($request->all(), $validatorRules);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $order->update($request->all());
-        return response()->json(['data' => $order, 'message' => 'Sales order updated successfully'], 200);
+        try {
+            DB::beginTransaction();
+
+            // Update main order fields
+            $order->update($request->only([
+                'so_number',
+                'so_date',
+                'customer_id',
+                'payment_terms',
+                'delivery_terms',
+                'expected_delivery',
+                'status'
+            ]));
+
+            $existingLineIds = $order->salesOrderLines()->pluck('line_id')->toArray();
+            $receivedLineIds = [];
+
+            $totalAmount = 0;
+            $taxAmount = 0;
+
+            foreach ($request->lines as $line) {
+                $subtotal = $line['unit_price'] * $line['quantity'];
+                $discount = $line['discount'] ?? 0;
+                $tax = $line['tax'] ?? 0;
+                $total = $subtotal - $discount + $tax;
+
+                if (isset($line['line_id']) && in_array($line['line_id'], $existingLineIds)) {
+                    // Update existing line
+                    $orderLine = SOLine::find($line['line_id']);
+                    $orderLine->update([
+                        'item_id' => $line['item_id'],
+                        'unit_price' => $line['unit_price'],
+                        'quantity' => $line['quantity'],
+                        'uom_id' => $line['uom_id'],
+                        'discount' => $discount,
+                        'subtotal' => $subtotal,
+                        'tax' => $tax,
+                        'total' => $total,
+                    ]);
+                    $receivedLineIds[] = $line['line_id'];
+                } else {
+                    // Create new line
+                    $newLine = SOLine::create([
+                        'so_id' => $order->so_id,
+                        'item_id' => $line['item_id'],
+                        'unit_price' => $line['unit_price'],
+                        'quantity' => $line['quantity'],
+                        'uom_id' => $line['uom_id'],
+                        'discount' => $discount,
+                        'subtotal' => $subtotal,
+                        'tax' => $tax,
+                        'total' => $total,
+                    ]);
+                    $receivedLineIds[] = $newLine->line_id;
+                }
+
+                $totalAmount += $total;
+                $taxAmount += $tax;
+            }
+
+            // Delete lines that were removed
+            $linesToDelete = array_diff($existingLineIds, $receivedLineIds);
+            if (!empty($linesToDelete)) {
+                SOLine::whereIn('line_id', $linesToDelete)->delete();
+            }
+
+            // Update order totals
+            $order->update([
+                'total_amount' => $totalAmount,
+                'tax_amount' => $taxAmount,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'data' => $order->load('salesOrderLines'),
+                'message' => 'Sales order updated successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to update sales order',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

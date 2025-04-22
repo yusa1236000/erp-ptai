@@ -404,4 +404,17 @@ class StockTransactionController extends Controller
             ], 500);
         }
     }
+    public function getWarehouseTransactions($warehouseId)
+    {
+        // Implementasi untuk mendapatkan transaksi berdasarkan warehouse
+        $transactions = StockTransaction::where('warehouse_id', $warehouseId)
+                        ->with(['item', 'warehouse', 'location', 'batch'])
+                        ->orderBy('transaction_date', 'desc')
+                        ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $transactions
+        ]);
+    }
 }

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Item; // Tambahkan import ini
+use App\Models\UnitOfMeasure; // Tambahkan import ini
 
 class BOM extends Model
 {
@@ -30,7 +32,7 @@ class BOM extends Model
     ];
 
     /**
-     * Get the product that owns the BOM.
+     * Get the item that owns the BOM.
      */
     public function item(): BelongsTo
     {

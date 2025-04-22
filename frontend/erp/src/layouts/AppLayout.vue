@@ -587,7 +587,7 @@ export default {
                     return "Warehouses";
                 case "StockTransactions":
                     return "Stock Transactions";
-                case "StockAdjustments":
+                case "StockAdjustmentsList":
                     return "Stock Adjustments";
                 case "CycleCounting":
                     return "Cycle Counting";

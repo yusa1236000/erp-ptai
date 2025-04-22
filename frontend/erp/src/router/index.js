@@ -14,9 +14,13 @@ import UnitOfMeasureDetail from "../views/inventory/UnitOfMeasureDetail.vue";
 import StockTransactionsList from '../views/inventory/StockTransactionsList.vue';
 import StockTransactionForm from '../views/inventory/StockTransactionForm.vue';
 import StockTransactionDetail from '../views/inventory/StockTransactionDetail.vue';
+import StockAdjustmentList from "../views/inventory/StockAdjustmentList.vue";
+import StockAdjustmentForm from "../views/inventory/StockAdjustmentForm.vue";
+import StockAdjustmentDetail from "../views/inventory/StockAdjustmentDetail.vue";
+import StockAdjustmentApproval from "../views/inventory/StockAdjustmentApproval.vue";
 import ItemMovementHistory from '../views/inventory/ItemMovementHistory.vue';
 import StockTransferForm from '../views/inventory/StockTransferForm.vue';
-import StockAdjustments from "../views/inventory/StockAdjustments.vue";
+//import StockAdjustments from "../views/inventory/StockAdjustments.vue";
 import ItemCategories from "../views/inventory/ItemCategories.vue";
 import ItemCategoriesEnhanced from "../views/inventory/ItemCategoriesEnhanced.vue";
 import CustomersList from "@/views/sales/CustomerList.vue";
@@ -67,6 +71,10 @@ import SalesReturnList from "@/views/sales/SalesReturnList.vue";
 import SalesReturnDetail from "@/views/sales/SalesReturnDetail.vue";
 import SalesReturnForm from "@/views/sales/SalesReturnForm.vue";
 
+// Add these imports at the top of your router/index.js file
+import BOMList from "../views/manufacturing/BOMList.vue";
+import BOMDetail from "../views/manufacturing/BOMDetail.vue";
+import BOMForm from "../views/manufacturing/BOMForm.vue";
 // import SalesForecastFormModal from "../views/sales/SalesForecastFormModal.vue";
 // Import other components as needed
 
@@ -202,11 +210,44 @@ const routes = [
                 props: true,
                 meta: { requiresAuth: true },
             },
+            // {
+            //     path: "stock-adjustments",
+            //     name: "StockAdjustments",
+            //     component: StockAdjustments,
+            // },
             {
                 path: "stock-adjustments",
                 name: "StockAdjustments",
-                component: StockAdjustments,
-            },
+                component: StockAdjustmentList,
+                meta: { requiresAuth: true }
+              },
+              {
+                path: "stock-adjustments/create",
+                name: "CreateStockAdjustment",
+                component: StockAdjustmentForm,
+                meta: { requiresAuth: true }
+              },
+              {
+                path: "stock-adjustments/:id",
+                name: "StockAdjustmentDetail",
+                component: StockAdjustmentDetail,
+                props: true,
+                meta: { requiresAuth: true }
+              },
+              {
+                path: "stock-adjustments/:id/edit",
+                name: "EditStockAdjustment",
+                component: StockAdjustmentForm,
+                props: true,
+                meta: { requiresAuth: true }
+              },
+              {
+                path: "stock-adjustments/:id/approve",
+                name: "ApproveStockAdjustment",
+                component: StockAdjustmentApproval,
+                props: true,
+                meta: { requiresAuth: true }
+              },
             {
                 path: "/sales/quotations",
                 name: "SalesQuotations",
@@ -418,6 +459,32 @@ const routes = [
             // component: () => import('../views/reports/MovementReport.vue')
             // },
             // Add these routes within the children array of the AppLayout route
+            {
+                path: "/manufacturing/boms",
+                name: "BOMList",
+                component: BOMList,
+                meta: { requiresAuth: true }
+              },
+              {
+                path: "/manufacturing/boms/create",
+                name: "CreateBOM",
+                component: BOMForm,
+                meta: { requiresAuth: true }
+              },
+              {
+                path: "/manufacturing/boms/:id",
+                name: "BOMDetail",
+                component: BOMDetail,
+                props: true,
+                meta: { requiresAuth: true }
+              },
+              {
+                path: "/manufacturing/boms/:id/edit",
+                name: "EditBOM",
+                component: BOMForm,
+                props: true,
+                meta: { requiresAuth: true }
+              },
             {
                 path: "purchasing/vendors",
                 name: "VendorList",

@@ -1,419 +1,279 @@
 <!-- src/views/manufacturing/BOMList.vue -->
 <template>
-    <div class="bom-list">
-      <div class="page-header">
-        <h1>Bills of Materials</h1>
-        <button class="btn btn-primary" @click="openCreateModal">
-          <i class="fas fa-plus"></i> Create New BOM
-        </button>
+  <div class="bom-list">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="card-title">Bill of Materials</h2>
+        
+        <SearchFilter 
+          v-model:value="searchTerm" 
+          placeholder="Search by BOM code or product name"
+          @search="loadBOMs"
+          @clear="resetSearch"
+        >
+          <template #filters>
+            <div class="filter-group">
+              <label for="status-filter">Status</label>
+              <select id="status-filter" v-model="filters.status" @change="loadBOMs">
+                <option value="">All Statuses</option>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="obsolete">Obsolete</option>
+              </select>
+            </div>
+          </template>
+          
+          <template #actions>
+            <router-link to="/manufacturing/boms/create" class="btn btn-primary">
+              <i class="fas fa-plus mr-2"></i> New BOM
+            </router-link>
+          </template>
+        </SearchFilter>
+        
+        <div class="table-container">
+          <DataTable
+            :columns="columns"
+            :items="boms"
+            :is-loading="isLoading"
+            :empty-title="'No BOMs Found'"
+            :empty-message="'No bill of materials match your search criteria.'"
+            :initial-sort-key="'bom_code'"
+            @sort="handleSort"
+            keyField="bom_id"
+          >
+            <template #status="{ value }">
+              <span :class="getStatusBadgeClass(value)">{{ value }}</span>
+            </template>
+            
+            <template #effective_date="{ value }">
+              {{ formatDate(value) }}
+            </template>
+            
+            <template #actions="{ item }">
+              <div class="btn-group">
+                <router-link :to="`/manufacturing/boms/${item.bom_id}`" class="btn btn-sm btn-secondary">
+                  <i class="fas fa-eye"></i>
+                </router-link>
+                <router-link :to="`/manufacturing/boms/${item.bom_id}/edit`" class="btn btn-sm btn-primary">
+                  <i class="fas fa-edit"></i>
+                </router-link>
+                <button @click="confirmDelete(item)" class="btn btn-sm btn-danger">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </template>
+          </DataTable>
+        </div>
+        
+        <div class="mt-4">
+          <PaginationComponent
+            :current-page="currentPage"
+            :total-pages="totalPages"
+            :from="from"
+            :to="to"
+            :total="total"
+            @page-changed="handlePageChange"
+          />
+        </div>
       </div>
-  
-      <!-- Search and Filter -->
-      <SearchFilter
-        v-model:value="searchQuery"
-        placeholder="Search BOMs..."
-        @search="applyFilters"
-        @clear="clearSearch"
-      >
-        <template #filters>
-          <div class="filter-group">
-            <label for="statusFilter">Status</label>
-            <select id="statusFilter" v-model="filters.status" @change="applyFilters">
-              <option value="">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Draft">Draft</option>
-              <option value="Obsolete">Obsolete</option>
-            </select>
-          </div>
-        </template>
-      </SearchFilter>
-  
-      <!-- DataTable -->
-      <DataTable
-        :columns="columns"
-        :items="filteredBOMs"
-        :is-loading="isLoading"
-        keyField="bom_id"
-        emptyIcon="fas fa-clipboard-list"
-        emptyTitle="No BOMs found"
-        emptyMessage="No BOMs match your search criteria or no BOMs have been created yet."
-        @sort="handleSort"
-      >
-        <template #status="{ value }">
-          <span class="status-badge" :class="getStatusClass(value)">
-            {{ value }}
-          </span>
-        </template>
-  
-        <template #date="{ value }">
-          {{ formatDate(value) }}
-        </template>
-  
-        <template #actions="{ item }">
-          <button class="action-btn" title="View BOM Details" @click="viewBOM(item)">
-            <i class="fas fa-eye"></i>
-          </button>
-          <button class="action-btn" title="Edit BOM" @click="editBOM(item)">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="action-btn" title="Delete BOM" @click="confirmDelete(item)">
-            <i class="fas fa-trash"></i>
-          </button>
-        </template>
-      </DataTable>
-  
-      <!-- Pagination -->
-      <PaginationComponent
-        v-if="totalItems > 0"
-        :current-page="currentPage"
-        :total-pages="totalPages"
-        :from="(currentPage - 1) * perPage + 1"
-        :to="Math.min(currentPage * perPage, totalItems)"
-        :total="totalItems"
-        @page-changed="changePage"
-      />
-  
-      <!-- BOM Form Modal -->
-      <BOMFormModal
-        v-if="showBOMModal"
-        :is-edit-mode="isEditMode"
-        :bom-data="currentBOM"
-        @close="closeBOMModal"
-        @save="saveBOM"
-      />
-  
-      <!-- Delete Confirmation Modal -->
-      <ConfirmationModal
-        v-if="showDeleteModal"
-        title="Confirm Delete"
-        :message="`Are you sure you want to delete BOM <strong>${bomToDelete.bom_code}</strong>?<br>This action cannot be undone.`"
-        confirm-button-text="Delete"
-        confirm-button-class="btn btn-danger"
-        @confirm="deleteBOM"
-        @close="closeDeleteModal"
-      />
     </div>
-  </template>
-  
-  <script>
-  import { ref, computed, onMounted, reactive } from 'vue';
-  import { useRouter } from 'vue-router';
-  import BOMService from '@/services/BOMService';
-  import BOMFormModal from '@/components/manufacturing/BOMFormModal.vue';
-  
-  export default {
-    name: 'BOMList',
-    components: {
-      BOMFormModal
-    },
-    setup() {
-      const router = useRouter();
-      const boms = ref([]);
-      const isLoading = ref(true);
-      const searchQuery = ref('');
-      const sortKey = ref('bom_code');
-      const sortOrder = ref('asc');
-      const currentPage = ref(1);
-      const perPage = ref(10);
-      const totalItems = ref(0);
-      const totalPages = ref(1);
-  
-      const filters = reactive({
-        status: ''
-      });
-  
-      // Modals
-      const showBOMModal = ref(false);
-      const showDeleteModal = ref(false);
-      const isEditMode = ref(false);
-      const currentBOM = ref({});
-      const bomToDelete = ref({});
-  
-      // Table columns
-      const columns = ref([
-        { key: 'bom_code', label: 'BOM Code', sortable: true },
-        { key: 'product.name', label: 'Product', sortable: true },
-        { key: 'revision', label: 'Revision', sortable: true },
-        { key: 'effective_date', label: 'Effective Date', sortable: true, template: 'date' },
-        { key: 'status', label: 'Status', sortable: true, template: 'status' },
-      ]);
-  
-      const fetchBOMs = async () => {
-        isLoading.value = true;
-        try {
-          const response = await BOMService.getBOMs({
+    
+    <!-- Delete Confirmation Modal -->
+    <ConfirmationModal
+      v-if="showDeleteModal"
+      title="Delete BOM"
+      :message="`Are you sure you want to delete BOM <strong>${bomToDelete?.bom_code}</strong>?<br>This action cannot be undone.`"
+      confirm-button-text="Delete"
+      confirm-button-class="btn btn-danger"
+      @confirm="deleteBOM"
+      @close="cancelDelete"
+    />
+  </div>
+</template>
+
+<script>
+import { ref, reactive, onMounted } from 'vue';
+import axios from 'axios';
+import DataTable from '@/components/common/DataTable.vue';
+
+export default {
+  name: 'BOMList',
+  components: {
+    DataTable
+  },
+  setup() {
+    const boms = ref([]);
+    const isLoading = ref(true);
+    const searchTerm = ref('');
+    const filters = reactive({
+      status: ''
+    });
+    
+    // Pagination
+    const currentPage = ref(1);
+    const totalPages = ref(1);
+    const from = ref(0);
+    const to = ref(0);
+    const total = ref(0);
+    const perPage = ref(10);
+    
+    // Sorting
+    const sortField = ref('bom_code');
+    const sortOrder = ref('asc');
+    
+    // Delete modal
+    const showDeleteModal = ref(false);
+    const bomToDelete = ref(null);
+    
+    const columns = [
+      { key: 'bom_code', label: 'BOM Code', sortable: true },
+      { key: 'item.name', label: 'Item', sortable: true },
+      { key: 'revision', label: 'Revision', sortable: true },
+      { key: 'effective_date', label: 'Effective Date', sortable: true, template: 'effective_date' },
+      { key: 'status', label: 'Status', sortable: true, template: 'status', class: 'text-center' },
+      { key: 'actions', label: 'Actions', template: 'actions', class: 'text-right' }
+    ];
+    
+    const loadBOMs = async () => {
+      isLoading.value = true;
+      
+      try {
+        const response = await axios.get('/boms', {
+          params: {
             page: currentPage.value,
             per_page: perPage.value,
-            sort_by: sortKey.value,
-            sort_order: sortOrder.value,
-            search: searchQuery.value,
-            status: filters.status
-          });
-  
-          boms.value = response.data || [];
-          totalItems.value = response.meta?.total || boms.value.length;
-          totalPages.value = response.meta?.last_page || 1;
-        } catch (error) {
-          console.error('Error fetching BOMs:', error);
-          // Use mock data for demo purposes
-          setTimeout(() => {
-            boms.value = [
-              {
-                bom_id: 1,
-                bom_code: 'BOM001',
-                product: { product_id: 1, name: 'Laptop Model X' },
-                revision: '1.0',
-                effective_date: '2025-01-15',
-                status: 'Active',
-                standard_quantity: 1,
-                unitOfMeasure: { name: 'Each', symbol: 'EA' }
-              },
-              {
-                bom_id: 2,
-                bom_code: 'BOM002',
-                product: { product_id: 2, name: 'Smartphone Y Pro' },
-                revision: '2.1',
-                effective_date: '2025-02-10',
-                status: 'Active',
-                standard_quantity: 1,
-                unitOfMeasure: { name: 'Each', symbol: 'EA' }
-              },
-              {
-                bom_id: 3,
-                bom_code: 'BOM003',
-                product: { product_id: 3, name: 'Mechanical Keyboard' },
-                revision: '1.2',
-                effective_date: '2025-03-05',
-                status: 'Draft',
-                standard_quantity: 1,
-                unitOfMeasure: { name: 'Each', symbol: 'EA' }
-              }
-            ];
-            totalItems.value = 3;
-            totalPages.value = 1;
-          }, 300);
-        } finally {
-          isLoading.value = false;
-        }
-      };
-  
-      // Computed properties
-      const filteredBOMs = computed(() => {
-        return boms.value;
-      });
-  
-      // Methods
-      const applyFilters = () => {
-        currentPage.value = 1;
-        fetchBOMs();
-      };
-  
-      const clearSearch = () => {
-        searchQuery.value = '';
-        applyFilters();
-      };
-  
-      const handleSort = ({ key, order }) => {
-        sortKey.value = key;
-        sortOrder.value = order;
-        fetchBOMs();
-      };
-  
-      const changePage = (page) => {
-        currentPage.value = page;
-        fetchBOMs();
-      };
-  
-      const formatDate = (dateString) => {
-        if (!dateString) return '-';
-        
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        });
-      };
-  
-      const getStatusClass = (status) => {
-        switch (status) {
-          case 'Active':
-            return 'status-active';
-          case 'Draft':
-            return 'status-draft';
-          case 'Obsolete':
-            return 'status-obsolete';
-          default:
-            return '';
-        }
-      };
-  
-      const viewBOM = (bom) => {
-        router.push(`/manufacturing/boms/${bom.bom_id}`);
-      };
-  
-      const openCreateModal = () => {
-        isEditMode.value = false;
-        currentBOM.value = {
-          product_id: '',
-          bom_code: '',
-          revision: '1.0',
-          effective_date: new Date().toISOString().split('T')[0],
-          status: 'Draft',
-          standard_quantity: 1,
-          uom_id: ''
-        };
-        showBOMModal.value = true;
-      };
-  
-      const editBOM = (bom) => {
-        isEditMode.value = true;
-        currentBOM.value = { ...bom };
-        showBOMModal.value = true;
-      };
-  
-      const closeBOMModal = () => {
-        showBOMModal.value = false;
-      };
-  
-      const saveBOM = async (bomData) => {
-        try {
-          if (isEditMode.value) {
-            await BOMService.updateBOM(bomData.bom_id, bomData);
-            // Find and update the BOM in the list
-            const index = boms.value.findIndex(b => b.bom_id === bomData.bom_id);
-            if (index !== -1) {
-              boms.value[index] = { ...boms.value[index], ...bomData };
-            }
-          } else {
-            const response = await BOMService.createBOM(bomData);
-            // For demo, just refresh the list
-            fetchBOMs();
+            search: searchTerm.value,
+            status: filters.status,
+            sort_field: sortField.value,
+            sort_order: sortOrder.value
           }
-          closeBOMModal();
-        } catch (error) {
-          console.error('Error saving BOM:', error);
-          alert('Failed to save BOM. Please try again.');
+        });
+        
+        boms.value = response.data.data;
+        
+        // Update pagination
+        const meta = response.data.meta;
+        currentPage.value = meta.current_page;
+        totalPages.value = meta.last_page;
+        from.value = (meta.current_page - 1) * meta.per_page + 1;
+        to.value = Math.min(meta.current_page * meta.per_page, meta.total);
+        total.value = meta.total;
+      } catch (error) {
+        console.error('Error loading BOMs:', error);
+      } finally {
+        isLoading.value = false;
+      }
+    };
+    
+    const resetSearch = () => {
+      searchTerm.value = '';
+      loadBOMs();
+    };
+    
+    const handlePageChange = (page) => {
+      currentPage.value = page;
+      loadBOMs();
+    };
+    
+    const handleSort = ({ key, order }) => {
+      sortField.value = key;
+      sortOrder.value = order;
+      loadBOMs();
+    };
+    
+    const getStatusBadgeClass = (status) => {
+      const classes = 'badge ';
+      switch (status.toLowerCase()) {
+        case 'draft': return classes + 'badge-secondary';
+        case 'active': return classes + 'badge-success';
+        case 'inactive': return classes + 'badge-warning';
+        case 'obsolete': return classes + 'badge-danger';
+        default: return classes + 'badge-secondary';
+      }
+    };
+    
+    const formatDate = (dateString) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    };
+    
+    const confirmDelete = (bom) => {
+      bomToDelete.value = bom;
+      showDeleteModal.value = true;
+    };
+    
+    const cancelDelete = () => {
+      bomToDelete.value = null;
+      showDeleteModal.value = false;
+    };
+    
+    const deleteBOM = async () => {
+      if (!bomToDelete.value) return;
+      
+      try {
+        await axios.delete(`/boms/${bomToDelete.value.bom_id}`);
+        loadBOMs();
+      } catch (error) {
+        console.error('Error deleting BOM:', error);
+        
+        // Show error message if from backend
+        if (error.response && error.response.data && error.response.data.message) {
+          alert(error.response.data.message);
+        } else {
+          alert('Failed to delete BOM. It might be in use or there was a server error.');
         }
-      };
-  
-      const confirmDelete = (bom) => {
-        bomToDelete.value = bom;
-        showDeleteModal.value = true;
-      };
-  
-      const closeDeleteModal = () => {
-        showDeleteModal.value = false;
-      };
-  
-      const deleteBOM = async () => {
-        try {
-          await BOMService.deleteBOM(bomToDelete.value.bom_id);
-          // Remove BOM from the list
-          boms.value = boms.value.filter(b => b.bom_id !== bomToDelete.value.bom_id);
-          totalItems.value--;
-          closeDeleteModal();
-        } catch (error) {
-          console.error('Error deleting BOM:', error);
-          alert('Failed to delete BOM. It may be in use or you may not have permission.');
-          closeDeleteModal();
-        }
-      };
-  
-      onMounted(() => {
-        fetchBOMs();
-      });
-  
-      return {
-        boms,
-        columns,
-        isLoading,
-        searchQuery,
-        filters,
-        filteredBOMs,
-        currentPage,
-        perPage,
-        totalItems,
-        totalPages,
-        showBOMModal,
-        showDeleteModal,
-        isEditMode,
-        currentBOM,
-        bomToDelete,
-        applyFilters,
-        clearSearch,
-        handleSort,
-        changePage,
-        formatDate,
-        getStatusClass,
-        viewBOM,
-        openCreateModal,
-        editBOM,
-        closeBOMModal,
-        saveBOM,
-        confirmDelete,
-        closeDeleteModal,
-        deleteBOM
-      };
-    }
-  };
-  </script>
-  
-  <style scoped>
-  .bom-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+      } finally {
+        cancelDelete();
+      }
+    };
+    
+    onMounted(() => {
+      loadBOMs();
+    });
+    
+    return {
+      boms,
+      isLoading,
+      columns,
+      searchTerm,
+      filters,
+      currentPage,
+      totalPages,
+      from,
+      to,
+      total,
+      showDeleteModal,
+      bomToDelete,
+      loadBOMs,
+      resetSearch,
+      handlePageChange,
+      handleSort,
+      getStatusBadgeClass,
+      formatDate,
+      confirmDelete,
+      cancelDelete,
+      deleteBOM
+    };
   }
-  
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-  
-  .page-header h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: var(--gray-800);
-  }
-  
-  .status-badge {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-  }
-  
-  .status-active {
-    background-color: var(--success-bg);
-    color: var(--success-color);
-  }
-  
-  .status-draft {
-    background-color: var(--warning-bg);
-    color: var(--warning-color);
-  }
-  
-  .status-obsolete {
-    background-color: var(--danger-bg);
-    color: var(--danger-color);
-  }
-  
-  .action-btn {
-    background: none;
-    border: none;
-    color: var(--gray-500);
-    cursor: pointer;
-    padding: 0.25rem;
-    border-radius: 0.25rem;
-    transition: background-color 0.2s;
-  }
-  
-  .action-btn:hover {
-    background-color: var(--gray-100);
-    color: var(--gray-700);
-  }
-  </style>
+};
+</script>
+
+<style scoped>
+.badge {
+  padding: 0.5em 0.75em;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.card-title {
+  margin-bottom: 1.5rem;
+}
+
+.btn-group {
+  display: flex;
+  gap: 0.25rem;
+}
+</style>

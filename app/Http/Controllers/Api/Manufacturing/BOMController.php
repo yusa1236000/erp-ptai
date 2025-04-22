@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class BOMController extends Controller
 {
@@ -20,7 +21,7 @@ class BOMController extends Controller
      */
     public function index(Request $request)
     {
-        $query = BOM::with(['items', 'unit_of_measures']);
+        $query = BOM::with(['item', 'unitOfMeasure']);
 
         // Filtering by status
         if ($request->has('status') && $request->status !== '') {
@@ -32,7 +33,7 @@ class BOMController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('bom_code', 'like', "%{$search}%")
-                  ->orWhereHas('items', function ($q2) use ($search) {
+                  ->orWhereHas('item', function ($q2) use ($search) {
                       $q2->where('name', 'like', "%{$search}%");
                   });
             });
@@ -142,14 +143,14 @@ class BOMController extends Controller
     {
         try {
             // Try loading only main relationships first
-            $bom = BOM::with(['items', 'unit_of_measures'])->find($id);
+            $bom = BOM::with(['item', 'unitOfMeasure'])->find($id);
             
             if (!$bom) {
                 return response()->json(['message' => 'BOM not found'], 404);
             }
             
             // Load bomLines and their relations separately to isolate errors
-            $bom->load(['bomLines.items', 'bomLines.unit_of_measures']);
+            $bom->load(['bomLines.item', 'bomLines.unitOfMeasure']);
             
             return response()->json(['data' => $bom]);
         } catch (\Exception $e) {

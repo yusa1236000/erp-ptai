@@ -1,53 +1,157 @@
 <?php
 
-namespace App\Models\Manufacturing;
+namespace App\Http\Controllers\Api\Manufacturing;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Http\Controllers\Controller;
+use App\Models\Manufacturing\BOM;
+use App\Models\Manufacturing\BOMLine;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Validator;
 
-class BOMLine extends Model
+class BOMLineController extends Controller
 {
-    use HasFactory;
-
-    protected $table = 'BOMLine';
-    protected $primaryKey = 'line_id';
-    public $timestamps = false;
-
-    protected $fillable = [
-        'bom_id',
-        'item_id',
-        'quantity',
-        'uom_id',
-        'is_critical',
-        'notes',
-    ];
-
-    protected $casts = [
-        'is_critical' => 'boolean',
-    ];
-
     /**
-     * Get the BOM that owns the BOM line.
+     * Display a listing of the resource for a specific BOM.
+     *
+     * @param  int  $bomId
+     * @return \Illuminate\Http\Response
      */
-    public function bom(): BelongsTo
+    public function index($bomId)
     {
-        return $this->belongsTo(BOM::class, 'bom_id', 'bom_id');
+        $bom = BOM::find($bomId);
+        
+        if (!$bom) {
+            return response()->json(['message' => 'BOM not found'], 404);
+        }
+        
+        $bomLines = BOMLine::with(['item', 'unitOfMeasure'])
+            ->where('bom_id', $bomId)
+            ->get();
+            
+        return response()->json(['data' => $bomLines]);
     }
 
     /**
-     * Get the item that owns the BOM line.
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $bomId
+     * @return \Illuminate\Http\Response
      */
-    public function item(): BelongsTo
+    public function store(Request $request, $bomId)
     {
-        return $this->belongsTo(Item::class, 'item_id', 'item_id');
+        $bom = BOM::find($bomId);
+        
+        if (!$bom) {
+            return response()->json(['message' => 'BOM not found'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'item_id' => 'required|integer|exists:items,item_id',
+            'quantity' => 'required|numeric',
+            'uom_id' => 'required|integer|exists:unit_of_measures,uom_id',
+            'is_critical' => 'sometimes|boolean',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $bomLine = new BOMLine();
+        $bomLine->bom_id = $bomId;
+        $bomLine->item_id = $request->item_id;
+        $bomLine->quantity = $request->quantity;
+        $bomLine->uom_id = $request->uom_id;
+        $bomLine->is_critical = $request->is_critical ?? false;
+        $bomLine->notes = $request->notes;
+        $bomLine->save();
+
+        return response()->json([
+            'data' => $bomLine->load(['item', 'unitOfMeasure']), 
+            'message' => 'BOM line created successfully'
+        ], 201);
     }
 
     /**
-     * Get the unit of measure that owns the BOM line.
+     * Display the specified resource.
+     *
+     * @param  int  $bomId
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
      */
-    public function unitOfMeasure(): BelongsTo
+    public function show($bomId, $id)
     {
-        return $this->belongsTo(UnitOfMeasure::class, 'uom_id', 'uom_id');
+        $bomLine = BOMLine::with(['item', 'unitOfMeasure'])
+            ->where('bom_id', $bomId)
+            ->where('line_id', $id)
+            ->first();
+        
+        if (!$bomLine) {
+            return response()->json(['message' => 'BOM line not found'], 404);
+        }
+        
+        return response()->json(['data' => $bomLine]);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $bomId
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $bomId, $id)
+    {
+        $bomLine = BOMLine::where('bom_id', $bomId)
+            ->where('line_id', $id)
+            ->first();
+        
+        if (!$bomLine) {
+            return response()->json(['message' => 'BOM line not found'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'item_id' => 'sometimes|required|integer|exists:items,item_id',
+            'quantity' => 'sometimes|required|numeric',
+            'uom_id' => 'sometimes|required|integer|exists:unit_of_measures,uom_id',
+            'is_critical' => 'sometimes|boolean',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $bomLine->update($request->all());
+        
+        return response()->json([
+            'data' => $bomLine->load(['item', 'unitOfMeasure']), 
+            'message' => 'BOM line updated successfully'
+        ]);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $bomId
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($bomId, $id)
+    {
+        $bomLine = BOMLine::where('bom_id', $bomId)
+            ->where('line_id', $id)
+            ->first();
+        
+        if (!$bomLine) {
+            return response()->json(['message' => 'BOM line not found'], 404);
+        }
+
+        $bomLine->delete();
+        
+        return response()->json(['message' => 'BOM line deleted successfully']);
     }
 }

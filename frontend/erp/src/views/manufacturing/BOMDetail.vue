@@ -228,8 +228,7 @@ export default {
       { key: 'quantity', label: 'Quantity', sortable: true },
       { key: 'unitOfMeasure.symbol', label: 'UOM', sortable: true },
       { key: 'is_critical', label: 'Critical', template: 'is_critical', class: 'text-center' },
-      { key: 'notes', label: 'Notes' },
-      { key: 'actions', label: 'Actions', template: 'actions', class: 'text-right' }
+      { key: 'notes', label: 'Notes' }
     ];
     
     const fetchBOM = async () => {

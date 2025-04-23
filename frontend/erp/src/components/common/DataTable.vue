@@ -23,7 +23,7 @@
               <i v-if="column.sortable && sortKey === column.key" 
                  :class="sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'"></i>
             </th>
-            <th v-if="hasActions" class="actions-column">Aksi</th>
+            <th v-if="hasActions" class="actions-column">Action</th>
           </tr>
         </thead>
         <tbody>

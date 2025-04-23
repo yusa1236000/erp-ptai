@@ -11,10 +11,10 @@ class CreateMaterialPlansTable extends Migration
     {
         Schema::create('material_plans', function (Blueprint $table) {
             $table->id('plan_id');
-            $table->foreignId('item_id')->constrained('items');
+            $table->foreignId('item_id')->constrained('items', 'item_id');
             $table->date('planning_period');
             $table->enum('material_type', ['FG', 'RM', 'WIP'])->default('RM');
-            $table->foreignId('bom_id')->nullable()->constrained('boms');
+            $table->foreignId('bom_id')->nullable()->constrained('boms', 'bom_id');
             $table->decimal('forecast_quantity', 12, 2)->default(0);
             $table->decimal('available_stock', 12, 2)->default(0);
             $table->decimal('wip_stock', 12, 2)->default(0);

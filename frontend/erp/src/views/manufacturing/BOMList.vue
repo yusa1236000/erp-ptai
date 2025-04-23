@@ -131,8 +131,7 @@ export default {
       { key: 'item.name', label: 'Item', sortable: true },
       { key: 'revision', label: 'Revision', sortable: true },
       { key: 'effective_date', label: 'Effective Date', sortable: true, template: 'effective_date' },
-      { key: 'status', label: 'Status', sortable: true, template: 'status', class: 'text-center' },
-      { key: 'actions', label: 'Actions', template: 'actions', class: 'text-right' }
+      { key: 'status', label: 'Status', sortable: true, template: 'status', class: 'text-center' }
     ];
     
     const loadBOMs = async () => {

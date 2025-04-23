@@ -71,6 +71,9 @@ import SalesReturnList from "@/views/sales/SalesReturnList.vue";
 import SalesReturnDetail from "@/views/sales/SalesReturnDetail.vue";
 import SalesReturnForm from "@/views/sales/SalesReturnForm.vue";
 
+import RoutingList from "../views/manufacturing/RoutingList.vue";
+import RoutingDetail from "@/views/manufacturing/RoutingDetail.vue";
+import RoutingForm from "@/views/manufacturing/RoutingForm.vue";
 // Add these imports at the top of your router/index.js file
 import BOMList from "../views/manufacturing/BOMList.vue";
 import BOMDetail from "../views/manufacturing/BOMDetail.vue";
@@ -546,6 +549,105 @@ const routes = [
                 name: "LocationInventory",
                 component: LocationInventory,
                 props: true,
+                meta: { requiresAuth: true },
+              },
+            // Routing Management Routes
+            {
+                path: "/manufacturing/routings",
+                name: "RoutingList",
+                component: RoutingList,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/manufacturing/routings/create",
+                name: "CreateRouting",
+                component: RoutingForm,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/manufacturing/routings/:id",
+                name: "RoutingDetail",
+                component: RoutingDetail,
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/manufacturing/routings/:id/edit",
+                name: "EditRouting",
+                component: RoutingForm,
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/manufacturing/work-centers",
+                name: "WorkCentersList",
+                component: () => import("../views/manufacturing/WorkCentersList.vue"),
+                meta: { requiresAuth: true },
+              },
+              {
+                path: "/manufacturing/work-centers/create",
+                name: "CreateWorkCenter",
+                component: () => import("../views/manufacturing/WorkCenterForm.vue"),
+                meta: { requiresAuth: true },
+              },
+              {
+                path: "/manufacturing/work-centers/:id",
+                name: "WorkCenterDetail",
+                component: () => import("../views/manufacturing/WorkCenterDetail.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+              },
+              {
+                path: "/manufacturing/work-centers/:id/edit",
+                name: "EditWorkCenter",
+                component: () => import("../views/manufacturing/WorkCenterForm.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+              },
+              {
+                path: "/manufacturing/work-centers/:id/schedule",
+                name: "WorkCenterSchedule",
+                component: () => import("../views/manufacturing/WorkCenterSchedule.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+              },
+              {
+                path: "/manufacturing/work-orders",
+                name: "WorkOrders",
+                component: () => import("../views/manufacturing/WorkOrderList.vue"),
+                meta: { requiresAuth: true },
+              },
+              {
+                path: "/manufacturing/work-orders/create",
+                name: "CreateWorkOrder",
+                component: () => import("../views/manufacturing/WorkOrderForm.vue"),
+                meta: { requiresAuth: true },
+              },
+              {
+                path: "/manufacturing/work-orders/:id",
+                name: "WorkOrderDetail",
+                component: () => import("../views/manufacturing/WorkOrderDetail.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+              },
+              {
+                path: "/manufacturing/work-orders/:id/edit",
+                name: "EditWorkOrder",
+                component: () => import("../views/manufacturing/WorkOrderForm.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+              },
+              {
+                path: "/manufacturing/work-orders/:workOrderId/operations/:operationId",
+                name: "WorkOrderOperation",
+                component: () => import("../views/manufacturing/WorkOrderOperationForm.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+              },
+              {
+                path: "/manufacturing/dashboard",
+                name: "ManufacturingDashboard",
+                component: () => import("../views/manufacturing/WorkOrderDashboard.vue"),
                 meta: { requiresAuth: true },
               },
             // Admin Routes

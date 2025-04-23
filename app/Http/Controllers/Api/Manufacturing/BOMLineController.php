@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Manufacturing;
 
+use App\Http\Controllers\Controller;
 use App\Models\Manufacturing\BOM;
 use App\Models\Manufacturing\BOMLine;
 use Illuminate\Http\Request;

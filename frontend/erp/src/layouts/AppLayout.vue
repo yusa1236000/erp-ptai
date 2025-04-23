@@ -360,6 +360,31 @@
                         <i class="fas fa-clipboard-list"></i>
                         <span v-if="!sidebarCollapsed">Bill of Materials</span>
                     </router-link>
+
+                    <router-link
+                        to="/manufacturing/routings"
+                        class="menu-item"
+                        active-class="active"
+                        >
+                        <i class="fas fa-project-diagram"></i>
+                        <span v-if="!sidebarCollapsed">Routing</span>
+                    </router-link>
+                    <router-link
+                        to="/manufacturing/work-centers"
+                        class="menu-item"
+                        active-class="active"
+                        >
+                        <i class="fas fa-industry"></i>
+                        <span v-if="!sidebarCollapsed">Work Centers</span>
+                    </router-link>
+                    <router-link
+                        to="/manufacturing/work-orders"
+                        class="menu-item"
+                        active-class="active"
+                    >
+                        <i class="fas fa-clipboard-list"></i>
+                        <span v-if="!sidebarCollapsed">Work Orders</span>
+                    </router-link>
                 </div>
 
                 <!-- Reports Section -->

@@ -8,6 +8,8 @@ import "./assets/css/main.css";
 import SearchFilter from "@/components/common/SearchFilter.vue";
 import Pagination from "@/components/common/Pagination.vue";
 import ConfirmationModal from "@/components/common/ConfirmationModal.vue";
+import DataTable from "@/components/common/DataTable.vue";
+
 
 // Configure axios
 axios.defaults.baseURL =
@@ -46,3 +48,4 @@ app.mount("#app");
 app.component("SearchFilter", SearchFilter);
 app.component("PaginationComponent", Pagination);
 app.component("ConfirmationModal", ConfirmationModal);
+app.component("DataTable", DataTable);

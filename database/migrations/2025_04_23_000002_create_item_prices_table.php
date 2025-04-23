@@ -29,7 +29,7 @@ class CreateItemPricesTable extends Migration
 
             $table->foreign('item_id')->references('item_id')->on('items');
             $table->foreign('customer_id')->references('customer_id')->on('Customer');
-            $table->foreign('vendor_id')->references('vendor_id')->on('Vendor');
+            $table->foreign('vendor_id')->references('vendor_id')->on('vendors');
         });
 
         // Add relevant fields to items table

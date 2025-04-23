@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\UnitOfMeasure;
+use App\Models\ItemCategory;
 
 class Item extends Model
 {
@@ -21,10 +23,15 @@ class Item extends Model
         'current_stock',
         'minimum_stock',
         'maximum_stock',
-        'is_purchasable',   // New field
-        'is_sellable',      // New field
-        'cost_price',       // New field - default cost price
-        'sale_price',       // New field - default sale price
+        'is_purchasable',
+        'is_sellable',
+        'cost_price',
+        'sale_price',
+        'length',           // New field
+        'width',            // New field
+        'thickness',        // New field
+        'weight',           // New field
+        'document_path',    // New field
     ];
 
     protected $casts = [
@@ -34,10 +41,28 @@ class Item extends Model
         'is_purchasable' => 'boolean',
         'is_sellable' => 'boolean',
         'cost_price' => 'float',
-        'sale_price' => 'float'
+        'sale_price' => 'float',
+        'length' => 'float',       // New field
+        'width' => 'float',        // New field
+        'thickness' => 'float',    // New field
+        'weight' => 'float',       // New field
     ];
 
-    // Existing relationships and methods...
+    /**
+     * Get the category that owns the item.
+     */
+    public function category()
+    {
+        return $this->belongsTo(ItemCategory::class, 'category_id');
+    }
+
+    /**
+     * Get the unit of measure that owns the item.
+     */
+    public function unitOfMeasure()
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'uom_id');
+    }
 
     /**
      * Get all prices for this item.
@@ -61,6 +86,54 @@ class Item extends Model
     public function salePrices()
     {
         return $this->hasMany(ItemPrice::class, 'item_id')->sale();
+    }
+    
+    /**
+     * Get the batches for this item.
+     */
+    public function batches()
+    {
+        return $this->hasMany(ItemBatch::class, 'item_id');
+    }
+    
+    /**
+     * Get the stock transactions for this item.
+     */
+    public function stockTransactions()
+    {
+        return $this->hasMany(StockTransaction::class, 'item_id');
+    }
+    
+    /**
+     * Get all BOMs where this item is the parent/finished good.
+     */
+    public function boms()
+    {
+        return $this->hasMany(BOM::class, 'item_id');
+    }
+    
+    /**
+     * Get all BOM lines where this item is a component.
+     */
+    public function bomComponents()
+    {
+        return $this->hasMany(BOMLine::class, 'item_id');
+    }
+    
+    /**
+     * Get the stock status attribute.
+     */
+    public function getStockStatusAttribute()
+    {
+        if ($this->current_stock <= 0) {
+            return 'Out of Stock';
+        } elseif ($this->current_stock <= $this->minimum_stock) {
+            return 'Low Stock';
+        } elseif ($this->current_stock >= $this->maximum_stock) {
+            return 'Overstocked';
+        } else {
+            return 'In Stock';
+        }
     }
     
     /**

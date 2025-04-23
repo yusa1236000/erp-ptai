@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Inventory;
 
 use App\Http\Controllers\Controller;
 use App\Models\Item;
+use App\Models\ItemPrice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -40,7 +41,11 @@ class ItemController extends Controller
             'uom_id' => 'nullable|exists:unit_of_measures,uom_id',
             'current_stock' => 'nullable|numeric|min:0',
             'minimum_stock' => 'nullable|numeric|min:0',
-            'maximum_stock' => 'nullable|numeric|min:0'
+            'maximum_stock' => 'nullable|numeric|min:0',
+            'is_purchasable' => 'nullable|boolean',
+            'is_sellable' => 'nullable|boolean',
+            'cost_price' => 'nullable|numeric|min:0',
+            'sale_price' => 'nullable|numeric|min:0'
         ]);
 
         if ($validator->fails()) {
@@ -51,6 +56,28 @@ class ItemController extends Controller
         }
 
         $item = Item::create($validator->validated());
+
+        // Create default purchase price if provided
+        if ($request->has('cost_price') && $request->cost_price > 0) {
+            ItemPrice::create([
+                'item_id' => $item->item_id,
+                'price_type' => 'purchase',
+                'price' => $request->cost_price,
+                'min_quantity' => 1,
+                'is_active' => true
+            ]);
+        }
+
+        // Create default sale price if provided
+        if ($request->has('sale_price') && $request->sale_price > 0) {
+            ItemPrice::create([
+                'item_id' => $item->item_id,
+                'price_type' => 'sale',
+                'price' => $request->sale_price,
+                'min_quantity' => 1,
+                'is_active' => true
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -110,7 +137,11 @@ class ItemController extends Controller
             'category_id' => 'nullable|exists:item_categories,category_id',
             'uom_id' => 'nullable|exists:unit_of_measures,uom_id',
             'minimum_stock' => 'nullable|numeric|min:0',
-            'maximum_stock' => 'nullable|numeric|min:0'
+            'maximum_stock' => 'nullable|numeric|min:0',
+            'is_purchasable' => 'nullable|boolean',
+            'is_sellable' => 'nullable|boolean',
+            'cost_price' => 'nullable|numeric|min:0',
+            'sale_price' => 'nullable|numeric|min:0'
         ]);
 
         if ($validator->fails()) {
@@ -123,7 +154,55 @@ class ItemController extends Controller
         // Don't allow direct update of current_stock through this endpoint
         $validated = $validator->validated();
         
+        // Update default prices if provided
+        $oldCostPrice = $item->cost_price;
+        $oldSalePrice = $item->sale_price;
+        
         $item->update($validated);
+        
+        // Update default purchase price record if it exists and price has changed
+        if (isset($validated['cost_price']) && $validated['cost_price'] != $oldCostPrice) {
+            $defaultPurchasePrice = ItemPrice::where('item_id', $item->item_id)
+                ->where('price_type', 'purchase')
+                ->whereNull('vendor_id')
+                ->where('min_quantity', 1)
+                ->first();
+                
+            if ($defaultPurchasePrice) {
+                $defaultPurchasePrice->update(['price' => $validated['cost_price']]);
+            } else {
+                // Create default purchase price if it doesn't exist
+                ItemPrice::create([
+                    'item_id' => $item->item_id,
+                    'price_type' => 'purchase',
+                    'price' => $validated['cost_price'],
+                    'min_quantity' => 1,
+                    'is_active' => true
+                ]);
+            }
+        }
+        
+        // Update default sale price record if it exists and price has changed
+        if (isset($validated['sale_price']) && $validated['sale_price'] != $oldSalePrice) {
+            $defaultSalePrice = ItemPrice::where('item_id', $item->item_id)
+                ->where('price_type', 'sale')
+                ->whereNull('customer_id')
+                ->where('min_quantity', 1)
+                ->first();
+                
+            if ($defaultSalePrice) {
+                $defaultSalePrice->update(['price' => $validated['sale_price']]);
+            } else {
+                // Create default sale price if it doesn't exist
+                ItemPrice::create([
+                    'item_id' => $item->item_id,
+                    'price_type' => 'sale',
+                    'price' => $validated['sale_price'],
+                    'min_quantity' => 1,
+                    'is_active' => true
+                ]);
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -165,11 +244,51 @@ class ItemController extends Controller
             ], 422);
         }
 
+        // Also check for item prices
+        if ($item->prices()->count() > 0) {
+            // Optionally delete all prices associated with this item
+            $item->prices()->delete();
+        }
+
         $item->delete();
 
         return response()->json([
             'success' => true,
             'message' => 'Item deleted successfully'
+        ]);
+    }
+
+    /**
+     * Get all purchasable items.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getPurchasableItems()
+    {
+        $items = Item::with(['category', 'unitOfMeasure'])
+            ->where('is_purchasable', true)
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $items
+        ]);
+    }
+    
+    /**
+     * Get all sellable items.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getSellableItems()
+    {
+        $items = Item::with(['category', 'unitOfMeasure'])
+            ->where('is_sellable', true)
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $items
         ]);
     }
 

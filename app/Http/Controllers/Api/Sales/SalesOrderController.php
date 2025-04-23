@@ -7,6 +7,7 @@ use App\Models\Sales\SalesOrder;
 use App\Models\Sales\SOLine;
 use App\Models\Sales\SalesQuotation;
 use App\Models\Sales\SalesQuotationLine;
+use App\Models\Item;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +44,7 @@ class SalesOrderController extends Controller
             'status' => 'required|string|max:50',
             'lines' => 'required|array',
             'lines.*.item_id' => 'required|exists:items,item_id',
-            'lines.*.unit_price' => 'required|numeric|min:0',
+            'lines.*.unit_price' => 'nullable|numeric|min:0',
             'lines.*.quantity' => 'required|numeric|min:0',
             'lines.*.uom_id' => 'required|exists:unit_of_measures,uom_id',
             'lines.*.discount' => 'nullable|numeric|min:0',
@@ -75,7 +76,21 @@ class SalesOrderController extends Controller
 
             // Create sales order lines
             foreach ($request->lines as $line) {
-                $subtotal = $line['unit_price'] * $line['quantity'];
+                // Get the item
+                $item = Item::find($line['item_id']);
+                
+                // Check if the item is sellable
+                if (!$item->is_sellable) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'Item ' . $item->name . ' is not sellable'
+                    ], 422);
+                }
+                
+                // If unit_price is not provided, get the best sale price for this customer and quantity
+                $unitPrice = isset($line['unit_price']) ? $line['unit_price'] : $item->getBestSalePrice($request->customer_id, $line['quantity']);
+                
+                $subtotal = $unitPrice * $line['quantity'];
                 $discount = isset($line['discount']) ? $line['discount'] : 0;
                 $tax = isset($line['tax']) ? $line['tax'] : 0;
                 $total = $subtotal - $discount + $tax;
@@ -83,7 +98,7 @@ class SalesOrderController extends Controller
                 SOLine::create([
                     'so_id' => $salesOrder->so_id,
                     'item_id' => $line['item_id'],
-                    'unit_price' => $line['unit_price'],
+                    'unit_price' => $unitPrice,
                     'quantity' => $line['quantity'],
                     'uom_id' => $line['uom_id'],
                     'discount' => $discount,
@@ -169,6 +184,15 @@ class SalesOrderController extends Controller
 
             // Create sales order lines from quotation lines
             foreach ($quotation->salesQuotationLines as $quotationLine) {
+                // Check if the item is still sellable
+                $item = Item::find($quotationLine->item_id);
+                if (!$item->is_sellable) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'Item ' . $item->name . ' is no longer sellable'
+                    ], 422);
+                }
+                
                 SOLine::create([
                     'so_id' => $salesOrder->so_id,
                     'item_id' => $quotationLine->item_id,
@@ -260,7 +284,7 @@ class SalesOrderController extends Controller
             'status' => 'required|string|max:50',
             'lines' => 'required|array',
             'lines.*.item_id' => 'required|exists:items,item_id',
-            'lines.*.unit_price' => 'required|numeric|min:0',
+            'lines.*.unit_price' => 'nullable|numeric|min:0',
             'lines.*.quantity' => 'required|numeric|min:0',
             'lines.*.uom_id' => 'required|exists:unit_of_measures,uom_id',
             'lines.*.discount' => 'nullable|numeric|min:0',
@@ -294,7 +318,21 @@ class SalesOrderController extends Controller
             $taxAmount = 0;
 
             foreach ($request->lines as $line) {
-                $subtotal = $line['unit_price'] * $line['quantity'];
+                // Get the item
+                $item = Item::find($line['item_id']);
+                
+                // Check if the item is sellable
+                if (!$item->is_sellable) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => 'Item ' . $item->name . ' is not sellable'
+                    ], 422);
+                }
+                
+                // If unit_price is not provided, get the best sale price for this customer and quantity
+                $unitPrice = isset($line['unit_price']) ? $line['unit_price'] : $item->getBestSalePrice($order->customer_id, $line['quantity']);
+                
+                $subtotal = $unitPrice * $line['quantity'];
                 $discount = $line['discount'] ?? 0;
                 $tax = $line['tax'] ?? 0;
                 $total = $subtotal - $discount + $tax;
@@ -304,7 +342,7 @@ class SalesOrderController extends Controller
                     $orderLine = SOLine::find($line['line_id']);
                     $orderLine->update([
                         'item_id' => $line['item_id'],
-                        'unit_price' => $line['unit_price'],
+                        'unit_price' => $unitPrice,
                         'quantity' => $line['quantity'],
                         'uom_id' => $line['uom_id'],
                         'discount' => $discount,
@@ -318,7 +356,7 @@ class SalesOrderController extends Controller
                     $newLine = SOLine::create([
                         'so_id' => $order->so_id,
                         'item_id' => $line['item_id'],
-                        'unit_price' => $line['unit_price'],
+                        'unit_price' => $unitPrice,
                         'quantity' => $line['quantity'],
                         'uom_id' => $line['uom_id'],
                         'discount' => $discount,
@@ -423,7 +461,7 @@ class SalesOrderController extends Controller
 
         $validator = Validator::make($request->all(), [
             'item_id' => 'required|exists:items,item_id',
-            'unit_price' => 'required|numeric|min:0',
+            'unit_price' => 'nullable|numeric|min:0',
             'quantity' => 'required|numeric|min:0',
             'uom_id' => 'required|exists:unit_of_measures,uom_id',
             'discount' => 'nullable|numeric|min:0',
@@ -436,8 +474,22 @@ class SalesOrderController extends Controller
 
         try {
             DB::beginTransaction();
+            
+            // Get the item
+            $item = Item::find($request->item_id);
+            
+            // Check if the item is sellable
+            if (!$item->is_sellable) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Item ' . $item->name . ' is not sellable'
+                ], 422);
+            }
+            
+            // If unit_price is not provided, get the best sale price for this customer and quantity
+            $unitPrice = $request->unit_price ?? $item->getBestSalePrice($order->customer_id, $request->quantity);
 
-            $subtotal = $request->unit_price * $request->quantity;
+            $subtotal = $unitPrice * $request->quantity;
             $discount = $request->discount ?? 0;
             $tax = $request->tax ?? 0;
             $total = $subtotal - $discount + $tax;
@@ -445,7 +497,7 @@ class SalesOrderController extends Controller
             $line = SOLine::create([
                 'so_id' => $id,
                 'item_id' => $request->item_id,
-                'unit_price' => $request->unit_price,
+                'unit_price' => $unitPrice,
                 'quantity' => $request->quantity,
                 'uom_id' => $request->uom_id,
                 'discount' => $discount,
@@ -497,7 +549,7 @@ class SalesOrderController extends Controller
 
         $validator = Validator::make($request->all(), [
             'item_id' => 'required|exists:items,item_id',
-            'unit_price' => 'required|numeric|min:0',
+            'unit_price' => 'nullable|numeric|min:0',
             'quantity' => 'required|numeric|min:0',
             'uom_id' => 'required|exists:unit_of_measures,uom_id',
             'discount' => 'nullable|numeric|min:0',
@@ -510,9 +562,23 @@ class SalesOrderController extends Controller
 
         try {
             DB::beginTransaction();
+            
+            // Get the item
+            $item = Item::find($request->item_id);
+            
+            // Check if the item is sellable
+            if (!$item->is_sellable) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Item ' . $item->name . ' is not sellable'
+                ], 422);
+            }
+            
+            // If unit_price is not provided, get the best sale price for this customer and quantity
+            $unitPrice = $request->unit_price ?? $item->getBestSalePrice($order->customer_id, $request->quantity);
 
             // Calculate new values
-            $subtotal = $request->unit_price * $request->quantity;
+            $subtotal = $unitPrice * $request->quantity;
             $discount = $request->discount ?? 0;
             $tax = $request->tax ?? 0;
             $total = $subtotal - $discount + $tax;
@@ -525,7 +591,7 @@ class SalesOrderController extends Controller
             // Update line
             $line->update([
                 'item_id' => $request->item_id,
-                'unit_price' => $request->unit_price,
+                'unit_price' => $unitPrice,
                 'quantity' => $request->quantity,
                 'uom_id' => $request->uom_id,
                 'discount' => $discount,

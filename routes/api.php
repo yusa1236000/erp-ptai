@@ -84,6 +84,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
 
+    Route::prefix('items')->group(function () {
+        // Existing item routes...
+        
+        // Special item filters
+        Route::get('/purchasable', 'App\Http\Controllers\Api\Inventory\ItemController@getPurchasableItems');
+        Route::get('/sellable', 'App\Http\Controllers\Api\Inventory\ItemController@getSellableItems');
+        
+        // Item price routes
+        Route::get('/{itemId}/prices', 'App\Http\Controllers\Api\Inventory\ItemPriceController@index');
+        Route::post('/{itemId}/prices', 'App\Http\Controllers\Api\Inventory\ItemPriceController@store');
+        Route::get('/{itemId}/prices/{id}', 'App\Http\Controllers\Api\Inventory\ItemPriceController@show');
+        Route::put('/{itemId}/prices/{id}', 'App\Http\Controllers\Api\Inventory\ItemPriceController@update');
+        Route::delete('/{itemId}/prices/{id}', 'App\Http\Controllers\Api\Inventory\ItemPriceController@destroy');
+        
+        // Price calculation endpoints
+        Route::get('/{itemId}/best-purchase-price', 'App\Http\Controllers\Api\Inventory\ItemPriceController@getBestPurchasePrice');
+        Route::get('/{itemId}/best-sale-price', 'App\Http\Controllers\Api\Inventory\ItemPriceController@getBestSalePrice');
+        
+        // Update default prices
+        Route::put('/{itemId}/default-prices', 'App\Http\Controllers\Api\Inventory\ItemPriceController@updateDefaultPrices');
+    });
+
     // // Item Routes
     // Route::apiResource('items', ItemController::class);
     // Route::get('/items/stock-status', [ItemController::class, 'stockStatus']);
@@ -386,6 +408,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('quality-inspections', QualityInspectionController::class);
     Route::apiResource('quality-inspections/{inspectionId}/parameters', QualityParameterController::class);
     Route::get('quality-inspections/by-reference/{referenceType}/{referenceId}', [QualityInspectionController::class, 'byReference']);
+
+    Route::prefix('material-planning')->group(function () {
+        Route::post('/generate', [MaterialPlanningController::class, 'generateMaterialPlans']);
+        Route::post('/purchase-requisition', [MaterialPlanningController::class, 'generatePurchaseRequisitions']);
+    });
 
     // Accounting Module Routes
     Route::prefix('accounting')->group(function () {

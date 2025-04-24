@@ -129,7 +129,7 @@ class ItemController extends Controller
         
         // Get BOM components if this is a Finished Good
         $bomComponents = [];
-        if ($item->category && $item->category->name === 'Finished Goods') {
+        if ($item->category && $item->category->category_id === '1') {
             // Get the active BOM
             $activeBom = BOM::where('item_id', $item->item_id)
                 ->where('status', 'Active')
@@ -376,8 +376,6 @@ class ItemController extends Controller
 
         return Storage::disk('public')->download($item->document_path, $item->name . '.pdf');
     }
-
-    // Existing methods for getting purchasable/sellable items...
 
     /**
      * Get all purchasable items.

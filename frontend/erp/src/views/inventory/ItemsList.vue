@@ -293,6 +293,13 @@ export default {
       try {
         const response = await api.get('/items');
         items.value = response.data.data;
+        // Map unitOfMeasure to each item after fetching unitOfMeasures
+        if (unitOfMeasures.value.length > 0) {
+          items.value = items.value.map(item => {
+            const uom = unitOfMeasures.value.find(u => u.uom_id === item.uom_id);
+            return { ...item, unitOfMeasure: uom || null };
+          });
+        }
       } catch (error) {
         console.error('Error fetching items:', error);
       } finally {
@@ -313,6 +320,13 @@ export default {
       try {
         const response = await api.get('/unit-of-measures');
         unitOfMeasures.value = response.data.data;
+        // Map unitOfMeasure to each item after fetching unitOfMeasures
+        if (items.value.length > 0) {
+          items.value = items.value.map(item => {
+            const uom = unitOfMeasures.value.find(u => u.uom_id === item.uom_id);
+            return { ...item, unitOfMeasure: uom || null };
+          });
+        }
       } catch (error) {
         console.error('Error fetching unit of measures:', error);
       }

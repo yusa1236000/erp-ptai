@@ -43,7 +43,7 @@ class DeliveryController extends Controller
             'lines.*.so_line_id' => 'required|exists:SOLine,line_id',
             'lines.*.delivered_quantity' => 'required|numeric|min:0',
             'lines.*.warehouse_id' => 'required|exists:Warehouse,warehouse_id',
-            'lines.*.location_id' => 'required|exists:WarehouseLocation,location_id',
+            //'lines.*.location_id' => 'required|exists:WarehouseLocation,location_id',
             'lines.*.batch_number' => 'nullable|string|max:50'
         ]);
 
@@ -86,7 +86,7 @@ class DeliveryController extends Controller
                     'item_id' => $soLine->item_id,
                     'delivered_quantity' => $line['delivered_quantity'],
                     'warehouse_id' => $line['warehouse_id'],
-                    'location_id' => $line['location_id'],
+                    //'location_id' => $line['location_id'],
                     'batch_number' => $line['batch_number'] ?? null
                 ]);
 

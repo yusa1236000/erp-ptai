@@ -52,7 +52,7 @@ class ProductionConsumptionController extends Controller
             'planned_quantity' => 'required|numeric',
             'actual_quantity' => 'sometimes|nullable|numeric',
             'warehouse_id' => 'required|integer|exists:Warehouse,warehouse_id',
-            'location_id' => 'sometimes|nullable|integer|exists:WarehouseLocation,location_id',
+            //'location_id' => 'sometimes|nullable|integer|exists:WarehouseLocation,location_id',
         ]);
 
         if ($validator->fails()) {
@@ -69,7 +69,7 @@ class ProductionConsumptionController extends Controller
         $consumption->actual_quantity = $actualQty;
         $consumption->variance = $plannedQty - $actualQty;
         $consumption->warehouse_id = $request->warehouse_id;
-        $consumption->location_id = $request->location_id;
+        //$consumption->location_id = $request->location_id;
         $consumption->save();
 
         return response()->json([
@@ -122,7 +122,7 @@ class ProductionConsumptionController extends Controller
             'planned_quantity' => 'sometimes|required|numeric',
             'actual_quantity' => 'sometimes|nullable|numeric',
             'warehouse_id' => 'sometimes|required|integer|exists:Warehouse,warehouse_id',
-            'location_id' => 'sometimes|nullable|integer|exists:WarehouseLocation,location_id',
+            //'location_id' => 'sometimes|nullable|integer|exists:WarehouseLocation,location_id',
         ]);
 
         if ($validator->fails()) {

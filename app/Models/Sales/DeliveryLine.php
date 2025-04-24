@@ -20,7 +20,7 @@ class DeliveryLine extends Model
         'item_id',
         'delivered_quantity',
         'warehouse_id',
-        'location_id',
+        //'location_id',
         'batch_number'
     ];
 
@@ -59,8 +59,8 @@ class DeliveryLine extends Model
     /**
      * Get the warehouse location that the delivery line belongs to.
      */
-    public function warehouseLocation(): BelongsTo
-    {
-        return $this->belongsTo(WarehouseLocation::class, 'location_id');
-    }
+    // public function warehouseLocation(): BelongsTo
+    // {
+    //     return $this->belongsTo(WarehouseLocation::class, 'location_id');
+    // }
 }

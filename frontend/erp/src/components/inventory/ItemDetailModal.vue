@@ -1,4 +1,3 @@
-```vue
 <!-- src/components/inventory/ItemDetailModal.vue -->
 <template>
   <div class="modal">
@@ -45,6 +44,37 @@
             </div>
           </div>
           
+          <!-- Physical Properties Section -->
+          <div class="detail-section">
+            <h3 class="section-title">Physical Properties</h3>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <div class="detail-label">Length</div>
+                <div class="detail-value">{{ item.length || '-' }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Width</div>
+                <div class="detail-value">{{ item.width || '-' }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Thickness</div>
+                <div class="detail-value">{{ item.thickness || '-' }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Weight</div>
+                <div class="detail-value">{{ item.weight || '-' }}</div>
+              </div>
+              <div class="detail-item" v-if="item.document_path">
+                <div class="detail-label">Technical Document</div>
+                <div class="detail-value">
+                  <a :href="item.document_url" target="_blank" class="btn btn-sm btn-primary">
+                    <i class="fas fa-file-pdf"></i> View Document
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <!-- Stock Information Section -->
           <div class="detail-section">
             <h3 class="section-title">Stock Information</h3>
@@ -66,6 +96,37 @@
                 <div class="detail-value">
                   <span class="stock-status" :class="getStockStatusClass(item)">
                     {{ getStockStatus(item) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Pricing Information Section -->
+          <div class="detail-section">
+            <h3 class="section-title">Pricing Information</h3>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <div class="detail-label">Cost Price</div>
+                <div class="detail-value">{{ item.cost_price || '-' }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Sale Price</div>
+                <div class="detail-value">{{ item.sale_price || '-' }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Purchasable</div>
+                <div class="detail-value">
+                  <span :class="item.is_purchasable ? 'badge-success' : 'badge-secondary'" class="badge">
+                    {{ item.is_purchasable ? 'Yes' : 'No' }}
+                  </span>
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Sellable</div>
+                <div class="detail-value">
+                  <span :class="item.is_sellable ? 'badge-success' : 'badge-secondary'" class="badge">
+                    {{ item.is_sellable ? 'Yes' : 'No' }}
                   </span>
                 </div>
               </div>
@@ -206,18 +267,18 @@ export default {
     };
     
     const getTransactionTypeClass = (type) => {
-      if (['IN', 'RECEIPT', 'RETURN', 'ADJUSTMENT_IN'].includes(type)) {
+      if (['IN', 'RECEIPT', 'RETURN', 'ADJUSTMENT_IN', 'receive', 'return', 'adjustment'].includes(type)) {
         return 'type-in';
-      } else if (['OUT', 'ISSUE', 'SALE', 'ADJUSTMENT_OUT'].includes(type)) {
+      } else if (['OUT', 'ISSUE', 'SALE', 'ADJUSTMENT_OUT', 'issue', 'transfer', 'sale'].includes(type)) {
         return 'type-out';
       }
       return '';
     };
     
     const getQuantityClass = (type) => {
-      if (['IN', 'RECEIPT', 'RETURN', 'ADJUSTMENT_IN'].includes(type)) {
+      if (['IN', 'RECEIPT', 'RETURN', 'ADJUSTMENT_IN', 'receive', 'return'].includes(type)) {
         return 'quantity-in';
-      } else if (['OUT', 'ISSUE', 'SALE', 'ADJUSTMENT_OUT'].includes(type)) {
+      } else if (['OUT', 'ISSUE', 'SALE', 'ADJUSTMENT_OUT', 'issue', 'transfer', 'sale'].includes(type)) {
         return 'quantity-out';
       }
       return '';
@@ -473,10 +534,27 @@ export default {
   margin-top: 1rem;
 }
 
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-success {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.badge-secondary {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
 @media (max-width: 640px) {
   .detail-grid {
     grid-template-columns: 1fr;
   }
 }
 </style>
-```

@@ -48,9 +48,9 @@ class BOMLineController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'item_id' => 'required|integer|exists:Item,item_id',
+            'item_id' => 'required|integer|exists:items,item_id',
             'quantity' => 'required|numeric',
-            'uom_id' => 'required|integer|exists:UnitOfMeasure,uom_id',
+            'uom_id' => 'required|integer|exists:unit_of_measures,uom_id',
             'is_critical' => 'sometimes|boolean',
             'notes' => 'nullable|string',
         ]);
@@ -114,9 +114,9 @@ class BOMLineController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'item_id' => 'sometimes|required|integer|exists:Item,item_id',
+            'item_id' => 'sometimes|required|integer|exists:items,item_id',
             'quantity' => 'sometimes|required|numeric',
-            'uom_id' => 'sometimes|required|integer|exists:UnitOfMeasure,uom_id',
+            'uom_id' => 'sometimes|required|integer|exists:unit_of_measures,uom_id',
             'is_critical' => 'sometimes|boolean',
             'notes' => 'nullable|string',
         ]);

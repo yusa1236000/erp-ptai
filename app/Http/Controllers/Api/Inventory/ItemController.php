@@ -45,8 +45,8 @@ class ItemController extends Controller
             'current_stock' => 'nullable|numeric|min:0',
             'minimum_stock' => 'nullable|numeric|min:0',
             'maximum_stock' => 'nullable|numeric|min:0',
-            'is_purchasable' => 'nullable|boolean',
-            'is_sellable' => 'nullable|boolean',
+            'is_purchasable' => ['nullable', 'in:true,false'],
+            'is_sellable' => ['nullable', 'in:true,false'],
             'cost_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
             'length' => 'nullable|numeric|min:0',
@@ -191,8 +191,8 @@ class ItemController extends Controller
             'uom_id' => 'nullable|exists:unit_of_measures,uom_id',
             'minimum_stock' => 'nullable|numeric|min:0',
             'maximum_stock' => 'nullable|numeric|min:0',
-            'is_purchasable' => 'nullable|boolean',
-            'is_sellable' => 'nullable|boolean',
+            'is_purchasable' => ['nullable', 'in:true,false,1,0'],
+            'is_sellable' => ['nullable', 'in:true,false,1,0'],
             'cost_price' => 'nullable|numeric|min:0',
             'sale_price' => 'nullable|numeric|min:0',
             'length' => 'nullable|numeric|min:0',
@@ -212,6 +212,14 @@ class ItemController extends Controller
         // Don't allow direct update of current_stock through this endpoint
         $validated = $validator->validated();
         unset($validated['document']); // Remove document from validated data
+
+        // Convert is_purchasable and is_sellable to boolean explicitly
+        if (isset($validated['is_purchasable'])) {
+            $validated['is_purchasable'] = filter_var($validated['is_purchasable'], FILTER_VALIDATE_BOOLEAN);
+        }
+        if (isset($validated['is_sellable'])) {
+            $validated['is_sellable'] = filter_var($validated['is_sellable'], FILTER_VALIDATE_BOOLEAN);
+        }
         
         // Update default prices if provided
         $oldCostPrice = $item->cost_price;

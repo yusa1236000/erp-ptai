@@ -1,4 +1,3 @@
-```vue
 <!-- src/components/inventory/ItemFormModal.vue -->
 <template>
   <div class="modal">
@@ -11,7 +10,7 @@
         </button>
       </div>
       <div class="modal-body">
-        <form @submit.prevent="submitForm">
+        <form @submit.prevent="submitForm" enctype="multipart/form-data">
           <div class="form-row">
             <div class="form-group">
               <label for="item_code">Item Code*</label>
@@ -79,31 +78,154 @@
             ></textarea>
             <span v-if="errors.description" class="error-message">{{ errors.description }}</span>
           </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label for="minimum_stock">Minimum Stock</label>
-              <input 
-                type="number" 
-                id="minimum_stock" 
-                v-model="form.minimum_stock" 
-                min="0"
-                step="0.01"
-                :class="{ 'is-invalid': errors.minimum_stock }"
-              />
-              <span v-if="errors.minimum_stock" class="error-message">{{ errors.minimum_stock }}</span>
+
+          <!-- Physical Properties Section -->
+          <div class="form-section">
+            <h3 class="section-title">Physical Properties</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="length">Length</label>
+                <input 
+                  type="number" 
+                  id="length" 
+                  v-model="form.length" 
+                  min="0"
+                  step="0.01"
+                  :class="{ 'is-invalid': errors.length }"
+                />
+                <span v-if="errors.length" class="error-message">{{ errors.length }}</span>
+              </div>
+              <div class="form-group">
+                <label for="width">Width</label>
+                <input 
+                  type="number" 
+                  id="width" 
+                  v-model="form.width" 
+                  min="0"
+                  step="0.01"
+                  :class="{ 'is-invalid': errors.width }"
+                />
+                <span v-if="errors.width" class="error-message">{{ errors.width }}</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="thickness">Thickness</label>
+                <input 
+                  type="number" 
+                  id="thickness" 
+                  v-model="form.thickness" 
+                  min="0"
+                  step="0.01"
+                  :class="{ 'is-invalid': errors.thickness }"
+                />
+                <span v-if="errors.thickness" class="error-message">{{ errors.thickness }}</span>
+              </div>
+              <div class="form-group">
+                <label for="weight">Weight</label>
+                <input 
+                  type="number" 
+                  id="weight" 
+                  v-model="form.weight" 
+                  min="0"
+                  step="0.01"
+                  :class="{ 'is-invalid': errors.weight }"
+                />
+                <span v-if="errors.weight" class="error-message">{{ errors.weight }}</span>
+              </div>
             </div>
             <div class="form-group">
-              <label for="maximum_stock">Maximum Stock</label>
+              <label for="document">Technical Document</label>
               <input 
-                type="number" 
-                id="maximum_stock" 
-                v-model="form.maximum_stock" 
-                min="0"
-                step="0.01"
-                :class="{ 'is-invalid': errors.maximum_stock }"
+                type="file" 
+                id="document" 
+                ref="documentInput"
+                accept=".pdf"
+                @change="handleFileUpload"
+                :class="{ 'is-invalid': errors.document }"
               />
-              <span v-if="errors.maximum_stock" class="error-message">{{ errors.maximum_stock }}</span>
+              <small class="form-text text-muted">Upload PDF file (max 10MB)</small>
+              <span v-if="errors.document" class="error-message">{{ errors.document }}</span>
+            </div>
+          </div>
+          
+          <!-- Stock Levels Section -->
+          <div class="form-section">
+            <h3 class="section-title">Stock Levels</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="minimum_stock">Minimum Stock</label>
+                <input 
+                  type="number" 
+                  id="minimum_stock" 
+                  v-model="form.minimum_stock" 
+                  min="0"
+                  step="0.01"
+                  :class="{ 'is-invalid': errors.minimum_stock }"
+                />
+                <span v-if="errors.minimum_stock" class="error-message">{{ errors.minimum_stock }}</span>
+              </div>
+              <div class="form-group">
+                <label for="maximum_stock">Maximum Stock</label>
+                <input 
+                  type="number" 
+                  id="maximum_stock" 
+                  v-model="form.maximum_stock" 
+                  min="0"
+                  step="0.01"
+                  :class="{ 'is-invalid': errors.maximum_stock }"
+                />
+                <span v-if="errors.maximum_stock" class="error-message">{{ errors.maximum_stock }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pricing Section -->
+          <div class="form-section">
+            <h3 class="section-title">Pricing</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cost_price">Cost Price</label>
+                <input 
+                  type="number" 
+                  id="cost_price" 
+                  v-model="form.cost_price" 
+                  min="0"
+                  step="0.01"
+                  :class="{ 'is-invalid': errors.cost_price }"
+                />
+                <span v-if="errors.cost_price" class="error-message">{{ errors.cost_price }}</span>
+              </div>
+              <div class="form-group">
+                <label for="sale_price">Sale Price</label>
+                <input 
+                  type="number" 
+                  id="sale_price" 
+                  v-model="form.sale_price" 
+                  min="0"
+                  step="0.01"
+                  :class="{ 'is-invalid': errors.sale_price }"
+                />
+                <span v-if="errors.sale_price" class="error-message">{{ errors.sale_price }}</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group checkbox-group">
+                <input 
+                  type="checkbox" 
+                  id="is_purchasable" 
+                  v-model="form.is_purchasable"
+                />
+                <label for="is_purchasable">Purchasable</label>
+              </div>
+              <div class="form-group checkbox-group">
+                <input 
+                  type="checkbox" 
+                  id="is_sellable" 
+                  v-model="form.is_sellable"
+                />
+                <label for="is_sellable">Sellable</label>
+              </div>
             </div>
           </div>
           
@@ -154,15 +276,40 @@ export default {
       category_id: props.itemForm.category_id,
       uom_id: props.itemForm.uom_id,
       minimum_stock: props.itemForm.minimum_stock,
-      maximum_stock: props.itemForm.maximum_stock
+      maximum_stock: props.itemForm.maximum_stock,
+      length: props.itemForm.length || '',
+      width: props.itemForm.width || '',
+      thickness: props.itemForm.thickness || '',
+      weight: props.itemForm.weight || '',
+      is_purchasable: props.itemForm.is_purchasable === true || props.itemForm.is_purchasable === 'true',
+      is_sellable: props.itemForm.is_sellable === true || props.itemForm.is_sellable === 'true',
+      cost_price: props.itemForm.cost_price || 0,
+      sale_price: props.itemForm.sale_price || 0,
+      document: null
     });
     
     const errors = ref({});
+    const documentInput = ref(null);
     
     // Watch for prop changes
     watch(() => props.itemForm, (newForm) => {
-      Object.assign(form, newForm);
+      Object.assign(form, {
+        ...newForm,
+        length: newForm.length || '',
+        width: newForm.width || '',
+        thickness: newForm.thickness || '',
+        weight: newForm.weight || '',
+        is_purchasable: newForm.is_purchasable === true || newForm.is_purchasable === 'true',
+        is_sellable: newForm.is_sellable === true || newForm.is_sellable === 'true',
+        cost_price: newForm.cost_price || 0,
+        sale_price: newForm.sale_price || 0,
+        document: null
+      });
     }, { deep: true });
+    
+    const handleFileUpload = (event) => {
+      form.document = event.target.files[0] || null;
+    };
     
     // Validate form
     const validateForm = () => {
@@ -188,18 +335,64 @@ export default {
         errors.value.maximum_stock = 'Maximum stock must be greater than minimum stock';
       }
       
+      if (form.length && form.length < 0) {
+        errors.value.length = 'Length cannot be negative';
+      }
+      
+      if (form.width && form.width < 0) {
+        errors.value.width = 'Width cannot be negative';
+      }
+      
+      if (form.thickness && form.thickness < 0) {
+        errors.value.thickness = 'Thickness cannot be negative';
+      }
+      
+      if (form.weight && form.weight < 0) {
+        errors.value.weight = 'Weight cannot be negative';
+      }
+      
+      if (form.cost_price < 0) {
+        errors.value.cost_price = 'Cost price cannot be negative';
+      }
+      
+      if (form.sale_price < 0) {
+        errors.value.sale_price = 'Sale price cannot be negative';
+      }
+      
+      if (form.document && form.document.size > 10 * 1024 * 1024) {
+        errors.value.document = 'Document file size must be less than 10MB';
+      }
+      
       return Object.keys(errors.value).length === 0;
     };
     
     const submitForm = () => {
       if (validateForm()) {
-        emit('save', { ...form });
+        // Create a FormData object to handle file upload
+        const formData = new FormData();
+        
+        // Add all form fields to the FormData except checkboxes
+        Object.keys(form).forEach(key => {
+          if (key === 'document' && form[key]) {
+            formData.append(key, form[key]);
+          } else if (key !== 'is_purchasable' && key !== 'is_sellable' && form[key] !== null && form[key] !== undefined) {
+            formData.append(key, form[key]);
+          }
+        });
+        
+        // Explicitly append checkbox fields as string 'true' or 'false'
+        formData.append('is_purchasable', form.is_purchasable ? 'true' : 'false');
+        formData.append('is_sellable', form.is_sellable ? 'true' : 'false');
+        
+        emit('save', formData);
       }
     };
     
     return {
       form,
       errors,
+      documentInput,
+      handleFileUpload,
       submitForm
     };
   }
@@ -235,8 +428,11 @@ export default {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 600px;
+  max-height: 90vh;
   z-index: 60;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -245,6 +441,7 @@ export default {
   align-items: center;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
@@ -273,6 +470,7 @@ export default {
 
 .modal-body {
   padding: 1.5rem;
+  overflow-y: auto;
 }
 
 .form-row {
@@ -316,6 +514,34 @@ export default {
   margin-top: 0.25rem;
   font-size: 0.75rem;
   color: #ef4444;
+}
+
+.form-section {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1.5rem;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: #1e293b;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+}
+
+.checkbox-group label {
+  margin-bottom: 0;
 }
 
 .form-actions {

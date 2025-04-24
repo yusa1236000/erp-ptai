@@ -101,7 +101,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Price calculation endpoints
         Route::get('/{itemId}/best-purchase-price', 'App\Http\Controllers\Api\Inventory\ItemPriceController@getBestPurchasePrice');
         Route::get('/{itemId}/best-sale-price', 'App\Http\Controllers\Api\Inventory\ItemPriceController@getBestSalePrice');
-        
+        Route::get('/{id}/document', 'App\Http\Controllers\Api\Inventory\ItemController@downloadDocument');
         // Update default prices
         Route::put('/{itemId}/default-prices', 'App\Http\Controllers\Api\Inventory\ItemPriceController@updateDefaultPrices');
     });

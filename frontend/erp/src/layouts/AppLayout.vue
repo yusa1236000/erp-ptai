@@ -179,57 +179,138 @@
                     class="submenu"
                 >
                     <router-link
-                        to="/purchasing/vendors"
-                        class="menu-item"
-                        active-class="active"
-                    >
-                        <i class="fas fa-users"></i>
-                        <span v-if="!sidebarCollapsed">Vendors</span>
-                    </router-link>
+                            to="/purchasing/dashboard"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span v-if="!sidebarCollapsed">Dashboard</span>
+                        </router-link>
 
-                    <router-link
-                        to="/purchasing/requisitions"
-                        class="menu-item"
-                        active-class="active"
-                    >
-                        <i class="fas fa-file-alt"></i>
-                        <span v-if="!sidebarCollapsed">Requisitions</span>
-                    </router-link>
+                        <router-link
+                            to="/purchasing/spend-analysis"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-chart-pie"></i>
+                            <span v-if="!sidebarCollapsed">Spend Analysis</span>
+                        </router-link>
 
-                    <router-link
-                        to="/purchasing/rfqs"
-                        class="menu-item"
-                        active-class="active"
-                    >
-                        <i class="fas fa-file-invoice-dollar"></i>
-                        <span v-if="!sidebarCollapsed">RFQs</span>
-                    </router-link>
+                        <router-link
+                            to="/purchasing/vendor-performance"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-star"></i>
+                            <span v-if="!sidebarCollapsed">Vendor Performance</span>
+                        </router-link>
 
-                    <router-link
-                        to="/purchasing/orders"
-                        class="menu-item"
-                        active-class="active"
-                    >
-                        <i class="fas fa-clipboard-list"></i>
-                        <span v-if="!sidebarCollapsed">Purchase Orders</span>
-                    </router-link>
+                        <router-link
+                            to="/purchasing/po-status"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-clipboard-check"></i>
+                            <span v-if="!sidebarCollapsed">PO Status</span>
+                        </router-link>
 
-                    <router-link
-                        to="/purchasing/goods-receipts"
-                        class="menu-item"
-                        active-class="active"
-                    >
-                        <i class="fas fa-truck-loading"></i>
-                        <span v-if="!sidebarCollapsed">Goods Receipts</span>
-                    </router-link>
+                        <router-link
+                            to="/purchasing/price-trend"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-chart-line"></i>
+                            <span v-if="!sidebarCollapsed">Price Trends</span>
+                        </router-link>
+                        <router-link
+                            to="/purchasing/vendors"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-users"></i>
+                            <span v-if="!sidebarCollapsed">Vendors</span>
+                        </router-link>
 
-                    <router-link
-                        to="/purchasing/vendor-invoices"
-                        class="menu-item"
-                        active-class="active"
-                    >
-                        <i class="fas fa-file-invoice"></i>
-                        <span v-if="!sidebarCollapsed">Vendor Invoices</span>
+                        <router-link
+                            to="/purchasing/requisitions"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-file-alt"></i>
+                            <span v-if="!sidebarCollapsed">Requisitions</span>
+                        </router-link>
+
+                        <router-link
+                            to="/purchasing/rfqs"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span v-if="!sidebarCollapsed">RFQs</span>
+                        </router-link>
+
+                        <router-link
+                            to="/purchasing/orders"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-clipboard-list"></i>
+                            <span v-if="!sidebarCollapsed">Purchase Orders</span>
+                        </router-link>
+
+                        <router-link
+                            to="/purchasing/goods-receipts"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-truck-loading"></i>
+                            <span v-if="!sidebarCollapsed">Goods Receipts</span>
+                        </router-link>
+
+                        <router-link
+                            to="/purchasing/vendor-invoices"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-file-invoice"></i>
+                            <span v-if="!sidebarCollapsed">Vendor Invoices</span>
+                        </router-link>
+                        <router-link
+                            to="/purchasing/contracts"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-file-contract"></i>
+                            <span v-if="!sidebarCollapsed">Vendor Contracts</span>
+                        </router-link>
+
+                        <router-link
+                            to="/purchasing/contracts/expiry-dashboard"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-chart-line"></i>
+                            <span v-if="!sidebarCollapsed"
+                                >Contract Expiry Dashboard</span
+                            >
+                        </router-link>
+
+                        <router-link
+                            to="/purchasing/evaluations"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                            <i class="fas fa-star"></i>
+                            <span v-if="!sidebarCollapsed">Vendor Evaluations</span>
+                        </router-link>
+
+                        <router-link
+                            to="/purchasing/evaluation-dashboard"
+                            class="menu-item"
+                            active-class="active"
+                        >
+                        <i class="fa-solid fa-gauge-high"></i>
+                        <span v-if="!sidebarCollapsed">Evaluation Dashboard</span>
                     </router-link>
                 </div>
 

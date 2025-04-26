@@ -7,6 +7,7 @@ use App\Models\Item;
 use App\Models\ItemPrice;
 use App\Models\Customer;
 use App\Models\Vendor;
+use App\Models\CurrencyRate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -84,7 +85,7 @@ class ItemPriceController extends Controller
         $validator = Validator::make($request->all(), [
             'price_type' => 'required|string|in:purchase,sale',
             'price' => 'required|numeric|min:0',
-            'currency' => 'nullable|string|max:10',
+            'currency_code' => 'required|string|size:3', // New validation for currency
             'min_quantity' => 'nullable|numeric|min:0',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -116,19 +117,71 @@ class ItemPriceController extends Controller
             ], 422);
         }
 
+        // Get base currency (from configuration or default)
+        $baseCurrency = config('app.base_currency', 'USD');
+        
+        // Calculate base currency price
+        $baseCurrencyPrice = $request->price;
+        
+        // If the price is not in base currency, convert it
+        if ($request->currency_code !== $baseCurrency) {
+            // Get the exchange rate for the current date
+            $rate = CurrencyRate::where('from_currency', $request->currency_code)
+                ->where('to_currency', $baseCurrency)
+                ->where('is_active', true)
+                ->where('effective_date', '<=', now())
+                ->where(function($query) {
+                    $query->where('end_date', '>=', now())
+                          ->orWhereNull('end_date');
+                })
+                ->orderBy('effective_date', 'desc')
+                ->first();
+                
+            if (!$rate) {
+                // Try to find a reverse rate
+                $reverseRate = CurrencyRate::where('from_currency', $baseCurrency)
+                    ->where('to_currency', $request->currency_code)
+                    ->where('is_active', true)
+                    ->where('effective_date', '<=', now())
+                    ->where(function($query) {
+                        $query->where('end_date', '>=', now())
+                              ->orWhereNull('end_date');
+                    })
+                    ->orderBy('effective_date', 'desc')
+                    ->first();
+                    
+                if ($reverseRate) {
+                    $exchangeRate = 1 / $reverseRate->rate;
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No exchange rate found for the specified currency'
+                    ], 422);
+                }
+            } else {
+                $exchangeRate = $rate->rate;
+            }
+            
+            // Convert to base currency
+            $baseCurrencyPrice = $request->price * $exchangeRate;
+        }
         $data = $validator->validated();
         $data['item_id'] = $itemId;
+        $data['base_currency_price'] = $baseCurrencyPrice;
+        $data['base_currency'] = $baseCurrency;
         
         $price = ItemPrice::create($data);
 
         // If this is the first price of this type, also update the default price on the item
         if ($price->price_type === 'purchase' && !$item->cost_price) {
-            $item->cost_price = $price->price;
+            $item->cost_price = $baseCurrencyPrice;
+            $item->cost_price_currency = $baseCurrency;
             $item->save();
         }
         
         if ($price->price_type === 'sale' && !$item->sale_price) {
-            $item->sale_price = $price->price;
+            $item->sale_price = $baseCurrencyPrice;
+            $item->sale_price_currency = $baseCurrency;
             $item->save();
         }
 
@@ -305,7 +358,8 @@ class ItemPriceController extends Controller
         
         $validator = Validator::make($request->all(), [
             'vendor_id' => 'nullable|exists:Vendor,vendor_id',
-            'quantity' => 'nullable|numeric|min:1'
+            'quantity' => 'nullable|numeric|min:1',
+            'currency_code' => 'nullable|string|size:3' // Allow requesting price in a specific currency
         ]);
 
         if ($validator->fails()) {
@@ -317,8 +371,56 @@ class ItemPriceController extends Controller
         
         $vendorId = $request->vendor_id;
         $quantity = $request->quantity ?? 1;
+        $currencyCode = $request->currency_code ?? config('app.base_currency', 'USD');
         
-        $price = $item->getBestPurchasePrice($vendorId, $quantity);
+        // Get the price in base currency
+        $priceInBaseCurrency = $item->getBestPurchasePrice($vendorId, $quantity);
+        $baseCurrency = config('app.base_currency', 'USD');
+        
+        // If requested currency is not base currency, convert
+        $price = $priceInBaseCurrency;
+        
+        if ($currencyCode !== $baseCurrency) {
+            // Get exchange rate for conversion
+            $rate = CurrencyRate::where('from_currency', $baseCurrency)
+                ->where('to_currency', $currencyCode)
+                ->where('is_active', true)
+                ->where('effective_date', '<=', now())
+                ->where(function($query) {
+                    $query->where('end_date', '>=', now())
+                          ->orWhereNull('end_date');
+                })
+                ->orderBy('effective_date', 'desc')
+                ->first();
+                
+            if (!$rate) {
+                // Try to find a reverse rate
+                $reverseRate = CurrencyRate::where('from_currency', $currencyCode)
+                    ->where('to_currency', $baseCurrency)
+                    ->where('is_active', true)
+                    ->where('effective_date', '<=', now())
+                    ->where(function($query) {
+                        $query->where('end_date', '>=', now())
+                              ->orWhereNull('end_date');
+                    })
+                    ->orderBy('effective_date', 'desc')
+                    ->first();
+                    
+                if ($reverseRate) {
+                    $exchangeRate = 1 / $reverseRate->rate;
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No exchange rate found for the specified currency'
+                    ], 422);
+                }
+            } else {
+                $exchangeRate = $rate->rate;
+            }
+            
+            // Convert to requested currency
+            $price = $priceInBaseCurrency * $exchangeRate;
+        }
         
         return response()->json([
             'success' => true,
@@ -327,6 +429,9 @@ class ItemPriceController extends Controller
                 'item_code' => $item->item_code,
                 'name' => $item->name,
                 'price' => $price,
+                'price_in_base_currency' => $priceInBaseCurrency,
+                'base_currency' => $baseCurrency,
+                'currency' => $currencyCode,
                 'quantity' => $quantity,
                 'vendor_id' => $vendorId
             ]
@@ -360,7 +465,8 @@ class ItemPriceController extends Controller
         
         $validator = Validator::make($request->all(), [
             'customer_id' => 'nullable|exists:Customer,customer_id',
-            'quantity' => 'nullable|numeric|min:1'
+            'quantity' => 'nullable|numeric|min:1',
+            'currency_code' => 'nullable|string|size:3' // Allow requesting price in a specific currency
         ]);
 
         if ($validator->fails()) {
@@ -372,8 +478,64 @@ class ItemPriceController extends Controller
         
         $customerId = $request->customer_id;
         $quantity = $request->quantity ?? 1;
+        $currencyCode = $request->currency_code;
         
-        $price = $item->getBestSalePrice($customerId, $quantity);
+        // If customer is specified and no currency is provided, get customer's preferred currency
+        if ($customerId && !$currencyCode) {
+            $customer = Customer::find($customerId);
+            $currencyCode = $customer->preferred_currency ?? config('app.base_currency', 'USD');
+        } else {
+            $currencyCode = $currencyCode ?? config('app.base_currency', 'USD');
+        }
+        
+        // Get the price in base currency
+        $priceInBaseCurrency = $item->getBestSalePrice($customerId, $quantity);
+        $baseCurrency = config('app.base_currency', 'USD');
+        
+        // If requested currency is not base currency, convert
+        $price = $priceInBaseCurrency;
+        
+        if ($currencyCode !== $baseCurrency) {
+            // Get exchange rate for conversion
+            $rate = CurrencyRate::where('from_currency', $baseCurrency)
+                ->where('to_currency', $currencyCode)
+                ->where('is_active', true)
+                ->where('effective_date', '<=', now())
+                ->where(function($query) {
+                    $query->where('end_date', '>=', now())
+                          ->orWhereNull('end_date');
+                })
+                ->orderBy('effective_date', 'desc')
+                ->first();
+                
+            if (!$rate) {
+                // Try to find a reverse rate
+                $reverseRate = CurrencyRate::where('from_currency', $currencyCode)
+                    ->where('to_currency', $baseCurrency)
+                    ->where('is_active', true)
+                    ->where('effective_date', '<=', now())
+                    ->where(function($query) {
+                        $query->where('end_date', '>=', now())
+                              ->orWhereNull('end_date');
+                    })
+                    ->orderBy('effective_date', 'desc')
+                    ->first();
+                    
+                if ($reverseRate) {
+                    $exchangeRate = 1 / $reverseRate->rate;
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No exchange rate found for the specified currency'
+                    ], 422);
+                }
+            } else {
+                $exchangeRate = $rate->rate;
+            }
+            
+            // Convert to requested currency
+            $price = $priceInBaseCurrency * $exchangeRate;
+        }
         
         return response()->json([
             'success' => true,
@@ -382,6 +544,9 @@ class ItemPriceController extends Controller
                 'item_code' => $item->item_code,
                 'name' => $item->name,
                 'price' => $price,
+                'price_in_base_currency' => $priceInBaseCurrency,
+                'base_currency' => $baseCurrency,
+                'currency' => $currencyCode,
                 'quantity' => $quantity,
                 'customer_id' => $customerId
             ]

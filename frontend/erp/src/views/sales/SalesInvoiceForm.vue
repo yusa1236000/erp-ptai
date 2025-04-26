@@ -463,7 +463,7 @@ export default {
         };
 
         // Load order data when order is selected
-        const loadOrderData = async () => {
+const loadOrderData = async () => {
             if (!form.value.so_id) {
                 // Clear lines if no order selected
                 form.value.lines = [];
@@ -474,19 +474,31 @@ export default {
                 const response = await axios.get(`/orders/${form.value.so_id}`);
                 const order = response.data.data;
 
-                // Populate invoice lines from order lines
+                // Populate invoice lines from order lines, including delivered quantity
                 form.value.lines = (order.salesOrderLines || []).map(
-                    (line) => ({
-                        item_id: line.item_id,
-                        unit_price: line.unit_price,
-                        quantity: line.quantity,
-                        uom_id: line.uom_id,
-                        discount: line.discount || 0,
-                        tax: line.tax || 0,
-                        subtotal: line.subtotal,
-                        total: line.total,
-                        so_line_id: line.line_id, // Reference to original order line
-                    })
+                    (line) => {
+                        // Calculate total delivered quantity from deliveryLines
+                        let deliveredQuantity = 0;
+                        if (line.deliveryLines && line.deliveryLines.length > 0) {
+                            deliveredQuantity = line.deliveryLines.reduce(
+                                (sum, dl) => sum + (dl.delivered_quantity || 0),
+                                0
+                            );
+                        }
+
+                        return {
+                            item_id: line.item_id,
+                            unit_price: line.unit_price,
+                            quantity: line.quantity,
+                            uom_id: line.uom_id,
+                            discount: line.discount || 0,
+                            tax: line.tax || 0,
+                            subtotal: line.subtotal,
+                            total: line.total,
+                            so_line_id: line.line_id, // Reference to original order line
+                            delivered_quantity: deliveredQuantity, // New property for delivered qty
+                        };
+                    }
                 );
 
                 // Update payment terms if not already set

@@ -383,6 +383,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // BOM
     Route::apiResource('boms', BOMController::class);
     Route::apiResource('boms/{bomId}/lines', BOMLineController::class);
+    // Calculate potential yield from a specific material
+    Route::post('/{bomId}/lines/{lineId}/calculate-yield', [BOMLineController::class, 'calculateYield']);
+    
+    // Calculate maximum possible production based on current stock
+    Route::get('/{bomId}/maximum-yield', [BOMLineController::class, 'calculateMaximumYield']);
+    
+    // Create a yield-based BOM
+    Route::post('/yield-based', [BOMController::class, 'createYieldBased']);
 
     // Routing
     Route::apiResource('routings', RoutingController::class);
@@ -410,8 +418,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('quality-inspections/by-reference/{referenceType}/{referenceId}', [QualityInspectionController::class, 'byReference']);
 
     Route::prefix('material-planning')->group(function () {
+        // Existing routes
         Route::post('/generate', [MaterialPlanningController::class, 'generateMaterialPlans']);
         Route::post('/purchase-requisition', [MaterialPlanningController::class, 'generatePurchaseRequisitions']);
+        
+        // New route for maximum production calculation
+        Route::post('/max-production', [MaterialPlanningController::class, 'calculateMaximumProduction']);
     });
 
     // Accounting Module Routes

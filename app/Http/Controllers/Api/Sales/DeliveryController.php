@@ -7,7 +7,7 @@ use App\Models\Sales\Delivery;
 use App\Models\Sales\DeliveryLine;
 use App\Models\Sales\SalesOrder;
 use App\Models\Sales\SOLine;
-use App\Models\Sales\Item;
+use App\Models\Item;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -117,12 +117,12 @@ class DeliveryController extends Controller
      */
     public function show($id)
     {
-        $delivery = Delivery::with([
+$delivery = Delivery::with([
             'customer',
             'salesOrder',
             'deliveryLines.item',
             'deliveryLines.warehouse',
-            'deliveryLines.warehouseLocation',
+            //'deliveryLines.warehouseLocation',
             'deliveryLines.salesOrderLine'
         ])->find($id);
 

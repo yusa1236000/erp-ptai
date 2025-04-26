@@ -18,7 +18,7 @@ class MaterialPlanningController extends Controller
 {
     /**
      * Generate material plans based on sales forecasts for finished goods
-     * and calculate raw material requirements using BOM
+     * and calculate raw material requirements using BOM with yield-based calculations
      */
     public function generateMaterialPlans(Request $request)
     {
@@ -157,7 +157,7 @@ class MaterialPlanningController extends Controller
     }
     
     /**
-     * Calculate raw material requirements based on BOM
+     * Calculate raw material requirements based on BOM (with yield-based calculations)
      */
     private function calculateRawMaterialRequirements($fgPlans, $bufferPercentage)
     {
@@ -183,10 +183,25 @@ class MaterialPlanningController extends Controller
                 // Calculate materials needed based on BOM
                 foreach ($bom->bomLines as $bomLine) {
                     $materialItemId = $bomLine->item_id;
-                    $qtyPerUnit = $bomLine->quantity;
                     
-                    // Calculate required quantity based on BOM ratio and production quantity
-                    $requiredQty = ($qtyPerUnit / $bom->standard_quantity) * $productionQty;
+                    // Check if this is a yield-based BOM line
+                    if ($bomLine->is_yield_based) {
+                        // For yield-based: How many units of material needed to produce desired quantity
+                        // Formula: (Desired production) / (Yield ratio) / (1 - Shrinkage)
+                        $shrinkageFactor = $bomLine->shrinkage_factor ?? 0;
+                        $effectiveFactor = (1 - $shrinkageFactor);
+                        
+                        // Prevent division by zero
+                        if ($bomLine->yield_ratio > 0) {
+                            $requiredQty = $productionQty / $bomLine->yield_ratio / $effectiveFactor;
+                        } else {
+                            // Fallback to using quantity as-is if no yield ratio
+                            $requiredQty = $bomLine->quantity * ($productionQty / $bom->standard_quantity);
+                        }
+                    } else {
+                        // Traditional BOM calculation: quantity per unit * production quantity / standard quantity
+                        $requiredQty = ($bomLine->quantity / $bom->standard_quantity) * $productionQty;
+                    }
                     
                     // Aggregate requirements by material
                     if (!isset($materialNeeds[$materialItemId])) {
@@ -303,6 +318,122 @@ class MaterialPlanningController extends Controller
         return max($wipFromWorkOrders, $wipFromProductionOrders, $wipFromOperations);
     }
     
+    /**
+     * Calculate maximum production capacity based on available materials
+     */
+    public function calculateMaximumProduction(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'bom_id' => 'required|exists:boms,bom_id',
+            'check_stock' => 'sometimes|boolean'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            $bom = BOM::with(['item', 'unitOfMeasure', 'bomLines.item', 'bomLines.unitOfMeasure'])
+                ->find($request->bom_id);
+            
+            if (!$bom) {
+                return response()->json(['message' => 'BOM not found'], 404);
+            }
+            
+            // Check if there are yield-based lines
+            $yieldBasedLines = $bom->bomLines->where('is_yield_based', true);
+            $hasYieldLines = $yieldBasedLines->count() > 0;
+            
+            $materials = [];
+            $maxProduction = null;
+            $checkStock = $request->check_stock ?? true;
+            
+            foreach ($bom->bomLines as $line) {
+                $item = $line->item;
+                $currentStock = $checkStock ? $item->current_stock : null;
+                
+                if ($line->is_yield_based) {
+                    // For yield-based materials
+                    $shrinkageFactor = $line->shrinkage_factor ?? 0;
+                    $effectiveFactor = (1 - $shrinkageFactor);
+                    
+                    if ($checkStock && $currentStock !== null) {
+                        // How many products can be made from current stock
+                        $effectiveStock = $currentStock * $effectiveFactor;
+                        $potentialYield = $line->yield_ratio * $effectiveStock;
+                    } else {
+                        // How many products could be made from the quantity in BOM
+                        $effectiveQty = $line->quantity * $effectiveFactor;
+                        $potentialYield = $line->yield_ratio * $effectiveQty;
+                    }
+                } else {
+                    // For traditional BOM materials
+                    if ($checkStock && $currentStock !== null) {
+                        // How many standard batches can be made from current stock
+                        $potentialBatches = $currentStock / $line->quantity;
+                        $potentialYield = $potentialBatches * $bom->standard_quantity;
+                    } else {
+                        // This is fixed at standard_quantity for traditional BOM
+                        $potentialYield = $bom->standard_quantity;
+                    }
+                }
+                
+                // Format material data for response
+                $materialData = [
+                    'item_id' => $item->item_id,
+                    'item_code' => $item->item_code,
+                    'item_name' => $item->name,
+                    'quantity_in_bom' => $line->quantity,
+                    'uom' => $line->unitOfMeasure->symbol,
+                    'is_yield_based' => $line->is_yield_based
+                ];
+                
+                if ($line->is_yield_based) {
+                    $materialData['yield_ratio'] = $line->yield_ratio;
+                    $materialData['shrinkage_factor'] = $line->shrinkage_factor ?? 0;
+                }
+                
+                if ($checkStock) {
+                    $materialData['current_stock'] = $currentStock;
+                    $materialData['potential_yield'] = $potentialYield;
+                    
+                    // Track the minimum potential yield across all materials
+                    // This represents the maximum possible production
+                    if ($maxProduction === null || $potentialYield < $maxProduction) {
+                        $maxProduction = $potentialYield;
+                    }
+                }
+                
+                $materials[] = $materialData;
+            }
+            
+            // Result data
+            $result = [
+                'finished_product' => [
+                    'item_id' => $bom->item->item_id,
+                    'item_code' => $bom->item->item_code,
+                    'item_name' => $bom->item->name,
+                    'bom_id' => $bom->bom_id,
+                    'bom_code' => $bom->bom_code,
+                    'standard_quantity' => $bom->standard_quantity,
+                    'uom' => $bom->unitOfMeasure->symbol,
+                ],
+                'has_yield_based_materials' => $hasYieldLines,
+                'materials' => $materials
+            ];
+            
+            if ($checkStock) {
+                $result['maximum_yield'] = $maxProduction;
+            }
+            
+            return response()->json([
+                'data' => $result,
+                'message' => 'Maximum production capacity calculated successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to calculate production capacity', 'error' => $e->getMessage()], 500);
+        }
+    }
     
     /**
      * Generate purchase requisitions from material plans

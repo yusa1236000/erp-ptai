@@ -2,6 +2,8 @@
 
 namespace App\Models\Sales;
 
+use App\Models\Item;
+use App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

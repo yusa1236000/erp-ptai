@@ -612,8 +612,12 @@ export default {
             }
         };
 
-        const viewDelivery = (delivery) => {
-            router.push(`/sales/deliveries/${delivery.delivery_id}`);
+const viewDelivery = (delivery) => {
+            if (delivery && delivery.deliveryId !== undefined && delivery.deliveryId !== null) {
+                router.push(`/sales/deliveries/${delivery.deliveryId}`);
+            } else {
+                alert("Invalid delivery ID. Cannot open delivery details.");
+            }
         };
 
         const viewInvoice = (invoice) => {

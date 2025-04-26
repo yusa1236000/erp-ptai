@@ -111,21 +111,6 @@ const DeliveryService = {
   },
   
   /**
-   * Get warehouse locations for a specific warehouse
-   * @param {Number} warehouseId - Warehouse ID
-   * @returns {Promise} Promise with warehouse locations response
-   */
-  getWarehouseLocations: async (warehouseId) => {
-    try {
-      const response = await api.get(`/warehouses/${warehouseId}/locations`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error fetching locations for warehouse ${warehouseId}:`, error);
-      throw error;
-    }
-  },
-  
-  /**
    * Get all available sales orders for delivery
    * @returns {Promise} Promise with sales orders response
    */

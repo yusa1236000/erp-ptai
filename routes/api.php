@@ -86,7 +86,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('items')->group(function () {
         // Existing item routes...
-        
+        // Di dalam grup route prefix 'items'
+        Route::get('/{id}/prices-in-currencies', 'App\Http\Controllers\Api\Inventory\ItemController@getPricesInCurrencies');
         // Special item filters
         Route::get('/purchasable', 'App\Http\Controllers\Api\Inventory\ItemController@getPurchasableItems');
         Route::get('/sellable', 'App\Http\Controllers\Api\Inventory\ItemController@getSellableItems');
@@ -426,6 +427,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/max-production', [MaterialPlanningController::class, 'calculateMaximumProduction']);
     });
 
+    Route::get('items/{id}/prices-in-currencies', 'App\Http\Controllers\Api\Inventory\ItemController@getPricesInCurrencies');
+    Route::get('customers/{id}/transactions-in-currency', 'App\Http\Controllers\Api\Sales\CustomerController@getTransactionsInCurrency');
+    Route::get('vendors/{vendor}/transactions-in-currency', 'App\Http\Controllers\Api\VendorController@getTransactionsInCurrency');
+    Route::put('vendors/{vendor}/preferred-currency', 'App\Http\Controllers\Api\VendorController@updatePreferredCurrency');
     // Accounting Module Routes
     Route::prefix('accounting')->group(function () {
         // Chart of Accounts

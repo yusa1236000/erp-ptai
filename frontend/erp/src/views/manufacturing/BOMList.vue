@@ -1,8 +1,8 @@
 <!-- src/views/manufacturing/BOMList.vue -->
 <template>
-  <div class="bom-list">
+  <div class="bom-list-container">
     <div class="card">
-      <div class="card-body">
+      <div class="card-header">
         <h2 class="card-title">Bill of Materials</h2>
         
         <SearchFilter 
@@ -16,18 +16,23 @@
               <label for="status-filter">Status</label>
               <select id="status-filter" v-model="filters.status" @change="loadBOMs">
                 <option value="">All Statuses</option>
-                <option value="draft">Draft</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="obsolete">Obsolete</option>
+                <option value="Draft">Draft</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Obsolete">Obsolete</option>
               </select>
             </div>
           </template>
           
           <template #actions>
-            <router-link to="/manufacturing/boms/create" class="btn btn-primary">
-              <i class="fas fa-plus mr-2"></i> New BOM
-            </router-link>
+            <div class="action-buttons">
+              <router-link to="/manufacturing/boms/create" class="btn btn-primary">
+                <i class="fas fa-plus mr-2"></i> New BOM
+              </router-link>
+              <router-link to="/manufacturing/boms/yield-based" class="btn btn-info">
+                <i class="fas fa-flask mr-2"></i> Yield-Based BOM
+              </router-link>
+            </div>
           </template>
         </SearchFilter>
         
@@ -49,16 +54,22 @@
             <template #effective_date="{ value }">
               {{ formatDate(value) }}
             </template>
+
+            <template #has_yield_based="{ item }">
+              <span v-if="hasYieldBasedComponents(item)" class="badge badge-info">
+                <i class="fas fa-flask mr-1"></i> Yield-Based
+              </span>
+            </template>
             
             <template #actions="{ item }">
-              <div class="btn-group">
-                <router-link :to="`/manufacturing/boms/${item.bom_id}`" class="btn btn-sm btn-secondary">
+              <div class="action-group">
+                <router-link :to="`/manufacturing/boms/${item.bom_id}`" class="btn btn-sm btn-info" title="View Details">
                   <i class="fas fa-eye"></i>
                 </router-link>
-                <router-link :to="`/manufacturing/boms/${item.bom_id}/edit`" class="btn btn-sm btn-primary">
+                <router-link :to="`/manufacturing/boms/${item.bom_id}/edit`" class="btn btn-sm btn-primary" title="Edit">
                   <i class="fas fa-edit"></i>
                 </router-link>
-                <button @click="confirmDelete(item)" class="btn btn-sm btn-danger">
+                <button @click="confirmDelete(item)" class="btn btn-sm btn-danger" title="Delete">
                   <i class="fas fa-trash"></i>
                 </button>
               </div>
@@ -66,7 +77,7 @@
           </DataTable>
         </div>
         
-        <div class="mt-4">
+        <div class="pagination-container">
           <PaginationComponent
             :current-page="currentPage"
             :total-pages="totalPages"
@@ -131,7 +142,9 @@ export default {
       { key: 'item.name', label: 'Item', sortable: true },
       { key: 'revision', label: 'Revision', sortable: true },
       { key: 'effective_date', label: 'Effective Date', sortable: true, template: 'effective_date' },
-      { key: 'status', label: 'Status', sortable: true, template: 'status', class: 'text-center' }
+      { key: 'has_yield_based', label: 'Type', template: 'has_yield_based', class: 'text-center', sortable: false },
+      { key: 'status', label: 'Status', sortable: true, template: 'status', class: 'text-center' },
+      { key: 'actions', label: 'Actions', template: 'actions', class: 'text-center', sortable: false }
     ];
     
     const loadBOMs = async () => {
@@ -182,20 +195,25 @@ export default {
     };
     
     const getStatusBadgeClass = (status) => {
-      const classes = 'badge ';
-      switch (status.toLowerCase()) {
-        case 'draft': return classes + 'badge-secondary';
-        case 'active': return classes + 'badge-success';
-        case 'inactive': return classes + 'badge-warning';
-        case 'obsolete': return classes + 'badge-danger';
-        default: return classes + 'badge-secondary';
-      }
+      if (!status) return 'badge badge-secondary';
+      
+      const statusLower = status.toLowerCase();
+      if (statusLower === 'draft') return 'badge badge-secondary';
+      if (statusLower === 'active') return 'badge badge-success';
+      if (statusLower === 'inactive') return 'badge badge-warning';
+      if (statusLower === 'obsolete') return 'badge badge-danger';
+      return 'badge badge-secondary';
     };
     
     const formatDate = (dateString) => {
       if (!dateString) return '';
       const date = new Date(dateString);
-      return date.toLocaleDateString();
+      return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    };
+    
+    const hasYieldBasedComponents = (bom) => {
+      if (!bom.bomLines || !Array.isArray(bom.bomLines)) return false;
+      return bom.bomLines.some(line => line.is_yield_based);
     };
     
     const confirmDelete = (bom) => {
@@ -251,6 +269,7 @@ export default {
       handleSort,
       getStatusBadgeClass,
       formatDate,
+      hasYieldBasedComponents,
       confirmDelete,
       cancelDelete,
       deleteBOM
@@ -260,19 +279,153 @@ export default {
 </script>
 
 <style scoped>
-.badge {
-  padding: 0.5em 0.75em;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  font-size: 0.75rem;
+.bom-list-container {
+  padding: 1rem;
+}
+
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 1.5rem;
 }
 
 .card-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--gray-800);
   margin-bottom: 1.5rem;
 }
 
-.btn-group {
+.pagination-container {
+  margin-top: 1.5rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.35em 0.65em;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  color: #fff;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.375rem;
+}
+
+.badge-secondary {
+  background-color: var(--gray-500);
+}
+
+.badge-success {
+  background-color: var(--success-color);
+}
+
+.badge-info {
+  background-color: #0ea5e9;
+}
+
+.badge-warning {
+  background-color: var(--warning-color);
+}
+
+.badge-danger {
+  background-color: var(--danger-color);
+}
+
+.action-group {
   display: flex;
   gap: 0.25rem;
+  justify-content: center;
+}
+
+.action-group .btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 0.25rem;
+}
+
+.table-container {
+  margin-top: 1.5rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 150px;
+}
+
+.filter-group label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--gray-600);
+}
+
+.filter-group select {
+  background-color: white;
+  border: 1px solid var(--gray-300);
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--gray-700);
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+}
+
+.btn-info {
+  background-color: #0ea5e9;
+  border-color: #0ea5e9;
+  color: white;
+  font-weight: 500;
+}
+
+.btn-info:hover {
+  background-color: #0284c7;
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
+  border-color: var(--danger-color);
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .action-buttons .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
 }
 </style>

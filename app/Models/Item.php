@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\UnitOfMeasure;
 use App\Models\ItemCategory;
 use App\Models\CurrencyRate;
+use App\Models\ItemPrice;
+use App\Models\ItemBatch;
+use App\Models\StockTransaction;
+use App\Models\Manufacturing\BOM;
+use App\Models\Manufacturing\Routing;
 
 class Item extends Model
 {
@@ -28,8 +33,8 @@ class Item extends Model
         'is_sellable',
         'cost_price',
         'sale_price',
-        'cost_price_currency', // Baru
-        'sale_price_currency', // Baru
+        'cost_price_currency',
+        'sale_price_currency',
         'length',
         'width',
         'thickness',
@@ -51,8 +56,96 @@ class Item extends Model
         'weight' => 'float',
     ];
 
-    // Existing relationships remain unchanged
-    
+    /**
+     * Get the category that this item belongs to
+     */
+    public function category()
+    {
+        return $this->belongsTo(ItemCategory::class, 'category_id', 'category_id');
+    }
+
+    /**
+     * Get the unit of measure for this item
+     */
+    public function unitOfMeasure()
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'uom_id', 'uom_id');
+    }
+
+    /**
+     * Get the batches for this item
+     */
+    public function batches()
+    {
+        return $this->hasMany(ItemBatch::class, 'item_id', 'item_id');
+    }
+
+    /**
+     * Get the stock transactions for this item
+     */
+    public function stockTransactions()
+    {
+        return $this->hasMany(StockTransaction::class, 'item_id', 'item_id');
+    }
+
+    /**
+     * Get the prices for this item
+     */
+    public function prices()
+    {
+        return $this->hasMany(ItemPrice::class, 'item_id', 'item_id');
+    }
+
+    /**
+     * Get only the purchase prices for this item
+     */
+    public function purchasePrices()
+    {
+        return $this->hasMany(ItemPrice::class, 'item_id', 'item_id')
+                    ->where('price_type', 'purchase');
+    }
+
+    /**
+     * Get only the sale prices for this item
+     */
+    public function salePrices()
+    {
+        return $this->hasMany(ItemPrice::class, 'item_id', 'item_id')
+                    ->where('price_type', 'sale');
+    }
+
+    /**
+     * Get the BOMs where this item is the product
+     */
+    public function boms()
+    {
+        return $this->hasMany(BOM::class, 'item_id', 'item_id');
+    }
+
+    /**
+     * Get the routings for this item
+     */
+    public function routings()
+    {
+        return $this->hasMany(Routing::class, 'item_id', 'item_id');
+    }
+
+    /**
+     * Get the stock status based on min/max levels
+     */
+    public function getStockStatusAttribute()
+    {
+        if ($this->current_stock <= 0) {
+            return 'Out of Stock';
+        } elseif ($this->minimum_stock !== null && $this->current_stock < $this->minimum_stock) {
+            return 'Low Stock';
+        } elseif ($this->maximum_stock !== null && $this->current_stock > $this->maximum_stock) {
+            return 'Overstocked';
+        } else {
+            return 'In Stock';
+        }
+    }
+
     /**
      * Get default purchase price for this item in specific currency.
      * 

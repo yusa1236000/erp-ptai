@@ -99,7 +99,7 @@
   
   <script>
   import { ref, reactive, onMounted, watch } from 'vue';
-  import ItemService from '@/services/ItemService';
+  //import ItemService from '@/services/ItemService';
   
   export default {
     name: 'BOMLineFormModal',

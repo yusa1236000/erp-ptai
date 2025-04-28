@@ -28,6 +28,26 @@
             <option value="over_stock">Over Stock</option>
           </select>
         </div>
+
+        <div class="filter-group">
+          <label for="itemTypeFilter">Item Type</label>
+          <select id="itemTypeFilter" v-model="itemTypeFilter" @change="applyFilters">
+            <option value="">All Types</option>
+            <option value="purchasable">Purchasable</option>
+            <option value="sellable">Sellable</option>
+            <option value="both">Purchasable & Sellable</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="currencyFilter">Price Currency</label>
+          <select id="currencyFilter" v-model="currencyFilter" @change="applyFilters">
+            <option value="">All Currencies</option>
+            <option v-for="currency in currencies" :key="currency" :value="currency">
+              {{ currency }}
+            </option>
+          </select>
+        </div>
       </template>
       
       <template #actions>
@@ -68,7 +88,7 @@
               Current Stock
               <i v-if="sortColumn === 'current_stock'" :class="sortIconClass"></i>
             </th>
-            <th>Min. Stock</th>
+            <th>Pricing ({{ currencyFilter || 'Default' }})</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -80,7 +100,16 @@
             <td>{{ item.category ? item.category.name : '-' }}</td>
             <td>{{ item.unitOfMeasure ? item.unitOfMeasure.symbol : '-' }}</td>
             <td>{{ item.current_stock }}</td>
-            <td>{{ item.minimum_stock }}</td>
+            <td>
+              <div v-if="currencyFilter && itemPricesInCurrency[item.item_id]">
+                Cost: {{ itemPricesInCurrency[item.item_id].purchase_price }} {{ currencyFilter }}<br>
+                Sale: {{ itemPricesInCurrency[item.item_id].sale_price }} {{ currencyFilter }}
+              </div>
+              <div v-else>
+                Cost: {{ item.cost_price || '-' }} {{ item.cost_price_currency || 'USD' }}<br>
+                Sale: {{ item.sale_price || '-' }} {{ item.sale_price_currency || 'USD' }}
+              </div>
+            </td>
             <td>
               <span class="stock-status" :class="getStockStatusClass(item)">
                 {{ getStockStatus(item) }}
@@ -103,7 +132,7 @@
     </div>
     
     <!-- Pagination -->
-    <Pagination
+    <PaginationComponent
       v-if="filteredItems.length > 0"
       :current-page="currentPage"
       :total-pages="totalPages"
@@ -130,7 +159,7 @@
       title="Confirm Delete"
       :message="`Are you sure you want to delete <strong>${itemToDelete.name}</strong>?`"
       confirm-button-text="Delete Item"
-      confirm-button-class="btn-danger"
+      confirm-button-class="btn btn-danger"
       @confirm="deleteItem"
       @close="closeDeleteModal"
     />
@@ -149,7 +178,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import api from '@/services/api';
 import SearchFilter from '@/components/common/SearchFilter.vue';
-import Pagination from '@/components/common/Pagination.vue';
+import PaginationComponent from '@/components/common/Pagination.vue';
 import ItemFormModal from '@/components/inventory/ItemFormModal.vue';
 import ItemDetailModal from '@/components/inventory/ItemDetailModal.vue';
 import ConfirmationModal from '@/components/common/ConfirmationModal.vue';
@@ -158,7 +187,7 @@ export default {
   name: 'ItemsList',
   components: {
     SearchFilter,
-    Pagination,
+    PaginationComponent,
     ItemFormModal,
     ItemDetailModal,
     ConfirmationModal
@@ -168,11 +197,15 @@ export default {
     const categories = ref([]);
     const unitOfMeasures = ref([]);
     const isLoading = ref(true);
+    const currencies = ref(['USD', 'IDR', 'EUR', 'SGD', 'JPY']);
+    const itemPricesInCurrency = ref({});
     
     // Search and filtering
     const searchQuery = ref('');
     const categoryFilter = ref('');
     const stockStatusFilter = ref('');
+    const itemTypeFilter = ref('');
+    const currencyFilter = ref('');
     
     // Sorting
     const sortColumn = ref('item_code');
@@ -203,7 +236,9 @@ export default {
       is_purchasable: false,
       is_sellable: false,
       cost_price: 0,
-      sale_price: 0
+      sale_price: 0,
+      cost_price_currency: 'USD',
+      sale_price_currency: 'USD',
     });
     const itemToDelete = ref({});
     const selectedItem = ref(null);
@@ -245,6 +280,26 @@ export default {
             );
             break;
         }
+      }
+      
+      // Apply item type filter
+      if (itemTypeFilter.value) {
+        switch (itemTypeFilter.value) {
+          case 'purchasable':
+            result = result.filter(item => item.is_purchasable);
+            break;
+          case 'sellable':
+            result = result.filter(item => item.is_sellable);
+            break;
+          case 'both':
+            result = result.filter(item => item.is_purchasable && item.is_sellable);
+            break;
+        }
+      }
+      
+      // Apply currency filter - no filtering, just trigger price conversion
+      if (currencyFilter.value && currencyFilter.value !== '') {
+        fetchPricesForFilteredItems(result, currencyFilter.value);
       }
       
       // Apply sorting
@@ -304,6 +359,57 @@ export default {
         console.error('Error fetching items:', error);
       } finally {
         isLoading.value = false;
+      }
+    };
+    
+    const fetchPricesForFilteredItems = async (filteredItems, currency) => {
+      // Only fetch prices if they're not already in the cache
+      const itemsToFetch = filteredItems.filter(item => 
+        !itemPricesInCurrency.value[item.item_id] || 
+        itemPricesInCurrency.value[item.item_id].currency !== currency
+      );
+      
+      if (itemsToFetch.length === 0) return;
+      
+      const itemIds = itemsToFetch.map(item => item.item_id);
+      
+      try {
+        // Batch fetch prices for all items that need prices
+        const response = await api.get(`/items/${itemIds[0]}/prices-in-currencies`, {
+          params: {
+            currencies: [currency]
+          }
+        });
+        
+        if (response.data && response.data.success && response.data.data) {
+          // Store the returned prices in the cache for this item
+          const prices = response.data.data.prices[currency];
+          itemPricesInCurrency.value[itemIds[0]] = {
+            purchase_price: prices.purchase_price,
+            sale_price: prices.sale_price,
+            currency: currency
+          };
+        }
+        
+        // For other items, fetch one by one (in a production app, you'd want a batch API)
+        for (let i = 1; i < itemIds.length; i++) {
+          const itemResponse = await api.get(`/items/${itemIds[i]}/prices-in-currencies`, {
+            params: {
+              currencies: [currency]
+            }
+          });
+          
+          if (itemResponse.data && itemResponse.data.success && itemResponse.data.data) {
+            const prices = itemResponse.data.data.prices[currency];
+            itemPricesInCurrency.value[itemIds[i]] = {
+              purchase_price: prices.purchase_price,
+              sale_price: prices.sale_price,
+              currency: currency
+            };
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching prices in currency:', error);
       }
     };
     
@@ -390,7 +496,9 @@ export default {
         is_purchasable: false,
         is_sellable: false,
         cost_price: 0,
-        sale_price: 0
+        sale_price: 0,
+        cost_price_currency: 'USD',
+        sale_price_currency: 'USD'
       };
       showItemModal.value = true;
     };
@@ -413,7 +521,9 @@ export default {
         is_purchasable: item.is_purchasable || false,
         is_sellable: item.is_sellable || false,
         cost_price: item.cost_price || 0,
-        sale_price: item.sale_price || 0
+        sale_price: item.sale_price || 0,
+        cost_price_currency: item.cost_price_currency || 'USD',
+        sale_price_currency: item.sale_price_currency || 'USD'
       };
       showItemModal.value = true;
     };
@@ -450,10 +560,15 @@ export default {
           // Refresh items list
           await fetchItems();
           
+          // Clear the price cache for this item
+          if (itemPricesInCurrency.value[itemId]) {
+            delete itemPricesInCurrency.value[itemId];
+          }
+          
           // Show success message
           alert('Item updated successfully!');
         } else {
-          await api.post('/items', formData, {
+          const response = await api.post('/items', formData, {
             headers: {
               'Content-Type': 'multipart/form-data'
             }
@@ -495,6 +610,11 @@ export default {
         // Remove item from the list
         items.value = items.value.filter(item => item.item_id !== itemToDelete.value.item_id);
         
+        // Remove from currency price cache if present
+        if (itemPricesInCurrency.value[itemToDelete.value.item_id]) {
+          delete itemPricesInCurrency.value[itemToDelete.value.item_id];
+        }
+        
         // Close the modal
         closeDeleteModal();
         
@@ -518,6 +638,14 @@ export default {
       }
     });
     
+    // Watch for currency changes to clear the cached prices
+    watch(currencyFilter, (newCurrency) => {
+      if (newCurrency === '') {
+        // Clear the price cache when switching back to default
+        itemPricesInCurrency.value = {};
+      }
+    });
+    
     // Initial data loading
     onMounted(() => {
       fetchItems();
@@ -529,10 +657,14 @@ export default {
       items,
       categories,
       unitOfMeasures,
+      currencies,
       isLoading,
       searchQuery,
       categoryFilter,
       stockStatusFilter,
+      itemTypeFilter,
+      currencyFilter,
+      itemPricesInCurrency,
       sortColumn,
       sortDirection,
       currentPage,

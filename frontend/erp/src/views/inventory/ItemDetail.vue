@@ -141,16 +141,25 @@
       <div class="detail-card">
         <div class="card-header">
           <h2 class="card-title">Pricing Information</h2>
+          <button 
+            v-if="!showMultiCurrencyPrices && (item.cost_price > 0 || item.sale_price > 0)" 
+            class="card-action"
+            @click="fetchPricesInCurrencies"
+          >
+            <i class="fas fa-money-bill-wave"></i> Show in Currencies
+          </button>
         </div>
         <div class="card-body">
           <div class="stock-summary">
             <div class="stock-stat">
               <div class="stat-label">Cost Price</div>
               <div class="stat-value">{{ item.cost_price || '-' }}</div>
+              <div class="stat-unit">{{ item.cost_price_currency || 'USD' }}</div>
             </div>
             <div class="stock-stat">
               <div class="stat-label">Sale Price</div>
               <div class="stat-value">{{ item.sale_price || '-' }}</div>
+              <div class="stat-unit">{{ item.sale_price_currency || 'USD' }}</div>
             </div>
             <div class="stock-stat">
               <div class="stat-label">Purchasable</div>
@@ -166,6 +175,30 @@
                 <span :class="item.is_sellable ? 'badge-success' : 'badge-secondary'" class="badge">
                   {{ item.is_sellable ? 'Yes' : 'No' }}
                 </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Multi-Currency Prices Section -->
+          <div class="currency-prices-container" v-if="showMultiCurrencyPrices">
+            <h3 class="currency-prices-title">Prices in Other Currencies</h3>
+            <div class="currency-prices-loading" v-if="isLoadingCurrencies">
+              <i class="fas fa-spinner fa-spin"></i> Loading prices...
+            </div>
+            <div class="currency-prices" v-else-if="multiCurrencyPrices">
+              <div v-for="(price, currency) in multiCurrencyPrices.prices" :key="currency" class="currency-price-card">
+                <div class="currency-code">{{ currency }}</div>
+                <div class="price-details">
+                  <div class="price-row">
+                    <span class="price-label">Purchase:</span>
+                    <span class="price-value">{{ price.purchase_price }}</span>
+                  </div>
+                  <div class="price-row">
+                    <span class="price-label">Sale:</span>
+                    <span class="price-value">{{ price.sale_price }}</span>
+                  </div>
+                  <div class="base-currency-tag" v-if="price.is_base_currency">Base Currency</div>
+                </div>
               </div>
             </div>
           </div>
@@ -334,8 +367,11 @@ export default {
     const unitOfMeasures = ref([]);
     const isLoading = ref(true);
     const isLoadingTransactions = ref(true);
+    const isLoadingCurrencies = ref(false);
     const showEditModal = ref(false);
     const showDeleteModal = ref(false);
+    const showMultiCurrencyPrices = ref(false);
+    const multiCurrencyPrices = ref(null);
     const bomComponents = ref([]);
     const itemForm = ref({
       item_id: null,
@@ -350,6 +386,8 @@ export default {
       is_sellable: false,
       cost_price: 0,
       sale_price: 0,
+      cost_price_currency: 'USD',
+      sale_price_currency: 'USD',
       length: '',
       width: '',
       thickness: '',
@@ -387,6 +425,8 @@ export default {
           is_sellable: item.value.is_sellable || false,
           cost_price: item.value.cost_price || 0,
           sale_price: item.value.sale_price || 0,
+          cost_price_currency: item.value.cost_price_currency || 'USD',
+          sale_price_currency: item.value.sale_price_currency || 'USD',
           length: item.value.length || '',
           width: item.value.width || '',
           thickness: item.value.thickness || '',
@@ -412,6 +452,28 @@ export default {
         transactions.value = [];
       } finally {
         isLoadingTransactions.value = false;
+      }
+    };
+
+    const fetchPricesInCurrencies = async () => {
+      if (isLoadingCurrencies.value || !item.value?.item_id) return;
+      
+      showMultiCurrencyPrices.value = true;
+      isLoadingCurrencies.value = true;
+      
+      try {
+        const response = await ItemService.getPricesInCurrencies(
+          item.value.item_id, 
+          ['USD', 'IDR', 'EUR', 'SGD', 'JPY']
+        );
+        
+        if (response.data.success) {
+          multiCurrencyPrices.value = response.data.data;
+        }
+      } catch (error) {
+        console.error('Error fetching prices in currencies:', error);
+      } finally {
+        isLoadingCurrencies.value = false;
       }
     };
 
@@ -492,7 +554,7 @@ export default {
 
     const saveItem = async (formData) => {
       try {
-        await ItemService.updateItem(formData.item_id, formData);
+        await ItemService.updateItem(formData.get('item_id'), formData);
         
         // Refresh item data
         await fetchItem();
@@ -558,8 +620,11 @@ export default {
       unitOfMeasures,
       isLoading,
       isLoadingTransactions,
+      isLoadingCurrencies,
       showEditModal,
       showDeleteModal,
+      showMultiCurrencyPrices,
+      multiCurrencyPrices,
       itemForm,
       canDelete,
       bomComponents,
@@ -573,7 +638,8 @@ export default {
       saveItem,
       confirmDelete,
       closeDeleteModal,
-      deleteItem
+      deleteItem,
+      fetchPricesInCurrencies
     };
   }
 };
@@ -661,6 +727,10 @@ export default {
   font-size: 0.875rem;
   color: #2563eb;
   text-decoration: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .card-action:hover {
@@ -758,6 +828,86 @@ export default {
 .stock-status.over {
   background-color: #fef3c7;
   color: #d97706;
+}
+
+/* Multi-currency section */
+.currency-prices-container {
+  margin-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1.5rem;
+}
+
+.currency-prices-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: #1e293b;
+}
+
+.currency-prices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.currency-price-card {
+  background-color: #f8fafc;
+  border-radius: 0.375rem;
+  border: 1px solid #e2e8f0;
+  padding: 0.75rem;
+  min-width: 120px;
+  position: relative;
+  flex: 1;
+  min-width: 120px;
+}
+
+.currency-code {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.price-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.price-label {
+  color: #64748b;
+}
+
+.price-value {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.base-currency-tag {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #2563eb;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.currency-prices-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  color: #64748b;
 }
 
 .card-table {
@@ -896,6 +1046,10 @@ export default {
   
   .stock-summary {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .currency-prices {
+    flex-direction: column;
   }
 }
 </style>

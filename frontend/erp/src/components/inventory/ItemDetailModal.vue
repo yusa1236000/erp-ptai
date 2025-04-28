@@ -108,11 +108,11 @@
             <div class="detail-grid">
               <div class="detail-item">
                 <div class="detail-label">Cost Price</div>
-                <div class="detail-value">{{ item.cost_price || '-' }}</div>
+                <div class="detail-value">{{ item.cost_price || '-' }} {{ item.cost_price_currency || 'USD' }}</div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">Sale Price</div>
-                <div class="detail-value">{{ item.sale_price || '-' }}</div>
+                <div class="detail-value">{{ item.sale_price || '-' }} {{ item.sale_price_currency || 'USD' }}</div>
               </div>
               <div class="detail-item">
                 <div class="detail-label">Purchasable</div>
@@ -130,6 +130,66 @@
                   </span>
                 </div>
               </div>
+              <div class="detail-item" v-if="showMultiCurrencyPrices">
+                <div class="detail-label">View Prices in Other Currencies</div>
+                <div class="detail-value">
+                  <button @click="fetchPricesInCurrencies" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-money-bill-wave"></i> Show Prices
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Multi-Currency Prices Section -->
+          <div class="detail-section" v-if="multiCurrencyPrices">
+            <h3 class="section-title">Prices in Other Currencies</h3>
+            <div class="multi-currency-prices">
+              <div v-for="(price, currency) in multiCurrencyPrices.prices" :key="currency" class="currency-price-card">
+                <div class="currency-code">{{ currency }}</div>
+                <div class="price-details">
+                  <div class="price-row">
+                    <span class="price-label">Purchase:</span>
+                    <span class="price-value">{{ price.purchase_price }}</span>
+                  </div>
+                  <div class="price-row">
+                    <span class="price-label">Sale:</span>
+                    <span class="price-value">{{ price.sale_price }}</span>
+                  </div>
+                  <div class="base-currency-tag" v-if="price.is_base_currency">Base Currency</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- BOM Components Section -->
+          <div class="detail-section" v-if="bomComponents && bomComponents.length > 0">
+            <h3 class="section-title">BOM Components</h3>
+            <div class="components-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Component Code</th>
+                    <th>Component Name</th>
+                    <th>Quantity</th>
+                    <th>UOM</th>
+                    <th>Critical</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="component in bomComponents" :key="component.component_id">
+                    <td>{{ component.component_code }}</td>
+                    <td>{{ component.component_name }}</td>
+                    <td>{{ component.quantity }}</td>
+                    <td>{{ component.uom || '-' }}</td>
+                    <td>
+                      <span :class="component.is_critical ? 'badge-warning' : 'badge-secondary'" class="badge">
+                        {{ component.is_critical ? 'Yes' : 'No' }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
           
@@ -207,7 +267,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import api from '@/services/api';
 
 export default {
@@ -222,6 +282,16 @@ export default {
   setup(props, { emit }) {
     const recentTransactions = ref([]);
     const hasMoreTransactions = ref(false);
+    const multiCurrencyPrices = ref(null);
+    const isLoadingCurrencies = ref(false);
+    const bomComponents = computed(() => {
+      return props.item && props.item.bom_components ? props.item.bom_components : [];
+    });
+
+    // Show multi-currency button only if costs exist
+    const showMultiCurrencyPrices = computed(() => {
+      return props.item && (props.item.cost_price > 0 || props.item.sale_price > 0);
+    });
     
     const fetchRecentTransactions = async () => {
       try {
@@ -234,6 +304,25 @@ export default {
         }
       } catch (error) {
         console.error('Error fetching recent transactions:', error);
+      }
+    };
+
+    const fetchPricesInCurrencies = async () => {
+      if (isLoadingCurrencies.value || !props.item?.item_id) return;
+      
+      isLoadingCurrencies.value = true;
+      try {
+        const response = await api.get(`/items/${props.item.item_id}/prices-in-currencies`, {
+          params: {
+            currencies: ['USD', 'IDR', 'EUR', 'SGD', 'JPY']
+          }
+        });
+        
+        multiCurrencyPrices.value = response.data.data;
+      } catch (error) {
+        console.error('Error fetching prices in currencies:', error);
+      } finally {
+        isLoadingCurrencies.value = false;
       }
     };
     
@@ -296,11 +385,16 @@ export default {
     return {
       recentTransactions,
       hasMoreTransactions,
+      multiCurrencyPrices,
+      isLoadingCurrencies,
+      bomComponents,
+      showMultiCurrencyPrices,
       formatDate,
       getStockStatus,
       getStockStatusClass,
       getTransactionTypeClass,
       getQuantityClass,
+      fetchPricesInCurrencies,
       editItem
     };
   }
@@ -457,12 +551,73 @@ export default {
   color: #d97706;
 }
 
+/* Multi-currency prices section */
+.multi-currency-prices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.currency-price-card {
+  background-color: #f8fafc;
+  border-radius: 0.375rem;
+  border: 1px solid #e2e8f0;
+  padding: 0.75rem;
+  min-width: 120px;
+  position: relative;
+}
+
+.currency-code {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.price-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.price-label {
+  color: #64748b;
+}
+
+.price-value {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.base-currency-tag {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #2563eb;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+/* Component table styles */
+.components-table,
 .batches-table,
 .transactions-table {
   padding: 1rem;
   overflow-x: auto;
 }
 
+.components-table table,
 .batches-table table,
 .transactions-table table {
   width: 100%;
@@ -470,6 +625,7 @@ export default {
   font-size: 0.875rem;
 }
 
+.components-table th,
 .batches-table th,
 .transactions-table th {
   text-align: left;
@@ -479,6 +635,7 @@ export default {
   color: #64748b;
 }
 
+.components-table td,
 .batches-table td,
 .transactions-table td {
   padding: 0.5rem;
@@ -552,9 +709,18 @@ export default {
   color: #64748b;
 }
 
+.badge-warning {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
 @media (max-width: 640px) {
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .multi-currency-prices {
+    flex-direction: column;
   }
 }
 </style>

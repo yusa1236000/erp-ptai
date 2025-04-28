@@ -197,6 +197,21 @@
                 <span v-if="errors.cost_price" class="error-message">{{ errors.cost_price }}</span>
               </div>
               <div class="form-group">
+                <label for="cost_price_currency">Currency</label>
+                <select 
+                  id="cost_price_currency" 
+                  v-model="form.cost_price_currency"
+                  :class="{ 'is-invalid': errors.cost_price_currency }"
+                >
+                  <option v-for="currency in currencies" :key="currency" :value="currency">
+                    {{ currency }}
+                  </option>
+                </select>
+                <span v-if="errors.cost_price_currency" class="error-message">{{ errors.cost_price_currency }}</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
                 <label for="sale_price">Sale Price</label>
                 <input 
                   type="number" 
@@ -207,6 +222,19 @@
                   :class="{ 'is-invalid': errors.sale_price }"
                 />
                 <span v-if="errors.sale_price" class="error-message">{{ errors.sale_price }}</span>
+              </div>
+              <div class="form-group">
+                <label for="sale_price_currency">Currency</label>
+                <select 
+                  id="sale_price_currency" 
+                  v-model="form.sale_price_currency"
+                  :class="{ 'is-invalid': errors.sale_price_currency }"
+                >
+                  <option v-for="currency in currencies" :key="currency" :value="currency">
+                    {{ currency }}
+                  </option>
+                </select>
+                <span v-if="errors.sale_price_currency" class="error-message">{{ errors.sale_price_currency }}</span>
               </div>
             </div>
             <div class="form-row">
@@ -268,6 +296,9 @@ export default {
   },
   emits: ['save', 'close'],
   setup(props, { emit }) {
+    // Available currencies
+    const currencies = ref(['USD', 'IDR', 'EUR', 'SGD', 'JPY']);
+
     const form = reactive({
       item_id: props.itemForm.item_id,
       item_code: props.itemForm.item_code,
@@ -285,6 +316,8 @@ export default {
       is_sellable: props.itemForm.is_sellable === true || props.itemForm.is_sellable === 'true',
       cost_price: props.itemForm.cost_price || 0,
       sale_price: props.itemForm.sale_price || 0,
+      cost_price_currency: props.itemForm.cost_price_currency || 'USD',
+      sale_price_currency: props.itemForm.sale_price_currency || 'USD',
       document: null
     });
     
@@ -303,6 +336,8 @@ export default {
         is_sellable: newForm.is_sellable === true || newForm.is_sellable === 'true',
         cost_price: newForm.cost_price || 0,
         sale_price: newForm.sale_price || 0,
+        cost_price_currency: newForm.cost_price_currency || 'USD',
+        sale_price_currency: newForm.sale_price_currency || 'USD',
         document: null
       });
     }, { deep: true });
@@ -359,6 +394,14 @@ export default {
         errors.value.sale_price = 'Sale price cannot be negative';
       }
       
+      if (!form.cost_price_currency || form.cost_price_currency.length !== 3) {
+        errors.value.cost_price_currency = 'Currency code must be 3 characters';
+      }
+      
+      if (!form.sale_price_currency || form.sale_price_currency.length !== 3) {
+        errors.value.sale_price_currency = 'Currency code must be 3 characters';
+      }
+      
       if (form.document && form.document.size > 10 * 1024 * 1024) {
         errors.value.document = 'Document file size must be less than 10MB';
       }
@@ -391,6 +434,7 @@ export default {
     return {
       form,
       errors,
+      currencies,
       documentInput,
       handleFileUpload,
       submitForm

@@ -337,8 +337,8 @@ export default {
             try {
                 // Fetch items and UOMs in parallel
                 const [itemsResponse, uomsResponse] = await Promise.all([
-                    axios.get("/api/items"),
-                    axios.get("/api/unit-of-measures"),
+                    axios.get("/items"),
+                    axios.get("/unit-of-measures"),
                 ]);
 
                 items.value = itemsResponse.data.data || [];
@@ -450,13 +450,13 @@ export default {
             try {
                 if (isEditMode.value) {
                     await axios.put(
-                        `/api/request-for-quotations/${props.id}`,
+                        `/request-for-quotations/${props.id}`,
                         formData
                     );
                     router.push(`/purchasing/rfqs/${props.id}`);
                 } else {
                     const response = await axios.post(
-                        "/api/request-for-quotations",
+                        "/request-for-quotations",
                         formData
                     );
                     router.push(

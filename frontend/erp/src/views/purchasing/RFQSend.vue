@@ -296,8 +296,8 @@ export default {
             try {
                 // Fetch RFQ and vendors in parallel
                 const [rfqResponse, vendorsResponse] = await Promise.all([
-                    axios.get(`/api/request-for-quotations/${props.id}`),
-                    axios.get("/api/vendors", { params: { status: "active" } }),
+                    axios.get(`/request-for-quotations/${props.id}`),
+                    axios.get("/vendors", { params: { status: "active" } }),
                 ]);
 
                 rfq.value = rfqResponse.data.data;
@@ -351,7 +351,7 @@ export default {
             try {
                 // First update RFQ status to 'sent'
                 await axios.patch(
-                    `/api/request-for-quotations/${props.id}/status`,
+                    `/request-for-quotations/${props.id}/status`,
                     {
                         status: "sent",
                     }
@@ -397,7 +397,7 @@ export default {
             }));
 
             // Create the quotation
-            await axios.post("/api/vendor-quotations", {
+            await axios.post("/vendor-quotations", {
                 rfq_id: props.id,
                 vendor_id: vendorId,
                 quotation_date: new Date().toISOString().split("T")[0],

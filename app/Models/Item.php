@@ -131,6 +131,77 @@ class Item extends Model
     }
 
     /**
+     * Tambahkan method berikut pada model Item
+     */
+
+    /**
+     * Get the stocks for this item in all warehouses
+     */
+    public function stocks()
+    {
+        return $this->hasMany(ItemStock::class, 'item_id', 'item_id');
+    }
+
+    /**
+     * Get stock at specific warehouse
+     *
+     * @param int $warehouseId
+     * @return ItemStock|null
+     */
+    public function getStockAtWarehouse($warehouseId)
+    {
+        return $this->stocks()->where('warehouse_id', $warehouseId)->first();
+    }
+
+    /**
+     * Check if item has enough stock at specific warehouse
+     *
+     * @param int $warehouseId
+     * @param float $quantity
+     * @return bool
+     */
+    public function hasEnoughStockAtWarehouse($warehouseId, $quantity)
+    {
+        $stock = $this->getStockAtWarehouse($warehouseId);
+        
+        if (!$stock) {
+            return false;
+        }
+        
+        return $stock->quantity >= $quantity;
+    }
+
+    /**
+     * Get available quantity at specific warehouse (total - reserved)
+     *
+     * @param int $warehouseId
+     * @return float
+     */
+    public function getAvailableQuantityAtWarehouse($warehouseId)
+    {
+        $stock = $this->getStockAtWarehouse($warehouseId);
+        
+        if (!$stock) {
+            return 0;
+        }
+        
+        return $stock->quantity - $stock->reserved_quantity;
+    }
+
+    /**
+     * Check if item has enough available stock at warehouse
+     *
+     * @param int $warehouseId
+     * @param float $quantity
+     * @return bool
+     */
+    public function hasEnoughAvailableAtWarehouse($warehouseId, $quantity)
+    {
+        $availableQty = $this->getAvailableQuantityAtWarehouse($warehouseId);
+        return $availableQty >= $quantity;
+    }
+
+    /**
      * Get the stock status based on min/max levels
      */
     public function getStockStatusAttribute()

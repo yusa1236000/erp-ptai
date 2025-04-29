@@ -327,7 +327,7 @@ export default {
             isLoading.value = true;
             try {
                 const response = await axios.get(
-                    `/api/request-for-quotations/${props.id}`
+                    `/request-for-quotations/${props.id}`
                 );
                 if (response.data && response.data.data) {
                     rfq.value = response.data.data;
@@ -394,7 +394,7 @@ export default {
         const updateStatus = async () => {
             try {
                 await axios.patch(
-                    `/api/request-for-quotations/${props.id}/status`,
+                    `/request-for-quotations/${props.id}/status`,
                     {
                         status: newStatus.value,
                     }
@@ -415,7 +415,7 @@ export default {
         const acceptQuotation = async (quotation) => {
             try {
                 await axios.patch(
-                    `/api/vendor-quotations/${quotation.quotation_id}/status`,
+                    `/vendor-quotations/${quotation.quotation_id}/status`,
                     {
                         status: "accepted",
                     }
@@ -430,7 +430,7 @@ export default {
         const rejectQuotation = async (quotation) => {
             try {
                 await axios.patch(
-                    `/api/vendor-quotations/${quotation.quotation_id}/status`,
+                    `/vendor-quotations/${quotation.quotation_id}/status`,
                     {
                         status: "rejected",
                     }

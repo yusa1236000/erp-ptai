@@ -74,7 +74,7 @@ import RFQCompare from "../views/purchasing/RFQCompare.vue";
 //PO
 import PurchaseOrderList from "../views/purchasing/PurchaseOrderList.vue";
 import PurchaseOrderDetail from "../views/purchasing/PurchaseOrderDetail.vue";
-//import PurchaseOrderForm from "../views/purchasing/PurchaseOrderForm.vue";
+import PurchaseOrderForm from "../views/purchasing/PurchaseOrderForm.vue";
 import CreatePOFromQuotation from "../views/purchasing/CreatePOFromQuotation.vue";
 import PurchaseOrderTrack from "../views/purchasing/PurchaseOrderTrack.vue";
 
@@ -632,12 +632,12 @@ const routes = [
                 component: PurchaseOrderList,
                 meta: { requiresAuth: true },
             },
-            // {
-            //     path: "/purchasing/orders/create",
-            //     name: "CreatePurchaseOrder",
-            //     component: PurchaseOrderForm,
-            //     meta: { requiresAuth: true },
-            // },
+            {
+                path: "/purchasing/orders/create",
+                name: "CreatePurchaseOrder",
+                component: PurchaseOrderForm,
+                meta: { requiresAuth: true },
+            },
             {
                 path: "/purchasing/orders/:id",
                 name: "PurchaseOrderDetail",

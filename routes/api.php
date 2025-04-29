@@ -322,6 +322,33 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/update-actuals', [SalesForecastController::class, 'updateActuals']);
         Route::get('/accuracy', [SalesForecastController::class, 'getForecastAccuracy']);
     });
+
+    // Routes untuk Outstanding Sales Order
+    Route::get('sales-orders/{id}/outstanding-items', 'Api\Sales\SalesOrderController@getOutstandingItems');
+    Route::get('sales-orders/outstanding', 'Api\Sales\SalesOrderController@getAllOutstandingSalesOrders');
+
+    // Routes untuk Delivery dari Outstanding Items
+    Route::get('deliveries/outstanding-so', 'Api\Sales\DeliveryController@getOutstandingSalesOrders');
+    Route::get('deliveries/outstanding-items/{soId}', 'Api\Sales\DeliveryController@getOutstandingItemsForDelivery');
+    Route::post('deliveries/from-outstanding', 'Api\Sales\DeliveryController@storeFromOutstanding');
+    
+    // Routes untuk ItemStock
+    Route::get('item-stocks', 'Api\Inventory\ItemStockController@index');
+    Route::get('item-stocks/item/{itemId}', 'Api\Inventory\ItemStockController@getItemStock');
+    Route::get('item-stocks/warehouse/{warehouseId}', 'Api\Inventory\ItemStockController@getWarehouseStock');
+    Route::post('item-stocks/transfer', 'Api\Inventory\ItemStockController@transferStock');
+    Route::post('item-stocks/adjust', 'Api\Inventory\ItemStockController@adjustStock');
+    Route::post('item-stocks/reserve', 'Api\Inventory\ItemStockController@reserveStock');
+    Route::post('item-stocks/release-reservation', 'Api\Inventory\ItemStockController@releaseReservation');
+    
+    // Routes untuk System Settings
+    Route::get('settings', 'Api\Admin\SystemSettingController@index');
+    Route::get('settings/group/{group}', 'Api\Admin\SystemSettingController@getByGroup');
+    Route::get('settings/inventory', 'Api\Admin\SystemSettingController@getInventorySettings');
+    Route::put('settings', 'Api\Admin\SystemSettingController@update');
+    Route::put('settings/batch', 'Api\Admin\SystemSettingController@updateMultiple');
+    Route::put('settings/inventory', 'Api\Admin\SystemSettingController@updateInventorySettings');
+
     // Item Category Routes
     Route::prefix('item-categories')->group(function () {
         Route::get('/', [ItemCategoryController::class, 'index']);

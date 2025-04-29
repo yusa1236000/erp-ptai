@@ -82,18 +82,18 @@
         </div>
 
         <div class="data-container">
-            <DataTable
-                :columns="columns"
-                :items="purchaseOrders"
-                :is-loading="isLoading"
-                :key-field="'po_id'"
-                :initial-sort-key="'po_date'"
-                :initial-sort-order="'desc'"
-                :empty-title="'No Purchase Orders Found'"
-                :empty-message="'Try adjusting your search or filters, or create a new purchase order.'"
-                :empty-icon="'fas fa-file-invoice'"
-                @sort="handleSort"
-            >
+        <DataTable
+            :columns="columns"
+            :items="filteredPurchaseOrders"
+            :is-loading="isLoading"
+            :key-field="'po_id'"
+            :initial-sort-key="'po_date'"
+            :initial-sort-order="'desc'"
+            :empty-title="'No Purchase Orders Found'"
+            :empty-message="'Try adjusting your search or filters, or create a new purchase order.'"
+            :empty-icon="'fas fa-file-invoice'"
+            @sort="handleSort"
+        >
                 <template v-slot:po_date="{ value }">
                     {{ formatDate(value) }}
                 </template>
@@ -199,278 +199,288 @@ export default {
         PaginationComponent,
         ConfirmationModal,
     },
-    setup() {
-        //const router = useRouter();
-        const purchaseOrders = ref([]);
-        const vendors = ref([]);
-        const isLoading = ref(true);
-        const currentPage = ref(1);
-        const totalPages = ref(1);
-        const totalPOs = ref(0);
-        const itemsPerPage = ref(10);
-        const searchQuery = ref("");
-        const showDeleteModal = ref(false);
-        const selectedPO = ref(null);
+        setup() {
+            //const router = useRouter();
+            const purchaseOrders = ref([]);
+            const vendors = ref([]);
+            const isLoading = ref(true);
+            const currentPage = ref(1);
+            const totalPages = ref(1);
+            const totalPOs = ref(0);
+            const itemsPerPage = ref(10);
+            const searchQuery = ref("");
+            const showDeleteModal = ref(false);
+            const selectedPO = ref(null);
 
-        const filters = reactive({
-            status: "",
-            vendor_id: "",
-            date_from: "",
-            date_to: "",
-        });
-
-        const sortKey = ref("po_date");
-        const sortOrder = ref("desc");
-
-        // Table columns definition
-        const columns = [
-            { key: "po_number", label: "PO Number", sortable: true },
-            {
-                key: "po_date",
-                label: "PO Date",
-                sortable: true,
-                template: "po_date",
-            },
-            {
-                key: "vendor_name",
-                label: "Vendor",
-                sortable: false,
-                template: "vendor_name",
-            },
-            {
-                key: "expected_delivery",
-                label: "Expected Delivery",
-                sortable: true,
-                template: "expected_delivery",
-            },
-            {
-                key: "status",
-                label: "Status",
-                sortable: true,
-                template: "status",
-            },
-            {
-                key: "total_amount",
-                label: "Total Amount",
-                sortable: true,
-                template: "total_amount",
-            },
-        ];
-
-        // Computed pagination values
-        const paginationFrom = computed(() => {
-            return (currentPage.value - 1) * itemsPerPage.value + 1;
-        });
-
-        const paginationTo = computed(() => {
-            return Math.min(
-                currentPage.value * itemsPerPage.value,
-                totalPOs.value
-            );
-        });
-
-        // Fetch purchase orders from API
-        const fetchPurchaseOrders = async () => {
-            isLoading.value = true;
-
-            try {
-                const params = {
-                    page: currentPage.value,
-                    per_page: itemsPerPage.value,
-                    search: searchQuery.value,
-                    status: filters.status,
-                    vendor_id: filters.vendor_id,
-                    date_from: filters.date_from,
-                    date_to: filters.date_to,
-                    sort_field: sortKey.value,
-                    sort_direction: sortOrder.value,
-                };
-
-                const response =
-                    await PurchaseOrderService.getAllPurchaseOrders(params);
-
-                if (response.data && response.data.data) {
-                    purchaseOrders.value = response.data.data;
-
-                    if (response.data.meta) {
-                        totalPOs.value = response.data.meta.total || 0;
-                        totalPages.value = response.data.meta.last_page || 1;
-                        currentPage.value =
-                            response.data.meta.current_page || 1;
-                    }
-                } else {
-                    purchaseOrders.value = [];
-                    totalPOs.value = 0;
-                    totalPages.value = 1;
-                }
-            } catch (error) {
-                console.error("Error fetching purchase orders:", error);
-                purchaseOrders.value = [];
-            } finally {
-                isLoading.value = false;
-            }
-        };
-
-        // Fetch vendors for the filter dropdown
-        const fetchVendors = async () => {
-            try {
-                const response = await VendorService.getAllVendors({
-                    per_page: 100,
-                });
-
-                if (response.data && response.data.data) {
-                    vendors.value = response.data.data;
-                }
-            } catch (error) {
-                console.error("Error fetching vendors:", error);
-            }
-        };
-
-        const clearSearch = () => {
-            searchQuery.value = "";
-            fetchPurchaseOrders();
-        };
-
-        const handleSort = ({ key, order }) => {
-            sortKey.value = key;
-            sortOrder.value = order;
-            fetchPurchaseOrders();
-        };
-
-        const changePage = (page) => {
-            currentPage.value = page;
-            fetchPurchaseOrders();
-        };
-
-        const formatDate = (dateString) => {
-            if (!dateString) return "N/A";
-            const date = new Date(dateString);
-            return date.toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "2-digit",
+            const filters = reactive({
+                status: "",
+                vendor_id: "",
+                date_from: "",
+                date_to: "",
             });
-        };
 
-        const formatCurrency = (amount) => {
-            if (amount === null || amount === undefined) return "N/A";
-            return new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "USD",
-            }).format(amount);
-        };
+            const sortKey = ref("po_date");
+            const sortOrder = ref("desc");
 
-        const formatStatus = (status) => {
-            switch (status) {
-                case "draft":
-                    return "Draft";
-                case "submitted":
-                    return "Submitted";
-                case "approved":
-                    return "Approved";
-                case "sent":
-                    return "Sent";
-                case "partial":
-                    return "Partially Received";
-                case "received":
-                    return "Received";
-                case "completed":
-                    return "Completed";
-                case "canceled":
-                    return "Canceled";
-                default:
-                    return status;
-            }
-        };
+            // Table columns definition
+            const columns = [
+                { key: "po_number", label: "PO Number", sortable: true },
+                {
+                    key: "po_date",
+                    label: "PO Date",
+                    sortable: true,
+                    template: "po_date",
+                },
+                {
+                    key: "vendor_name",
+                    label: "Vendor",
+                    sortable: false,
+                    template: "vendor_name",
+                },
+                {
+                    key: "expected_delivery",
+                    label: "Expected Delivery",
+                    sortable: true,
+                    template: "expected_delivery",
+                },
+                {
+                    key: "status",
+                    label: "Status",
+                    sortable: true,
+                    template: "status",
+                },
+                {
+                    key: "total_amount",
+                    label: "Total Amount",
+                    sortable: true,
+                    template: "total_amount",
+                },
+            ];
 
-        const getStatusClass = (status) => {
-            switch (status) {
-                case "draft":
-                    return "status-draft";
-                case "submitted":
-                    return "status-pending";
-                case "approved":
-                    return "status-approved";
-                case "sent":
-                    return "status-sent";
-                case "partial":
-                    return "status-partial";
-                case "received":
-                    return "status-received";
-                case "completed":
-                    return "status-completed";
-                case "canceled":
-                    return "status-canceled";
-                default:
-                    return "status-draft";
-            }
-        };
+            // Computed pagination values
+            const paginationFrom = computed(() => {
+                return (currentPage.value - 1) * itemsPerPage.value + 1;
+            });
 
-        const confirmDelete = (po) => {
-            selectedPO.value = po;
-            showDeleteModal.value = true;
-        };
-
-        const closeDeleteModal = () => {
-            showDeleteModal.value = false;
-            selectedPO.value = null;
-        };
-
-        const deletePurchaseOrder = async () => {
-            if (!selectedPO.value) return;
-
-            try {
-                await PurchaseOrderService.deletePurchaseOrder(
-                    selectedPO.value.po_id
+            const paginationTo = computed(() => {
+                return Math.min(
+                    currentPage.value * itemsPerPage.value,
+                    totalPOs.value
                 );
-                fetchPurchaseOrders();
-                closeDeleteModal();
-            } catch (error) {
-                if (error.response && error.response.status === 400) {
-                    alert(
-                        error.response.data.message ||
-                            "This purchase order cannot be deleted."
-                    );
-                } else {
-                    console.error("Error deleting purchase order:", error);
+            });
+
+            // Fetch purchase orders from API
+            const fetchPurchaseOrders = async () => {
+                isLoading.value = true;
+
+                try {
+                    const params = {
+                        page: currentPage.value,
+                        per_page: itemsPerPage.value,
+                        search: searchQuery.value,
+                        status: filters.status,
+                        vendor_id: filters.vendor_id,
+                        date_from: filters.date_from,
+                        date_to: filters.date_to,
+                        sort_field: sortKey.value,
+                        sort_direction: sortOrder.value,
+                    };
+
+                    const response =
+                        await PurchaseOrderService.getAllPurchaseOrders(params);
+
+                    if (response.data && response.data.data) {
+                        purchaseOrders.value = response.data.data;
+
+                        if (response.data.meta) {
+                            totalPOs.value = response.data.meta.total || 0;
+                            totalPages.value = response.data.meta.last_page || 1;
+                            currentPage.value =
+                                response.data.meta.current_page || 1;
+                        }
+                    } else {
+                        purchaseOrders.value = [];
+                        totalPOs.value = 0;
+                        totalPages.value = 1;
+                    }
+                } catch (error) {
+                    console.error("Error fetching purchase orders:", error);
+                    purchaseOrders.value = [];
+                } finally {
+                    isLoading.value = false;
                 }
-                closeDeleteModal();
-            }
-        };
+            };
 
-        // Initialize
-        onMounted(() => {
-            fetchPurchaseOrders();
-            fetchVendors();
-        });
+            // Fetch vendors for the filter dropdown
+            const fetchVendors = async () => {
+                try {
+                    const response = await VendorService.getAllVendors({
+                        per_page: 100,
+                    });
 
-        return {
-            purchaseOrders,
-            vendors,
-            isLoading,
-            columns,
-            currentPage,
-            totalPages,
-            totalPOs,
-            paginationFrom,
-            paginationTo,
-            searchQuery,
-            filters,
-            showDeleteModal,
-            selectedPO,
-            fetchPurchaseOrders,
-            clearSearch,
-            handleSort,
-            changePage,
-            formatDate,
-            formatCurrency,
-            formatStatus,
-            getStatusClass,
-            confirmDelete,
-            closeDeleteModal,
-            deletePurchaseOrder,
-        };
-    },
+                    if (response.data && response.data.data) {
+                        vendors.value = response.data.data;
+                    }
+                } catch (error) {
+                    console.error("Error fetching vendors:", error);
+                }
+            };
+
+            const clearSearch = () => {
+                searchQuery.value = "";
+                fetchPurchaseOrders();
+            };
+
+            const handleSort = ({ key, order }) => {
+                sortKey.value = key;
+                sortOrder.value = order;
+                fetchPurchaseOrders();
+            };
+
+            const changePage = (page) => {
+                currentPage.value = page;
+                fetchPurchaseOrders();
+            };
+
+            const formatDate = (dateString) => {
+                if (!dateString) return "N/A";
+                const date = new Date(dateString);
+                return date.toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "2-digit",
+                });
+            };
+
+            const formatCurrency = (amount) => {
+                if (amount === null || amount === undefined) return "N/A";
+                return new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                }).format(amount);
+            };
+
+            const formatStatus = (status) => {
+                switch (status) {
+                    case "draft":
+                        return "Draft";
+                    case "submitted":
+                        return "Submitted";
+                    case "approved":
+                        return "Approved";
+                    case "sent":
+                        return "Sent";
+                    case "partial":
+                        return "Partially Received";
+                    case "received":
+                        return "Received";
+                    case "completed":
+                        return "Completed";
+                    case "canceled":
+                        return "Canceled";
+                    default:
+                        return status;
+                }
+            };
+
+            const getStatusClass = (status) => {
+                switch (status) {
+                    case "draft":
+                        return "status-draft";
+                    case "submitted":
+                        return "status-pending";
+                    case "approved":
+                        return "status-approved";
+                    case "sent":
+                        return "status-sent";
+                    case "partial":
+                        return "status-partial";
+                    case "received":
+                        return "status-received";
+                    case "completed":
+                        return "status-completed";
+                    case "canceled":
+                        return "status-canceled";
+                    default:
+                        return "status-draft";
+                }
+            };
+
+            const confirmDelete = (po) => {
+                selectedPO.value = po;
+                showDeleteModal.value = true;
+            };
+
+            const closeDeleteModal = () => {
+                showDeleteModal.value = false;
+                selectedPO.value = null;
+            };
+
+            const deletePurchaseOrder = async () => {
+                if (!selectedPO.value) return;
+
+                try {
+                    await PurchaseOrderService.deletePurchaseOrder(
+                        selectedPO.value.po_id
+                    );
+                    fetchPurchaseOrders();
+                    closeDeleteModal();
+                } catch (error) {
+                    if (error.response && error.response.status === 400) {
+                        alert(
+                            error.response.data.message ||
+                                "This purchase order cannot be deleted."
+                        );
+                    } else {
+                        console.error("Error deleting purchase order:", error);
+                    }
+                    closeDeleteModal();
+                }
+            };
+
+            // Initialize
+            onMounted(() => {
+                fetchPurchaseOrders();
+                fetchVendors();
+            });
+
+            const filteredPurchaseOrders = computed(() => {
+                if (Array.isArray(purchaseOrders.value)) {
+                    return purchaseOrders.value.filter(
+                        (item) => item !== null && item !== undefined
+                    );
+                }
+                return [];
+            });
+
+            return {
+                purchaseOrders,
+                vendors,
+                isLoading,
+                columns,
+                currentPage,
+                totalPages,
+                totalPOs,
+                paginationFrom,
+                paginationTo,
+                searchQuery,
+                filters,
+                showDeleteModal,
+                selectedPO,
+                fetchPurchaseOrders,
+                clearSearch,
+                handleSort,
+                changePage,
+                formatDate,
+                formatCurrency,
+                formatStatus,
+                getStatusClass,
+                confirmDelete,
+                closeDeleteModal,
+                deletePurchaseOrder,
+                filteredPurchaseOrders,
+            };
+        },
 };
 </script>
 

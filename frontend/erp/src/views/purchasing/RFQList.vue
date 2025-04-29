@@ -231,17 +231,29 @@ export default {
             isLoading.value = true;
 
             try {
+                // Prepare filters, omit empty date filters to avoid illegal operator errors
+                const sanitizedFilters = {
+                    status: filters.status || null,
+                    date_from: filters.date_from || null,
+                    date_to: filters.date_to || null,
+                };
+
+                // Remove keys with null values to avoid sending empty strings
+                Object.keys(sanitizedFilters).forEach(
+                    (key) => sanitizedFilters[key] === null && delete sanitizedFilters[key]
+                );
+
                 const params = {
                     page: currentPage.value,
                     per_page: itemsPerPage.value,
                     search: searchQuery.value,
                     sort_field: sortKey.value,
                     sort_direction: sortOrder.value,
-                    ...filters,
+                    ...sanitizedFilters,
                 };
 
                 const response = await axios.get(
-                    "/api/request-for-quotations",
+                    "/request-for-quotations",
                     { params }
                 );
 
@@ -323,7 +335,7 @@ export default {
 
             try {
                 await axios.delete(
-                    `/api/request-for-quotations/${selectedRFQ.value.rfq_id}`
+                    `/request-for-quotations/${selectedRFQ.value.rfq_id}`
                 );
                 fetchRFQs();
                 closeDeleteModal();

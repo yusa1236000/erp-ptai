@@ -43,13 +43,14 @@
                             @change="fetchGoodsReceipts"
                         >
                             <option value="">All Vendors</option>
-                            <option
-                                v-for="vendor in vendors"
-                                :key="vendor.vendor_id"
-                                :value="vendor.vendor_id"
-                            >
-                                {{ vendor.name }}
-                            </option>
+<option
+    v-for="vendor in vendors"
+    v-if="vendor && vendor.vendor_id"
+    :key="vendor.vendor_id"
+    :value="vendor.vendor_id"
+>
+    {{ vendor.name }}
+</option>
                         </select>
                     </div>
 
@@ -61,13 +62,14 @@
                             @change="fetchGoodsReceipts"
                         >
                             <option value="">All POs</option>
-                            <option
-                                v-for="po in purchaseOrders"
-                                :key="po.po_id"
-                                :value="po.po_id"
-                            >
-                                {{ po.po_number }}
-                            </option>
+<option
+    v-for="po in purchaseOrders"
+    v-if="po && po.po_id"
+    :key="po.po_id"
+    :value="po.po_id"
+>
+    {{ po.po_number }}
+</option>
                         </select>
                     </div>
 
@@ -112,15 +114,13 @@
                 </template>
 
                 <template v-slot:vendor_name="{ item }">
-                    {{ item.vendor ? item.vendor.name : "N/A" }}
+                {{ item.vendor?.name || "N/A" }}
                 </template>
 
                 <template v-slot:po_number="{ item }">
-                    {{
-                        item.purchaseOrder
-                            ? item.purchaseOrder.po_number
-                            : "N/A"
-                    }}
+                        {{
+                            item.purchaseOrder?.po_number || "N/A"
+                        }}
                 </template>
 
                 <template v-slot:status="{ value }">
@@ -197,7 +197,7 @@
 
 <script>
 import { ref, reactive, computed, onMounted } from "vue";
-//import { useRouter } from "vue-router";
+import axios from "axios";
 import DataTable from "@/components/common/DataTable.vue";
 import SearchFilter from "@/components/common/SearchFilter.vue";
 import PaginationComponent from "@/components/common/Pagination.vue";
@@ -212,7 +212,6 @@ export default {
         ConfirmationModal,
     },
     setup() {
-        // const router = useRouter();
         const goodsReceipts = ref([]);
         const vendors = ref([]);
         const purchaseOrders = ref([]);
@@ -224,6 +223,9 @@ export default {
         const searchQuery = ref("");
         const showDeleteModal = ref(false);
         const selectedReceipt = ref(null);
+        
+        // Get the API base URL from axios configuration
+        const apiBaseUrl = axios.defaults.baseURL || "http://127.0.0.1:8020/api";
 
         const filters = reactive({
             status: "",
@@ -278,70 +280,70 @@ export default {
         });
 
         // Fetch goods receipts from API
-        const fetchGoodsReceipts = async () => {
-            isLoading.value = true;
+const fetchGoodsReceipts = async () => {
+    try {
+        isLoading.value = true;
 
-            try {
-                const params = {
-                    page: currentPage.value,
-                    per_page: itemsPerPage.value,
-                    search: searchQuery.value,
-                    status: filters.status,
-                    vendor_id: filters.vendor_id,
-                    po_id: filters.po_id,
-                    date_from: filters.date_from,
-                    date_to: filters.date_to,
-                    sort_field: sortKey.value,
-                    sort_direction: sortOrder.value,
-                };
-
-                // Replace with your actual API service call
-                const response = await fetch(
-                    "/api/goods-receipts?" + new URLSearchParams(params),
-                    {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem(
-                                "token"
-                            )}`,
-                            "Content-Type": "application/json",
-                        },
-                    }
-                );
-
-                const data = await response.json();
-
-                if (data && data.data) {
-                    goodsReceipts.value = data.data;
-
-                    if (data.meta) {
-                        totalReceipts.value = data.meta.total || 0;
-                        totalPages.value = data.meta.last_page || 1;
-                        currentPage.value = data.meta.current_page || 1;
-                    }
-                } else {
-                    goodsReceipts.value = [];
-                    totalReceipts.value = 0;
-                    totalPages.value = 1;
-                }
-            } catch (error) {
-                console.error("Error fetching goods receipts:", error);
-                goodsReceipts.value = [];
-            } finally {
-                isLoading.value = false;
+        // Prepare params excluding empty string filters
+        const filterParams = {};
+        for (const key in filters) {
+            if (filters[key] !== "") {
+                filterParams[key] = filters[key];
             }
+        }
+
+        const params = {
+            page: currentPage.value,
+            per_page: itemsPerPage.value,
+            search: searchQuery.value,
+            sort_field: sortKey.value,
+            sort_direction: sortOrder.value,
+            ...filterParams,
         };
+
+        const response = await axios.get('/goods-receipts', { params });
+
+        const data = response.data;
+        console.log("Goods receipts data received:", data);
+
+        if (data && data.data) {
+            goodsReceipts.value = data.data;
+
+            if (data.meta) {
+                totalReceipts.value = data.meta.total || 0;
+                totalPages.value = data.meta.last_page || 1;
+                currentPage.value = data.meta.current_page || 1;
+            }
+        } else {
+            goodsReceipts.value = [];
+            totalReceipts.value = 0;
+            totalPages.value = 1;
+        }
+    } catch (error) {
+        if (error.response && error.response.status === 401) {
+            // Unauthorized, redirect to login handled by axios interceptor
+            console.error("Unauthorized access - redirecting to login.");
+        } else {
+            console.error("Error fetching goods receipts:", error);
+        }
+        goodsReceipts.value = [];
+    } finally {
+        isLoading.value = false;
+    }
+} 
 
         // Fetch vendors for the filter dropdown
         const fetchVendors = async () => {
             try {
-                const response = await fetch("/api/vendors?per_page=100", {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem(
-                            "token"
-                        )}`,
-                        "Content-Type": "application/json",
-                    },
-                });
+                const response = await fetch(
+                    `${apiBaseUrl}/vendors?per_page=100`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem("token")}`,
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
 
                 const data = await response.json();
 
@@ -357,12 +359,10 @@ export default {
         const fetchPurchaseOrders = async () => {
             try {
                 const response = await fetch(
-                    "/api/purchase-orders?per_page=100",
+                    `${apiBaseUrl}/purchase-orders?per_page=100`,
                     {
                         headers: {
-                            Authorization: `Bearer ${localStorage.getItem(
-                                "token"
-                            )}`,
+                            Authorization: `Bearer ${localStorage.getItem("token")}`,
                             "Content-Type": "application/json",
                         },
                     }
@@ -445,13 +445,11 @@ export default {
 
             try {
                 const response = await fetch(
-                    `/api/goods-receipts/${selectedReceipt.value.receipt_id}`,
+                    `${apiBaseUrl}/goods-receipts/${selectedReceipt.value.receipt_id}`,
                     {
                         method: "DELETE",
                         headers: {
-                            Authorization: `Bearer ${localStorage.getItem(
-                                "token"
-                            )}`,
+                            Authorization: `Bearer ${localStorage.getItem("token")}`,
                             "Content-Type": "application/json",
                         },
                     }
@@ -462,9 +460,7 @@ export default {
                     closeDeleteModal();
                 } else {
                     const errorData = await response.json();
-                    alert(
-                        errorData.message || "Failed to delete goods receipt."
-                    );
+                    alert(errorData.message || "Failed to delete goods receipt.");
                     closeDeleteModal();
                 }
             } catch (error) {

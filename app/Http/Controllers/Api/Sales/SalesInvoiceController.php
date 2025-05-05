@@ -56,6 +56,12 @@ class SalesInvoiceController extends Controller
             // Get the sales order
             $salesOrder = SalesOrder::find($request->so_id);
             
+            // Jika due_date tidak disediakan, hitung otomatis dari payment_term customer
+            $dueDate = $request->due_date;
+            if (!$dueDate) {
+                $paymentTerm = $salesOrder->customer->payment_term ?? 30; // default 30 jika tidak diset
+                $dueDate = date('Y-m-d', strtotime($request->invoice_date . ' + ' . $paymentTerm . ' days'));
+            }
             // Determine currency (from request, sales order, or default)
             $currencyCode = $request->currency_code ?? $salesOrder->currency_code ?? config('app.base_currency', 'USD');
             $baseCurrency = config('app.base_currency', 'USD');

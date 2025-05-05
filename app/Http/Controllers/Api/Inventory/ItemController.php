@@ -666,4 +666,177 @@ class ItemController extends Controller
             ]
         ]);
     }
+    /**
+ * Display item with all prices including customer-specific prices
+ *
+ * @param  int  $id
+ * @return \Illuminate\Http\Response
+ */
+public function showAllPrices($id)
+{
+    $item = Item::with([
+        'category', 
+        'unitOfMeasure',
+        'prices' => function($query) {
+            $query->with(['customer', 'vendor'])
+                  ->orderBy('price_type', 'asc')
+                  ->orderBy('customer_id', 'asc')
+                  ->orderBy('vendor_id', 'asc')
+                  ->orderBy('min_quantity', 'asc');
+        }
+    ])->find($id);
+    
+    if (!$item) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Item not found'
+        ], 404);
+    }
+
+    // Organize prices by type and customer/vendor
+    $pricesOrganized = [
+        'sales' => [
+            'default' => [],
+            'by_customer' => []
+        ],
+        'purchases' => [
+            'default' => [],  
+            'by_vendor' => []
+        ]
+    ];
+
+    foreach ($item->prices as $price) {
+        $priceData = [
+            'price_id' => $price->price_id,
+            'price' => $price->price,
+            'currency_code' => $price->currency_code,
+            'min_quantity' => $price->min_quantity,
+            'start_date' => $price->start_date,
+            'end_date' => $price->end_date,
+            'is_active' => $price->is_active
+        ];
+
+        if ($price->price_type === 'sale') {
+            if ($price->customer_id) {
+                $customerId = (string) $price->customer_id;
+                $customerName = $price->customer ? $price->customer->name : "Customer {$customerId}";
+                
+                if (!isset($pricesOrganized['sales']['by_customer'][$customerName])) {
+                    $pricesOrganized['sales']['by_customer'][$customerName] = [
+                        'customer_id' => $customerId,
+                        'customer_name' => $customerName,
+                        'prices' => []
+                    ];
+                }
+                
+                $pricesOrganized['sales']['by_customer'][$customerName]['prices'][] = $priceData;
+            } else {
+                $pricesOrganized['sales']['default'][] = $priceData;
+            }
+        } else { // purchase
+            if ($price->vendor_id) {
+                $vendorId = (string) $price->vendor_id;
+                $vendorName = $price->vendor ? $price->vendor->name : "Vendor {$vendorId}";
+                
+                if (!isset($pricesOrganized['purchases']['by_vendor'][$vendorName])) {
+                    $pricesOrganized['purchases']['by_vendor'][$vendorName] = [
+                        'vendor_id' => $vendorId,
+                        'vendor_name' => $vendorName,
+                        'prices' => []
+                    ];
+                }
+                
+                $pricesOrganized['purchases']['by_vendor'][$vendorName]['prices'][] = $priceData;
+            } else {
+                $pricesOrganized['purchases']['default'][] = $priceData;
+            }
+        }
+    }
+
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'item' => $item,
+            'default_prices' => [
+                'cost_price' => $item->cost_price,
+                'cost_price_currency' => $item->cost_price_currency,
+                'sale_price' => $item->sale_price,
+                'sale_price_currency' => $item->sale_price_currency,
+            ],
+            'all_prices' => $pricesOrganized,
+            'price_summary' => [
+                'total_prices' => $item->prices->count(),
+                'active_prices' => $item->prices->where('is_active', true)->count(),
+                'customers_with_custom_prices' => count($pricesOrganized['sales']['by_customer']),
+                'vendors_with_custom_prices' => count($pricesOrganized['purchases']['by_vendor'])
+            ]
+        ]
+    ]);
+    }
+
+    /**
+     * Get customer price matrix for an item
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function customerPriceMatrix($id)
+    {
+        $item = Item::with(['prices' => function($query) {
+            $query->where('price_type', 'sale')
+                ->with('customer')
+                ->where('is_active', true)
+                ->orderBy('customer_id')
+                ->orderBy('min_quantity');
+        }])->find($id);
+        
+        if (!$item) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Item not found'
+            ], 404);
+        }
+        
+        // Create price matrix
+        $priceMatrix = [];
+        
+        foreach ($item->prices as $price) {
+            if ($price->customer_id) {
+                $customerKey = $price->customer_id;
+                
+                if (!isset($priceMatrix[$customerKey])) {
+                    $priceMatrix[$customerKey] = [
+                        'customer_id' => $price->customer_id,
+                        'customer_name' => $price->customer ? $price->customer->name : "Customer {$price->customer_id}",
+                        'customer_code' => $price->customer ? $price->customer->customer_code : null,
+                        'prices' => []
+                    ];
+                }
+                
+                $priceMatrix[$customerKey]['prices'][] = [
+                    'price' => $price->price,
+                    'currency' => $price->currency_code,
+                    'min_quantity' => $price->min_quantity,
+                    'start_date' => $price->start_date,
+                    'end_date' => $price->end_date
+                ];
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'item' => [
+                    'item_id' => $item->item_id,
+                    'item_code' => $item->item_code,
+                    'name' => $item->name
+                ],
+                'default_sale_price' => [
+                    'price' => $item->sale_price,
+                    'currency' => $item->sale_price_currency
+                ],
+                'customer_prices' => array_values($priceMatrix)
+            ]
+        ]);
+    }
 }

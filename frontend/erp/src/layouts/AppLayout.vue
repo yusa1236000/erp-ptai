@@ -93,6 +93,49 @@
                         <i class="fas fa-warehouse"></i>
                         <span v-if="!sidebarCollapsed">Warehouses</span>
                     </router-link>
+                    <!-- In the manufacturing submenu section -->
+                    <router-link
+                    to="/materials/plans"
+                    class="menu-item"
+                    active-class="active"
+                    >
+                    <i class="fas fa-boxes"></i>
+                    <span v-if="!sidebarCollapsed">Material Planning</span>
+                    </router-link>
+                    <router-link
+                    to="/materials/plans/generate"
+                    class="menu-item"
+                    active-class="active"
+                    >
+                    <i class="fas fa-plus-circle"></i>
+                    <span v-if="!sidebarCollapsed">Generate Material Plans</span>
+                    </router-link>
+
+                    <router-link
+                    to="/purchasing/requisitions/generate-from-material-plan"
+                    class="menu-item"
+                    active-class="active"
+                    >
+                    <i class="fas fa-file-plus"></i>
+                    <span v-if="!sidebarCollapsed">Generate PR from Plans</span>
+                    </router-link>
+                    <router-link
+                        to="/item-prices"
+                        class="menu-item"
+                        active-class="active"
+                    >
+                        <i class="fas fa-tags"></i>
+                        <span v-if="!sidebarCollapsed">Item Prices</span>
+                    </router-link>
+
+                    <router-link
+                        to="/price-comparison"
+                        class="menu-item"
+                        active-class="active"
+                    >
+                        <i class="fas fa-balance-scale"></i>
+                        <span v-if="!sidebarCollapsed">Price Comparison</span>
+                    </router-link>
                 </div>
 
                 <!-- Stock Operations Section -->
@@ -691,6 +734,10 @@ export default {
                     return "Units of Measure";
                 case "Warehouses":
                     return "Warehouses";
+                case "ItemPrices":
+                    return "Item Prices";
+                case "PriceComparison":
+                    return "Price Comparison";
                 case "StockTransactions":
                     return "Stock Transactions";
                 case "StockAdjustmentsList":

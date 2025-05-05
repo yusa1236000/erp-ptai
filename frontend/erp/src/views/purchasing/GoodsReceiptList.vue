@@ -44,8 +44,7 @@
                         >
                             <option value="">All Vendors</option>
 <option
-    v-for="vendor in vendors"
-    v-if="vendor && vendor.vendor_id"
+    v-for="vendor in filteredVendors"
     :key="vendor.vendor_id"
     :value="vendor.vendor_id"
 >
@@ -63,8 +62,7 @@
                         >
                             <option value="">All POs</option>
 <option
-    v-for="po in purchaseOrders"
-    v-if="po && po.po_id"
+    v-for="po in filteredPurchaseOrders"
     :key="po.po_id"
     :value="po.po_id"
 >
@@ -215,6 +213,14 @@ export default {
         const goodsReceipts = ref([]);
         const vendors = ref([]);
         const purchaseOrders = ref([]);
+
+        const filteredVendors = computed(() => {
+            return vendors.value.filter(vendor => vendor && vendor.vendor_id);
+        });
+
+        const filteredPurchaseOrders = computed(() => {
+            return purchaseOrders.value.filter(po => po && po.po_id);
+        });
         const isLoading = ref(true);
         const currentPage = ref(1);
         const totalPages = ref(1);
@@ -481,6 +487,8 @@ const fetchGoodsReceipts = async () => {
             goodsReceipts,
             vendors,
             purchaseOrders,
+            filteredVendors,
+            filteredPurchaseOrders,
             isLoading,
             columns,
             currentPage,

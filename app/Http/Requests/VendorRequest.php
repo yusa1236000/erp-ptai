@@ -20,7 +20,10 @@ class VendorRequest extends FormRequest
             'contact_person' => 'nullable|string|max:100',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
-            'status' => 'nullable|in:active,inactive,blacklisted'
+            'status' => 'nullable|in:active,inactive,blacklisted',
+            'payment_term' => ['nullable', 'integer', 'in:30,60,90'], // validasi hanya 30, 60, 90
+            'preferred_currency' => 'nullable|string|size:3', // Added currency validation
+            'vendor_code' => 'required|string|max:50|unique:vendors,vendor_code'
         ];
         
         // Add vendor_code validation only for new vendors

@@ -22,7 +22,7 @@ class CreateItemStockTable extends Migration
             $table->timestamps();
             
             $table->foreign('item_id')->references('item_id')->on('items');
-            $table->foreign('warehouse_id')->references('warehouse_id')->on('Warehouse');
+            $table->foreign('warehouse_id')->references('warehouse_id')->on('warehouses');
             
             // Unique constraint untuk memastikan satu item hanya memiliki satu record per warehouse
             $table->unique(['item_id', 'warehouse_id']);

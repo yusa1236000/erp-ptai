@@ -568,11 +568,11 @@ export default {
           // Show success message
           alert('Item updated successfully!');
         } else {
-          const response = await api.post('/items', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            }
-          });
+await api.post('/items', formData, {
+  headers: {
+    'Content-Type': 'multipart/form-data'
+  }
+});
           
           // Refresh items list
           await fetchItems();

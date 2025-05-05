@@ -23,6 +23,7 @@ class Customer extends Model
         'phone',
         'email',
         'preferred_currency', // Baru
+        'payment_term',// Baru
         'status'
     ];
 

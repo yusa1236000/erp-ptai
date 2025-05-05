@@ -173,7 +173,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                <tr v-for="(po, index) in filteredPurchaseOrders" :key="po.po_id">
+                <tr v-for="po in filteredPurchaseOrders" :key="po.po_id">
                     <td>{{ po.po_number }}</td>
                     <td>{{ formatDate(po.po_date) }}</td>
                     <td>{{ po.vendor ? po.vendor.name : 'N/A' }}</td>

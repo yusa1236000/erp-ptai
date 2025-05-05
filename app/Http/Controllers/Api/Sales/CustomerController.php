@@ -38,7 +38,8 @@ class CustomerController extends Controller
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
             'preferred_currency' => 'nullable|string|size:3', // Added currency validation
-            'status' => 'required|string|max:50'
+            'status' => 'required|string|max:50',
+            'payment_term' => ['required', 'integer', 'in:30,60,90'] // validasi hanya 30, 60, 90
         ]);
 
         if ($validator->fails()) {
@@ -95,7 +96,8 @@ class CustomerController extends Controller
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
             'preferred_currency' => 'nullable|string|size:3', // Added currency validation
-            'status' => 'required|string|max:50'
+            'status' => 'required|string|max:50',
+            'payment_term' => ['required', 'integer', 'in:30,60,90'] // validasi hanya 30, 60, 90
         ]);
 
         if ($validator->fails()) {

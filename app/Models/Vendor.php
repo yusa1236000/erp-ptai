@@ -20,6 +20,7 @@ class Vendor extends Model
         'phone',
         'email',
         'preferred_currency', // Baru
+        'payment_term', // Baru
         'status'
     ];
 
@@ -54,5 +55,19 @@ class Vendor extends Model
     public function payables()
     {
         return $this->hasMany(VendorPayable::class, 'vendor_id');
+    }
+
+    public function getPaymentTermDescriptionAttribute()
+    {
+        switch($this->payment_term) {
+            case 30:
+                return 'Net 30 days';
+            case 60:
+                return 'Net 60 days';
+            case 90:
+                return 'Net 90 days';
+            default:
+                return 'Net ' . $this->payment_term . ' days';
+        }
     }
 }

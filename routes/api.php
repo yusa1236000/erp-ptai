@@ -98,7 +98,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{itemId}/prices/{id}', 'App\Http\Controllers\Api\Inventory\ItemPriceController@show');
         Route::put('/{itemId}/prices/{id}', 'App\Http\Controllers\Api\Inventory\ItemPriceController@update');
         Route::delete('/{itemId}/prices/{id}', 'App\Http\Controllers\Api\Inventory\ItemPriceController@destroy');
-        
+        // Routes for item prices
+        Route::get('items/{id}/all-prices', [ItemController::class, 'showAllPrices']);
+        Route::get('items/{id}/customer-price-matrix', [ItemController::class, 'customerPriceMatrix']);
+
         // Price calculation endpoints
         Route::get('/{itemId}/best-purchase-price', 'App\Http\Controllers\Api\Inventory\ItemPriceController@getBestPurchasePrice');
         Route::get('/{itemId}/best-sale-price', 'App\Http\Controllers\Api\Inventory\ItemPriceController@getBestSalePrice');
@@ -447,13 +450,29 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('quality-inspections/{inspectionId}/parameters', QualityParameterController::class);
     Route::get('quality-inspections/by-reference/{referenceType}/{referenceId}', [QualityInspectionController::class, 'byReference']);
 
-    Route::prefix('material-planning')->group(function () {
-        // Existing routes
-        Route::post('/generate', [MaterialPlanningController::class, 'generateMaterialPlans']);
-        Route::post('/purchase-requisition', [MaterialPlanningController::class, 'generatePurchaseRequisitions']);
+    Route::post('/material-planning/generate', [MaterialPlanningController::class, 'generateMaterialPlans']);
+    Route::post('/material-planning/purchase-requisition', [MaterialPlanningController::class, 'generatePurchaseRequisitions']);
+    Route::post('/material-planning/max-production', [MaterialPlanningController::class, 'calculateMaximumProduction']);
+    // Tambahkan route untuk list material plans jika diperlukan
+    Route::get('/material-planning', function (Request $request) {
+        // Logika untuk menampilkan material plans dalam bentuk list
+        $query = MaterialPlan::query();
         
-        // New route for maximum production calculation
-        Route::post('/max-production', [MaterialPlanningController::class, 'calculateMaximumProduction']);
+        if ($request->has('period')) {
+            $query->where('planning_period', $request->period);
+        }
+        
+        if ($request->has('material_type')) {
+            $query->where('material_type', $request->material_type);
+        }
+        
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $materialPlans = $query->with('item')->orderBy('planning_period', 'desc')->paginate(10);
+        
+        return response()->json($materialPlans);
     });
 
     Route::get('items/{id}/prices-in-currencies', 'App\Http\Controllers\Api\Inventory\ItemController@getPricesInCurrencies');

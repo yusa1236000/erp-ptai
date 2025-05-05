@@ -10,6 +10,9 @@ import ItemDetail from "../views/inventory/ItemDetail.vue";
 import UnitOfMeasureList from "../views/inventory/UnitOfMeasureList.vue";
 import UnitOfMeasureDetail from "../views/inventory/UnitOfMeasureDetail.vue";
 // import WarehousesList from "../views/inventory/WarehousesList.vue";
+// Tambahkan import untuk komponen harga
+import ItemPriceList from "../views/inventory/ItemPriceList.vue";
+import PriceComparison from "../views/inventory/PriceComparison.vue";
 //import StockTransactions from "../views/inventory/StockTransactions.vue";
 import StockTransactionsList from '../views/inventory/StockTransactionsList.vue';
 import StockTransactionForm from '../views/inventory/StockTransactionForm.vue';
@@ -72,10 +75,10 @@ import RFQSend from "../views/purchasing/RFQSend.vue";
 import RFQCompare from "../views/purchasing/RFQCompare.vue";
 
 // Import Purchase Order components
-import PurchaseOrderList from '@/views/purchasing/PurchaseOrderList.vue';
-import PurchaseOrderDetail from '@/views/purchasing/PurchaseOrderDetail.vue';
-import PurchaseOrderFormView from '@/views/purchasing/PurchaseOrderFormView.vue';
-import PurchaseOrderTrack from '@/views/purchasing/PurchaseOrderTrack.vue';
+//import PurchaseOrderList from '@/views/purchasing/PurchaseOrderList.vue';
+// import PurchaseOrderDetail from '@/views/purchasing/PurchaseOrderDetail.vue';
+// import PurchaseOrderFormView from '@/views/purchasing/PurchaseOrderFormView.vue';
+// import PurchaseOrderTrack from '@/views/purchasing/PurchaseOrderTrack.vue';
 import CreatePOFromQuotation from '@/views/purchasing/CreatePOFromQuotation.vue';
 
 //GoodReceipt
@@ -106,6 +109,7 @@ import RoutingForm from "@/views/manufacturing/RoutingForm.vue";
 import BOMList from "../views/manufacturing/BOMList.vue";
 import BOMDetail from "../views/manufacturing/BOMDetail.vue";
 import BOMForm from "../views/manufacturing/BOMForm.vue";
+
 // import SalesForecastFormModal from "../views/sales/SalesForecastFormModal.vue";
 // Import other components as needed
 
@@ -170,6 +174,20 @@ const routes = [
                 name: "UnitOfMeasureDetail",
                 component: UnitOfMeasureDetail,
                 props: true,
+            },
+            // Tambahkan route dalam children array dari layout AppLayout:
+            {
+                path: "item-prices/:id?",
+                name: "ItemPrices",
+                component: ItemPriceList,
+                props: true,
+                meta: { requiresAuth: true }
+            },
+            {
+                path: "price-comparison",
+                name: "PriceComparison",
+                component: PriceComparison,
+                meta: { requiresAuth: true }
             },
             // {
             //     path: "warehouses",
@@ -626,39 +644,39 @@ const routes = [
             },
 
             // Purchase Order routes
-            {
-                path: '/purchasing/orders',
-                name: 'PurchaseOrders',
-                component: PurchaseOrderList,
-                meta: { requiresAuth: true }
-            },
-            {
-                path: '/purchasing/orders/create',
-                name: 'CreatePurchaseOrder',
-                component: PurchaseOrderFormView,
-                meta: { requiresAuth: true }
-            },
-            {
-                path: '/purchasing/orders/:id',
-                name: 'PurchaseOrderDetail',
-                component: PurchaseOrderDetail,
-                props: true,
-                meta: { requiresAuth: true }
-            },
-            {
-                path: '/purchasing/orders/:id/edit',
-                name: 'EditPurchaseOrder',
-                component: PurchaseOrderFormView,
-                props: true,
-                meta: { requiresAuth: true }
-            },
-            {
-                path: '/purchasing/orders/:id/track',
-                name: 'PurchaseOrderTrack',
-                component: PurchaseOrderTrack,
-                props: true,
-                meta: { requiresAuth: true }
-            },
+            // {
+            //     path: '/purchasing/orders',
+            //     name: 'PurchaseOrders',
+            //     component: PurchaseOrderList,
+            //     meta: { requiresAuth: true }
+            // },
+            // {
+            //     path: '/purchasing/orders/create',
+            //     name: 'CreatePurchaseOrder',
+            //     component: PurchaseOrderFormView,
+            //     meta: { requiresAuth: true }
+            // },
+            // {
+            //     path: '/purchasing/orders/:id',
+            //     name: 'PurchaseOrderDetail',
+            //     component: PurchaseOrderDetail,
+            //     props: true,
+            //     meta: { requiresAuth: true }
+            // },
+            // {
+            //     path: '/purchasing/orders/:id/edit',
+            //     name: 'EditPurchaseOrder',
+            //     component: PurchaseOrderFormView,
+            //     props: true,
+            //     meta: { requiresAuth: true }
+            // },
+            // {
+            //     path: '/purchasing/orders/:id/track',
+            //     name: 'PurchaseOrderTrack',
+            //     component: PurchaseOrderTrack,
+            //     props: true,
+            //     meta: { requiresAuth: true }
+            // },
             {
                 path: '/purchasing/quotations/:id/create-po',
                 name: 'CreatePOFromQuotation',
@@ -820,6 +838,34 @@ const routes = [
                 props: true,
                 meta: { requiresAuth: true },
               },
+
+            // Material Planning routes
+            {
+                path: "/materials/plans",
+                name: "MaterialPlans",
+                component: () => import("../views/inventory/MaterialPlanningList.vue"),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: "/materials/plans/:id",
+                name: "MaterialPlanDetail",
+                component: () => import("../views/inventory/MaterialPlanDetails.vue"),
+                props: true,
+                meta: { requiresAuth: true }
+            },
+            // Material Planning routes
+            {
+                path: "/materials/plans/generate",
+                name: "MaterialPlanGeneration",
+                component: () => import("../views/inventory/MaterialPlanGeneration.vue"),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: "/purchasing/requisitions/generate-from-material-plan",
+                name: "PRGenerationFromMaterialPlan",
+                component: () => import("../views/inventory/PRGenerationFromMaterialPlan.vue"),
+                meta: { requiresAuth: true }
+            },
             // Routing Management Routes
             {
                 path: "/manufacturing/routings",

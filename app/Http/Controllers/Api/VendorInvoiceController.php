@@ -84,6 +84,13 @@ class VendorInvoiceController extends Controller
     {
         // Check if Purchase Order exists and is in appropriate status
         $po = PurchaseOrder::findOrFail($request->po_id);
+
+        // Jika due_date tidak disediakan, hitung otomatis dari payment_term vendor
+        $dueDate = $request->due_date;
+        if (!$dueDate) {
+            $paymentTerm = $po->vendor->payment_term ?? 30; // default 30 jika tidak diset
+            $dueDate = date('Y-m-d', strtotime($invoiceDate . ' + ' . $paymentTerm . ' days'));
+        }
         if (!in_array($po->status, ['partial', 'received', 'completed'])) {
             return response()->json([
                 'status' => 'error',

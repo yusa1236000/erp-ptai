@@ -90,7 +90,7 @@ class ItemPriceController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'customer_id' => 'nullable|exists:Customer,customer_id',
-            'vendor_id' => 'nullable|exists:Vendor,vendor_id',
+            'vendor_id' => 'nullable|exists:vendors,vendor_id',
             'is_active' => 'nullable|boolean'
         ]);
 
@@ -109,13 +109,13 @@ class ItemPriceController extends Controller
             ], 422);
         }
         
-        // Validate that vendor_id is only provided for purchase prices
-        if ($request->price_type === 'sale' && $request->vendor_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vendor ID cannot be specified for sale prices'
-            ], 422);
-        }
+        // Remove validation that vendor_id is only provided for purchase prices to allow vendor_id for sale prices
+        // if ($request->price_type === 'sale' && $request->vendor_id) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Vendor ID cannot be specified for sale prices'
+        //     ], 422);
+        // }
 
         // Get base currency (from configuration or default)
         $baseCurrency = config('app.base_currency', 'USD');
@@ -173,9 +173,13 @@ class ItemPriceController extends Controller
         $price = ItemPrice::create($data);
 
         // If this is the first price of this type, also update the default price on the item
-        if ($price->price_type === 'purchase' && !$item->cost_price) {
-            $item->cost_price = $baseCurrencyPrice;
-            $item->cost_price_currency = $baseCurrency;
+        if ($price->price_type === 'purchase') {
+            if (!$item->cost_price) {
+                $item->cost_price = $baseCurrencyPrice;
+                $item->cost_price_currency = $baseCurrency;
+            }
+            // Set item as purchasable
+            $item->is_purchasable = true;
             $item->save();
         }
         
@@ -277,8 +281,12 @@ class ItemPriceController extends Controller
         $price->update($validator->validated());
 
         // If this is the default price, also update the item's default price
-        if ($price->price_type === 'purchase' && $price->price != $item->cost_price && !$price->customer_id && !$price->vendor_id && $price->min_quantity == 1) {
-            $item->cost_price = $price->price;
+        if ($price->price_type === 'purchase') {
+            if ($price->price != $item->cost_price && !$price->customer_id && !$price->vendor_id && $price->min_quantity == 1) {
+                $item->cost_price = $price->price;
+            }
+            // Set item as purchasable
+            $item->is_purchasable = true;
             $item->save();
         }
         
@@ -357,7 +365,7 @@ class ItemPriceController extends Controller
         }
         
         $validator = Validator::make($request->all(), [
-            'vendor_id' => 'nullable|exists:Vendor,vendor_id',
+            'vendor_id' => 'nullable|exists:vendors,vendor_id',
             'quantity' => 'nullable|numeric|min:1',
             'currency_code' => 'nullable|string|size:3' // Allow requesting price in a specific currency
         ]);
@@ -374,7 +382,7 @@ class ItemPriceController extends Controller
         $currencyCode = $request->currency_code ?? config('app.base_currency', 'USD');
         
         // Get the price in base currency
-        $priceInBaseCurrency = $item->getBestPurchasePrice($vendorId, $quantity);
+        $priceInBaseCurrency = $item->getBestPurchasePriceInCurrency($vendorId, $quantity, $currencyCode);
         $baseCurrency = config('app.base_currency', 'USD');
         
         // If requested currency is not base currency, convert
@@ -489,7 +497,7 @@ class ItemPriceController extends Controller
         }
         
         // Get the price in base currency
-        $priceInBaseCurrency = $item->getBestSalePrice($customerId, $quantity);
+        $priceInBaseCurrency = $item->getBestSalePriceInCurrency($customerId, $quantity, $currencyCode);
         $baseCurrency = config('app.base_currency', 'USD');
         
         // If requested currency is not base currency, convert

@@ -19,5 +19,10 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Call CurrencyRateSeeder to seed currency exchange rates
+        $this->call([
+            CurrencyRateSeeder::class,
+        ]);
     }
 }

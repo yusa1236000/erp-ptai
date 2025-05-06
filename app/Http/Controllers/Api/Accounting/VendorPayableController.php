@@ -160,23 +160,21 @@ class VendorPayableController extends Controller
      */
     public function aging(Request $request)
     {
-        $today = now()->format('Y-m-d');
-        
-        $aging = DB::table('VendorPayable')
-            ->join('Vendor', 'VendorPayable.vendor_id', '=', 'Vendor.vendor_id')
+        $aging = DB::table('vendor_payables')
+            ->join('vendors', 'vendor_payables.vendor_id', '=', 'vendors.vendor_id')
             ->select(
-                'VendorPayable.vendor_id',
-                'Vendor.name as vendor_name',
-                DB::raw('SUM(CASE WHEN DATEDIFF("' . $today . '", due_date) <= 0 THEN balance ELSE 0 END) as current_amount'),
-                DB::raw('SUM(CASE WHEN DATEDIFF("' . $today . '", due_date) BETWEEN 1 AND 30 THEN balance ELSE 0 END) as days_1_30'),
-                DB::raw('SUM(CASE WHEN DATEDIFF("' . $today . '", due_date) BETWEEN 31 AND 60 THEN balance ELSE 0 END) as days_31_60'),
-                DB::raw('SUM(CASE WHEN DATEDIFF("' . $today . '", due_date) BETWEEN 61 AND 90 THEN balance ELSE 0 END) as days_61_90'),
-                DB::raw('SUM(CASE WHEN DATEDIFF("' . $today . '", due_date) > 90 THEN balance ELSE 0 END) as days_over_90'),
+                'vendor_payables.vendor_id',
+                'vendors.name as vendor_name',
+                DB::raw('SUM(CASE WHEN (CURRENT_DATE - due_date) <= 0 THEN balance ELSE 0 END) as current_amount'),
+                DB::raw('SUM(CASE WHEN (CURRENT_DATE - due_date) BETWEEN 1 AND 30 THEN balance ELSE 0 END) as days_1_30'),
+                DB::raw('SUM(CASE WHEN (CURRENT_DATE - due_date) BETWEEN 31 AND 60 THEN balance ELSE 0 END) as days_31_60'),
+                DB::raw('SUM(CASE WHEN (CURRENT_DATE - due_date) BETWEEN 61 AND 90 THEN balance ELSE 0 END) as days_61_90'),
+                DB::raw('SUM(CASE WHEN (CURRENT_DATE - due_date) > 90 THEN balance ELSE 0 END) as days_over_90'),
                 DB::raw('SUM(balance) as total_balance')
             )
-            ->where('VendorPayable.status', '!=', 'Paid')
-            ->groupBy('VendorPayable.vendor_id', 'Vendor.name')
-            ->orderBy('Vendor.name')
+            ->where('vendor_payables.status', '!=', 'Paid')
+            ->groupBy('vendor_payables.vendor_id', 'vendors.name')
+            ->orderBy('vendors.name')
             ->get();
         
         $totals = [

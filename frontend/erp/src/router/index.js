@@ -11,8 +11,9 @@ import UnitOfMeasureList from "../views/inventory/UnitOfMeasureList.vue";
 import UnitOfMeasureDetail from "../views/inventory/UnitOfMeasureDetail.vue";
 // import WarehousesList from "../views/inventory/WarehousesList.vue";
 // Tambahkan import untuk komponen harga
-import ItemPriceList from "../views/inventory/ItemPriceList.vue";
-import PriceComparison from "../views/inventory/PriceComparison.vue";
+// import ItemPriceList from "../views/inventory/ItemPriceList.vue";
+// import PriceComparison from "../views/inventory/PriceComparison.vue";
+import ItemPriceManagement from "../views/inventory/ItemPriceManagement.vue";
 //import StockTransactions from "../views/inventory/StockTransactions.vue";
 import StockTransactionsList from '../views/inventory/StockTransactionsList.vue';
 import StockTransactionForm from '../views/inventory/StockTransactionForm.vue';
@@ -176,17 +177,23 @@ const routes = [
                 props: true,
             },
             // Tambahkan route dalam children array dari layout AppLayout:
+            // {
+            //     path: "item-prices/:id?",
+            //     name: "ItemPrices",
+            //     component: ItemPriceList,
+            //     props: true,
+            //     meta: { requiresAuth: true }
+            // },
+            // {
+            //     path: "price-comparison",
+            //     name: "PriceComparison",
+            //     component: PriceComparison,
+            //     meta: { requiresAuth: true }
+            // },
             {
-                path: "item-prices/:id?",
-                name: "ItemPrices",
-                component: ItemPriceList,
-                props: true,
-                meta: { requiresAuth: true }
-            },
-            {
-                path: "price-comparison",
-                name: "PriceComparison",
-                component: PriceComparison,
+                path: "/item-prices-management",
+                name: "ItemPriceManagement",
+                component: ItemPriceManagement,
                 meta: { requiresAuth: true }
             },
             // {

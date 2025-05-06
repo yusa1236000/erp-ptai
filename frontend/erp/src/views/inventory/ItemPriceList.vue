@@ -87,39 +87,64 @@
             <span class="visually-hidden">Loading...</span>
           </div>
         </div>
+        <div v-else-if="filteredPrices.length === 0" class="empty-state">
+          <div class="empty-icon">
+            <i class="fas fa-tags"></i>
+          </div>
+          <h3>Tidak ada data harga</h3>
+          <p>Belum ada harga yang ditetapkan untuk item ini</p>
+        </div>
         <div v-else>
-<DataTable 
-  :columns="tableColumns" 
-  :items="filteredPrices"
-  :isLoading="isLoading"
-  :keyField="'price_id'"
-  emptyIcon="fas fa-tags"
-  emptyTitle="Tidak ada data harga"
-  emptyMessage="Belum ada harga yang ditetapkan untuk item ini"
->
-            <template #actions="{ item }">
-              <button 
-                class="btn btn-sm btn-outline-primary me-2" 
-                @click="editPrice(item)"
-                title="Edit"
-              >
-                <i class="fas fa-edit"></i>
-              </button>
-              <button 
-                class="btn btn-sm btn-outline-danger" 
-                @click="confirmDelete(item)"
-                title="Hapus"
-              >
-                <i class="fas fa-trash"></i>
-              </button>
-            </template>
-            <template #customer="{ item }">
-              {{ getCustomerDisplay(item) }}
-            </template>
-            <template #vendor="{ item }">
-              {{ getVendorDisplay(item) }}
-            </template>
-          </DataTable>
+          <div class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Tipe</th>
+                  <th>Harga</th>
+                  <th>Currency</th>
+                  <th>Min Qty.</th>
+                  <th>Status</th>
+                  <th>Mulai</th>
+                  <th>Berakhir</th>
+                  <th>Customer</th>
+                  <th>Vendor</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in filteredPrices" :key="item.price_id">
+                  <td>{{ item.price_type === 'purchase' ? 'Beli' : 'Jual' }}</td>
+                  <td>{{ formatPrice(item.price) }}</td>
+                  <td>{{ item.currency_code }}</td>
+                  <td>{{ item.min_quantity }}</td>
+                  <td>
+                    <span v-if="item.is_active" class="badge bg-success">Aktif</span>
+                    <span v-else class="badge bg-secondary">Tidak Aktif</span>
+                  </td>
+                  <td>{{ formatDate(item.start_date) }}</td>
+                  <td>{{ formatDate(item.end_date) }}</td>
+                  <td>{{ getCustomerDisplay(item) }}</td>
+                  <td>{{ getVendorDisplay(item) }}</td>
+                  <td>
+                    <button 
+                      class="btn btn-sm btn-outline-primary me-2" 
+                      @click="editPrice(item)"
+                      title="Edit"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button 
+                      class="btn btn-sm btn-outline-danger" 
+                      @click="confirmDelete(item)"
+                      title="Hapus"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -244,29 +269,36 @@
     </div>
 
     <!-- Modal Konfirmasi Hapus -->
-    <ConfirmationModal
-      v-if="showDeleteModal"
-      title="Konfirmasi Hapus"
-      :message="`Yakin ingin menghapus harga ${deleteItem?.price} ${deleteItem?.currency_code}?`"
-      confirmButtonText="Hapus"
-      confirmButtonClass="btn btn-danger"
-      @confirm="deletePrice"
-      @close="showDeleteModal = false"
-    />
+    <div v-if="showDeleteModal" class="modal" tabindex="-1" style="display: block;">
+      <div class="modal-backdrop fade show"></div>
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Konfirmasi Hapus</h5>
+            <button type="button" class="btn-close" @click="showDeleteModal = false"></button>
+          </div>
+          <div class="modal-body">
+            <p>Yakin ingin menghapus harga {{ deleteItem?.price }} {{ deleteItem?.currency_code }}?</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="showDeleteModal = false">
+              Batal
+            </button>
+            <button type="button" class="btn btn-danger" @click="deletePrice">
+              Hapus
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import axios from 'axios';
-import DataTable from '../../components/common/DataTable.vue';
-import ConfirmationModal from '../../components/common/ConfirmationModal.vue';
 
 export default {
   name: 'ItemPriceList',
-  components: {
-    DataTable,
-    ConfirmationModal
-  },
   data() {
     return {
       items: [],
@@ -299,31 +331,6 @@ export default {
         is_active: true
       }
     };
-  },
-  computed: {
-    tableColumns() {
-      return [
-        { 
-          key: 'price_type', 
-          label: 'Tipe', 
-          formatter: (value) => value === 'purchase' ? 'Beli' : 'Jual' 
-        },
-        { key: 'price', label: 'Harga', formatter: this.formatPrice },
-        { key: 'currency_code', label: 'Currency' },
-        { key: 'min_quantity', label: 'Min Qty.' },
-        { 
-          key: 'is_active', 
-          label: 'Status', 
-          formatter: (value) => value ? 
-            '<span class="badge bg-success">Aktif</span>' : 
-            '<span class="badge bg-secondary">Tidak Aktif</span>'
-        },
-        { key: 'start_date', label: 'Mulai', formatter: this.formatDate },
-        { key: 'end_date', label: 'Berakhir', formatter: this.formatDate },
-        { key: 'customer', template: 'customer' },
-        { key: 'vendor', template: 'vendor' }
-      ];
-    }
   },
   mounted() {
     this.loadItems();
@@ -383,33 +390,33 @@ export default {
         this.isLoading = false;
       }
     },
-filterPrices() {
-  let filtered = [...this.prices];
+    filterPrices() {
+      let filtered = [...this.prices];
 
-  if (this.priceTypeFilter) {
-    filtered = filtered.filter(price => price.price_type === this.priceTypeFilter);
-  }
+      if (this.priceTypeFilter) {
+        filtered = filtered.filter(price => price.price_type === this.priceTypeFilter);
+      }
 
-  if (this.activeFilter !== '') {
-    const activeValue = this.activeFilter === '1';
-    filtered = filtered.filter(price => price.is_active === activeValue);
-  }
+      if (this.activeFilter !== '') {
+        const activeValue = this.activeFilter === '1';
+        filtered = filtered.filter(price => price.is_active === activeValue);
+      }
 
-  if (this.currencyFilter) {
-    filtered = filtered.filter(price => price.currency_code === this.currencyFilter);
-  }
+      if (this.currencyFilter) {
+        filtered = filtered.filter(price => price.currency_code === this.currencyFilter);
+      }
 
-  if (this.currentOnlyFilter) {
-    const today = new Date();
-    filtered = filtered.filter(price => {
-      const startDate = price.start_date ? new Date(price.start_date) : null;
-      const endDate = price.end_date ? new Date(price.end_date) : null;
-      return (!startDate || startDate <= today) && (!endDate || endDate >= today);
-    });
-  }
+      if (this.currentOnlyFilter) {
+        const today = new Date();
+        filtered = filtered.filter(price => {
+          const startDate = price.start_date ? new Date(price.start_date) : null;
+          const endDate = price.end_date ? new Date(price.end_date) : null;
+          return (!startDate || startDate <= today) && (!endDate || endDate >= today);
+        });
+      }
 
-  this.filteredPrices = filtered;
-},
+      this.filteredPrices = filtered;
+    },
     openAddPriceModal() {
       this.editingMode = false;
       this.form = {
@@ -537,5 +544,39 @@ filterPrices() {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.3);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 2.5rem;
+  color: var(--gray-300);
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  font-size: 1.125rem;
+  color: var(--gray-700);
+  margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+  color: var(--gray-500);
+  max-width: 24rem;
+}
+
+table {
+  width: 100%;
+}
+
+th {
+  white-space: nowrap;
 }
 </style>

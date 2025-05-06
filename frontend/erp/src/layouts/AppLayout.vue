@@ -136,6 +136,10 @@
                         <i class="fas fa-balance-scale"></i>
                         <span v-if="!sidebarCollapsed">Price Comparison</span>
                     </router-link>
+                    <router-link to="/item-prices-management" class="menu-item" active-class="active">
+                        <i class="fas fa-tags"></i>
+                        <span v-if="!sidebarCollapsed">Item Prices Management</span>
+                    </router-link>
                 </div>
 
                 <!-- Stock Operations Section -->
@@ -738,6 +742,8 @@ export default {
                     return "Item Prices";
                 case "PriceComparison":
                     return "Price Comparison";
+                case "ItemPriceManagement":
+                    return "Item Prices Management";
                 case "StockTransactions":
                     return "Stock Transactions";
                 case "StockAdjustmentsList":

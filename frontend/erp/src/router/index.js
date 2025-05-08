@@ -110,6 +110,11 @@ import RoutingForm from "@/views/manufacturing/RoutingForm.vue";
 import BOMList from "../views/manufacturing/BOMList.vue";
 import BOMDetail from "../views/manufacturing/BOMDetail.vue";
 import BOMForm from "../views/manufacturing/BOMForm.vue";
+import ProductionOrderList from "../views/manufacturing/ProductionOrderList.vue";
+import ProductionOrderForm from "../views/manufacturing/ProductionOrderForm.vue";
+import ProductionOrderDetail from "../views/manufacturing/ProductionOrderDetail.vue";
+import ProductionConsumptionForm from "../views/manufacturing/ProductionConsumptionForm.vue";
+import ProductionCompletionForm from "../views/manufacturing/ProductionCompletionForm.vue";
 
 // import SalesForecastFormModal from "../views/sales/SalesForecastFormModal.vue";
 // Import other components as needed
@@ -972,13 +977,116 @@ const routes = [
                 component: () => import("../views/manufacturing/WorkOrderDashboard.vue"),
                 meta: { requiresAuth: true },
               },
-            // Admin Routes
+            // Currency Rates Module
             {
-                path: "admin/users",
-                name: "Users",
-                component: () => import("../views/admin/UsersList.vue"),
-                meta: { adminOnly: true },
+                path: "/currency-rates",
+                name: "CurrencyRates",
+                component: () => import("../views/accounting/CurrencyRatesList.vue"),
+                meta: { requiresAuth: true },
             },
+            {
+                path: "/currency-rates/create",
+                name: "CreateCurrencyRate",
+                component: () => import("../views/accounting/CurrencyRateForm.vue"),
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/currency-rates/:id",
+                name: "CurrencyRateDetail",
+                component: () => import("../views/accounting/CurrencyRateDetail.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/currency-rates/:id/edit",
+                name: "EditCurrencyRate",
+                component: () => import("../views/accounting/CurrencyRateForm.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/currency-converter",
+                name: "CurrencyConverter",
+                component: () => import("../views/accounting/CurrencyConverter.vue"),
+                meta: { requiresAuth: true },
+            },
+            // Then add these routes within the children array of the AppLayout route
+            // You can place them in the manufacturing section
+            {
+                path: "/manufacturing/production-orders",
+                name: "ProductionOrders",
+                component: ProductionOrderList,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/manufacturing/production-orders/create",
+                name: "CreateProductionOrder",
+                component: ProductionOrderForm,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/manufacturing/production-orders/:productionId",
+                name: "ProductionOrderDetail",
+                component: ProductionOrderDetail,
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/manufacturing/production-orders/:id/edit",
+                name: "EditProductionOrder",
+                component: ProductionOrderForm,
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/manufacturing/production-orders/:productionId/consumption/add",
+                name: "AddProductionConsumption",
+                component: ProductionConsumptionForm,
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/manufacturing/production-orders/:productionId/consumption/:consumptionId/edit",
+                name: "EditProductionConsumption",
+                component: ProductionConsumptionForm,
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/manufacturing/production-orders/:productionId/complete",
+                name: "CompleteProductionOrder",
+                component: ProductionCompletionForm,
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            // Inside your routes array, add this section:
+            {
+            path: "/admin",
+            component: () => import("../layouts/AdminAppLayout.vue"),
+            meta: { requiresAuth: true, adminOnly: true },
+            children: [
+            {
+                path: "",
+                redirect: "/admin/dashboard",
+            },
+            {
+                path: "dashboard",
+                name: "AdminDashboard",
+                component: () => import("../views/admin/AdminDashboard.vue"),
+            },
+            {
+                path: "settings",
+                name: "SystemSettings",
+                component: () => import("../views/admin/SystemSettings.vue"),
+            },
+            {
+                path: "users",
+                name: "UserList",
+                component: () => import("../views/admin/UsersList.vue"),
+            },
+      // Add other admin routes as needed
+    ],
+  },
         ],
     },
     // Catch-all 404 route

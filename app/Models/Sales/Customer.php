@@ -5,6 +5,14 @@ namespace App\Models\Sales;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Sales\SalesQuotation;
+use App\Models\Sales\SalesOrder;
+use App\Models\Sales\Delivery;
+use App\Models\Sales\SalesInvoice;
+use App\Models\Sales\SalesReturn;
+use App\Models\Sales\CustomerInteraction;
+use App\Models\Sales\SalesForecast;
+use App\Models\Sales\CustomerReceivable;
 
 class Customer extends Model
 {

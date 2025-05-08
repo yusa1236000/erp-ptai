@@ -513,8 +513,62 @@
                         <i class="fas fa-clipboard-list"></i>
                         <span v-if="!sidebarCollapsed">Work Orders</span>
                     </router-link>
+                    <router-link
+                        to="/manufacturing/production-orders"
+                        class="menu-item"
+                        active-class="active"
+                    >
+                        <i class="fas fa-cogs"></i>
+                        <span v-if="!sidebarCollapsed">Production Orders</span>
+                    </router-link>
                 </div>
 
+                <div class="menu-section">
+                <div
+                    @click="toggleMenuSection('accounting')"
+                    class="section-header"
+                >
+                    <div class="section-title-container">
+                    <i class="fas fa-calculator"></i>
+                    <span v-if="!sidebarCollapsed" class="section-title">Accounting</span>
+                    </div>
+                    <i
+                    v-if="!sidebarCollapsed"
+                    :class="
+                        menuSections.accounting
+                        ? 'fas fa-chevron-down'
+                        : 'fas fa-chevron-right'
+                    "
+                    class="section-icon"
+                    ></i>
+                </div>
+                </div>
+                <div
+                v-show="!sidebarCollapsed && menuSections.accounting"
+                class="submenu"
+                >
+                <!-- Other accounting menu items -->
+
+                <router-link
+                    to="/currency-rates"
+                    class="menu-item"
+                    active-class="active"
+                >
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span v-if="!sidebarCollapsed">Exchange Rates</span>
+                </router-link>
+
+                <router-link
+                    to="/currency-converter"
+                    class="menu-item"
+                    active-class="active"
+                >
+                    <i class="fas fa-exchange-alt"></i>
+                    <span v-if="!sidebarCollapsed">Currency Converter</span>
+                </router-link>
+
+                <!-- Add more accounting menu items as needed -->
+                </div>
                 <!-- Reports Section -->
                 <div class="menu-section">
                     <div
@@ -606,6 +660,9 @@
                     >
                         <i class="fas fa-users-cog"></i>
                         <span v-if="!sidebarCollapsed">Users</span>
+                    </router-link>
+                    <router-link to="/admin/settings" class="nav-link">
+                        <i class="fas fa-cogs"></i> System Settings
                     </router-link>
                 </div>
             </nav>

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\Inventory;
 use App\Http\Controllers\Controller;
 use App\Models\Item;
 use App\Models\ItemPrice;
-use App\Models\Customer;
+use App\Models\Sales\Customer;
 use App\Models\Vendor;
 use App\Models\CurrencyRate;
 use Illuminate\Http\Request;

@@ -741,7 +741,7 @@ sortedPrices() {
       
 async loadVendors() {
         try {
-          const response = await axios.get('vendors');
+          const response = await axios.get('/vendors');
           const vendorsData = response.data.data.data; // Access nested data array
           this.vendors = Array.isArray(vendorsData) ? vendorsData.filter(v => v) : [];
         } catch (error) {

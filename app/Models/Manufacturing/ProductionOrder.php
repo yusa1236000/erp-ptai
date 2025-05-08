@@ -11,7 +11,7 @@ class ProductionOrder extends Model
 {
     use HasFactory;
 
-    protected $table = 'ProductionOrder';
+    protected $table = 'production_orders';
     protected $primaryKey = 'production_id';
     public $timestamps = false;
 

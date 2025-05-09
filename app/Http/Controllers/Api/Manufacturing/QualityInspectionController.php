@@ -16,10 +16,40 @@ class QualityInspectionController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $qualityInspections = QualityInspection::all();
-        return response()->json(['data' => $qualityInspections]);
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+
+        $query = QualityInspection::query();
+
+        // Optional: add filters if needed, e.g. status, search, date_filter
+        if ($request->has('status') && $request->status !== '') {
+            $query->where('status', $request->status);
+        }
+        if ($request->has('search') && $request->search !== '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('reference_type', 'like', "%{$search}%")
+                  ->orWhere('reference_id', 'like', "%{$search}%");
+            });
+        }
+        if ($request->has('date_filter') && $request->date_filter !== '') {
+            // Implement date filter logic here if needed
+            // For example, filter by inspection_date based on date_filter value
+        }
+
+        $qualityInspections = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $qualityInspections->items(),
+            'meta' => [
+                'current_page' => $qualityInspections->currentPage(),
+                'last_page' => $qualityInspections->lastPage(),
+                'per_page' => $qualityInspections->perPage(),
+                'total' => $qualityInspections->total(),
+            ],
+        ]);
     }
 
     /**

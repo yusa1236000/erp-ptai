@@ -10,7 +10,7 @@ class QualityInspection extends Model
 {
     use HasFactory;
 
-    protected $table = 'QualityInspection';
+    protected $table = 'quality_inspections';
     protected $primaryKey = 'inspection_id';
     public $timestamps = false;
 

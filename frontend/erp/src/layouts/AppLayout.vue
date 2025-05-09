@@ -522,6 +522,58 @@
                         <span v-if="!sidebarCollapsed">Production Orders</span>
                     </router-link>
                 </div>
+                <div class="menu-section">
+                <div
+                    @click="toggleMenuSection('quality')"
+                    class="section-header"
+                >
+                    <div class="section-title-container">
+                        <i class="fas fa-check-circle"></i>
+                        <span v-if="!sidebarCollapsed" class="section-title">Quality Management</span>
+                    </div>
+                    <i
+                        v-if="!sidebarCollapsed"
+                        :class="
+                            menuSections.quality
+                                ? 'fas fa-chevron-down'
+                                : 'fas fa-chevron-right'
+                        "
+                        class="section-icon"
+                    ></i>
+                </div>
+            </div>
+
+            <div
+                v-show="!sidebarCollapsed && menuSections.quality"
+                class="submenu"
+            >
+                <router-link
+                    to="/quality-inspections"
+                    class="menu-item"
+                    active-class="active"
+                >
+                    <i class="fas fa-clipboard-check"></i>
+                    <span v-if="!sidebarCollapsed">Quality Inspections</span>
+                </router-link>
+
+                <router-link
+                    to="/quality-parameters/create"
+                    class="menu-item"
+                    active-class="active"
+                >
+                    <i class="fas fa-sliders-h"></i>
+                    <span v-if="!sidebarCollapsed">Quality Parameters</span>
+                </router-link>
+                
+                <router-link
+                    to="/dashboard"
+                    class="menu-item"
+                    active-class="active"
+                >
+                    <i class="fas fa-chart-line"></i>
+                    <span v-if="!sidebarCollapsed">Quality Dashboard</span>
+                </router-link>
+            </div>
 
                 <div class="menu-section">
                 <div

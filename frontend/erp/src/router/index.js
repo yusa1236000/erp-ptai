@@ -115,6 +115,12 @@ import ProductionOrderForm from "../views/manufacturing/ProductionOrderForm.vue"
 import ProductionOrderDetail from "../views/manufacturing/ProductionOrderDetail.vue";
 import ProductionConsumptionForm from "../views/manufacturing/ProductionConsumptionForm.vue";
 import ProductionCompletionForm from "../views/manufacturing/ProductionCompletionForm.vue";
+// Import Quality Inspection components
+import ListQualityInspections from '../views/manufacturing/ListQualityInspections.vue'
+import QualityInspectionForm from '../views/manufacturing/QualityInspectionForm.vue'
+import QualityInspectionDetail from '../views/manufacturing/QualityInspectionDetail.vue'
+import QualityParameterForm from '../views/manufacturing/QualityParameterForm.vue'
+import QualityAnalysisDashboard from '../views/manufacturing/QualityAnalysisDashboard.vue'
 
 // import SalesForecastFormModal from "../views/sales/SalesForecastFormModal.vue";
 // Import other components as needed
@@ -1058,6 +1064,56 @@ const routes = [
                 component: ProductionCompletionForm,
                 props: true,
                 meta: { requiresAuth: true },
+            },
+            // Quality Inspections routes
+            {
+                path: 'quality-inspections',
+                name: 'quality-inspections',
+                component: ListQualityInspections,
+                meta: { title: 'Quality Inspections' }
+            },
+            {
+                path: 'quality-inspections/create',
+                name: 'quality-inspections-create',
+                component: QualityInspectionForm,
+                meta: { title: 'Create Quality Inspection' }
+            },
+            {
+                path: 'quality-inspections/:id',
+                name: 'quality-inspection-detail',
+                component: QualityInspectionDetail,
+                props: true,
+                meta: { title: 'Inspection Details' }
+            },
+            {
+                path: 'quality-inspections/:id/edit',
+                name: 'quality-inspection-edit',
+                component: QualityInspectionForm,
+                props: true,
+                meta: { title: 'Edit Quality Inspection' }
+            },
+            
+            // Quality Parameters routes
+            {
+                path: 'quality-parameters/create',
+                name: 'quality-parameters-create',
+                component: QualityParameterForm,
+                meta: { title: 'Create Quality Parameter' }
+            },
+            {
+                path: 'quality-parameters/:id/edit',
+                name: 'quality-parameters-edit',
+                component: QualityParameterForm,
+                props: true,
+                meta: { title: 'Edit Quality Parameter' }
+            },
+            
+            // Dashboard specific route
+            {
+                path: 'dashboard',
+                name: 'quality-dashboard',
+                component: QualityAnalysisDashboard,
+                meta: { title: 'Quality Analysis Dashboard' }
             },
             // Inside your routes array, add this section:
             {

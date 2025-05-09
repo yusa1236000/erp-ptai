@@ -448,6 +448,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Quality Control
     Route::apiResource('quality-inspections', QualityInspectionController::class);
     Route::apiResource('quality-inspections/{inspectionId}/parameters', QualityParameterController::class);
+    Route::get('quality-parameters/categories', [QualityParameterController::class, 'categories']);
     Route::get('quality-inspections/by-reference/{referenceType}/{referenceId}', [QualityInspectionController::class, 'byReference']);
 
     Route::post('/material-planning/generate', [MaterialPlanningController::class, 'generateMaterialPlans']);

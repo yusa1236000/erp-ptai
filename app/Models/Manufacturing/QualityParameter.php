@@ -10,7 +10,7 @@ class QualityParameter extends Model
 {
     use HasFactory;
 
-    protected $table = 'QualityParameter';
+    protected $table = 'quality_parameters';
     protected $primaryKey = 'parameter_id';
     public $timestamps = false;
 

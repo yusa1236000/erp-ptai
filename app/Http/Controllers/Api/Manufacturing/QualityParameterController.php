@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
 
+use App\Models\ItemCategory;
+
 class QualityParameterController extends Controller
 {
     /**
@@ -147,5 +149,16 @@ class QualityParameterController extends Controller
         $parameter->delete();
         
         return response()->json(['message' => 'Quality parameter deleted successfully']);
+    }
+
+    /**
+     * Return a list of categories.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function categories()
+    {
+        $categories = ItemCategory::all();
+        return response()->json(['data' => $categories]);
     }
 }

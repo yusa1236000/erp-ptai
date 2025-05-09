@@ -390,7 +390,7 @@
         
         try {
           // Update production order with completion data
-          const response = await axios.post(`/production-orders/${this.productionId}/complete`, this.form);
+          await axios.post(`/production-orders/${this.productionId}/complete`, this.form);
           
           this.$toast.success('Production order completed successfully');
           
@@ -776,4 +776,3 @@
     gap: 1.5rem;
   }
   </style>
-  

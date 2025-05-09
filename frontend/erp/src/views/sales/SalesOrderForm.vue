@@ -62,6 +62,7 @@
                                 id="customer_id"
                                 v-model="form.customer_id"
                                 required
+                                @change="handleCustomerChange"
                             >
                                 <option value="">-- Pilih Pelanggan --</option>
                                 <option
@@ -110,33 +111,53 @@
                         </div>
                     </div>
 
-                    <div class="form-group" v-if="isEditMode">
-                        <label for="status">Status*</label>
-                        <select id="status" v-model="form.status" required>
-                            <option value="Draft">Draft</option>
-                            <option value="Confirmed">Dikonfirmasi</option>
-                            <option value="Processing">Diproses</option>
-                            <option value="Shipped">Dikirim</option>
-                            <option value="Delivered">Terkirim</option>
-                            <option value="Invoiced" disabled>
-                                Difakturkan
-                            </option>
-                            <option value="Closed" disabled>Selesai</option>
-                        </select>
-                        <small
-                            v-if="
-                                form.status === 'Invoiced' ||
-                                form.status === 'Closed'
-                            "
-                            class="text-muted"
-                        >
-                            Status tidak dapat diubah karena sudah
-                            {{
-                                form.status === "Invoiced"
-                                    ? "difakturkan"
-                                    : "selesai"
-                            }}
-                        </small>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="currency_code">Mata Uang*</label>
+                            <select
+                                id="currency_code"
+                                v-model="form.currency_code"
+                                required
+                            >
+                                <option value="IDR">IDR - Indonesian Rupiah</option>
+                                <option value="USD">USD - US Dollar</option>
+                                <option value="EUR">EUR - Euro</option>
+                                <option value="SGD">SGD - Singapore Dollar</option>
+                                <option value="JPY">JPY - Japanese Yen</option>
+                            </select>
+                            <small class="text-muted">
+                                Mata uang yang digunakan untuk transaksi
+                            </small>
+                        </div>
+
+                        <div class="form-group" v-if="isEditMode">
+                            <label for="status">Status*</label>
+                            <select id="status" v-model="form.status" required>
+                                <option value="Draft">Draft</option>
+                                <option value="Confirmed">Dikonfirmasi</option>
+                                <option value="Processing">Diproses</option>
+                                <option value="Shipped">Dikirim</option>
+                                <option value="Delivered">Terkirim</option>
+                                <option value="Invoiced" disabled>
+                                    Difakturkan
+                                </option>
+                                <option value="Closed" disabled>Selesai</option>
+                            </select>
+                            <small
+                                v-if="
+                                    form.status === 'Invoiced' ||
+                                    form.status === 'Closed'
+                                "
+                                class="text-muted"
+                            >
+                                Status tidak dapat diubah karena sudah
+                                {{
+                                    form.status === "Invoiced"
+                                        ? "difakturkan"
+                                        : "selesai"
+                                }}
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -161,6 +182,11 @@
                     </div>
 
                     <div v-else class="order-lines">
+                        <div class="order-currency-info" v-if="form.currency_code !== 'IDR'">
+                            <i class="fas fa-info-circle"></i>
+                            Semua harga dalam <strong>{{ form.currency_code }}</strong>
+                        </div>
+
                         <div class="line-headers">
                             <div class="line-header">Item</div>
                             <div class="line-header">Harga Unit</div>
@@ -186,7 +212,7 @@
                                 >
                                     <option value="">-- Pilih Item --</option>
                                     <option
-                                        v-for="item in items"
+                                        v-for="item in sellableItems"
                                         :key="item.item_id"
                                         :value="item.item_id"
                                     >
@@ -342,6 +368,7 @@ export default {
             payment_terms: "",
             delivery_terms: "",
             expected_delivery: "",
+            currency_code: "IDR",
             status: "Draft",
             lines: [],
         });
@@ -350,11 +377,17 @@ export default {
         const customers = ref([]);
         const items = ref([]);
         const unitOfMeasures = ref([]);
+        const selectedCustomer = ref(null);
 
         // UI state
         const isLoading = ref(false);
         const isSubmitting = ref(false);
         const error = ref("");
+
+        // Computed property for sellable items
+        const sellableItems = computed(() => {
+            return items.value.filter(item => item.is_sellable);
+        });
 
         // Check if we're in edit mode
         const isEditMode = computed(() => {
@@ -438,6 +471,7 @@ export default {
                     expected_delivery: order.expectedDelivery
                         ? order.expectedDelivery.substr(0, 10)
                         : "",
+                    currency_code: order.currencyCode || "IDR",
                     status: order.status,
                     lines: [],
                 };
@@ -456,6 +490,13 @@ export default {
                         total: line.total,
                     }));
                 }
+
+                // Find selected customer
+                if (form.value.customer_id) {
+                    selectedCustomer.value = customers.value.find(
+                        c => c.customer_id === form.value.customer_id
+                    );
+                }
             } catch (err) {
                 console.error("Error loading order:", err);
                 error.value = "Terjadi kesalahan saat memuat data order.";
@@ -464,8 +505,25 @@ export default {
             }
         };
 
+        // Event handler for customer change
+        const handleCustomerChange = () => {
+            if (!form.value.customer_id) {
+                selectedCustomer.value = null;
+                return;
+            }
+
+            selectedCustomer.value = customers.value.find(
+                c => c.customer_id === form.value.customer_id
+            );
+
+            // If customer has preferred currency, set it as the order currency
+            if (selectedCustomer.value && selectedCustomer.value.preferred_currency) {
+                form.value.currency_code = selectedCustomer.value.preferred_currency;
+            }
+        };
+
         // Event handler for item change
-        const handleItemChange = (event, index) => {
+        const handleItemChange = async (event, index) => {
             const itemId = form.value.lines[index].item_id;
             if (!itemId) return;
 
@@ -473,7 +531,31 @@ export default {
             if (selectedItem) {
                 // Set default UOM if available
                 form.value.lines[index].uom_id = selectedItem.uom_id || "";
-                calculateLineTotals(index);
+
+                try {
+                    // Get best price in current currency
+                    const response = await axios.get(`/items/${itemId}/best-sale-price`, {
+                        params: {
+                            customer_id: form.value.customer_id,
+                            quantity: form.value.lines[index].quantity || 1,
+                            currency_code: form.value.currency_code
+                        }
+                    });
+
+                    if (response.data && response.data.price) {
+                        form.value.lines[index].unit_price = response.data.price;
+                    } else {
+                        // If no specific price, use default sale price
+                        form.value.lines[index].unit_price = selectedItem.sale_price || 0;
+                    }
+
+                    calculateLineTotals(index);
+                } catch (err) {
+                    console.error("Error fetching item price:", err);
+                    // Use default sale price if API call fails
+                    form.value.lines[index].unit_price = selectedItem.sale_price || 0;
+                    calculateLineTotals(index);
+                }
             }
         };
 
@@ -539,7 +621,9 @@ export default {
         const formatCurrency = (value) => {
             return new Intl.NumberFormat("id-ID", {
                 style: "currency",
-                currency: "IDR",
+                currency: form.value.currency_code || "IDR",
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
             }).format(value || 0);
         };
 
@@ -554,7 +638,8 @@ export default {
             if (
                 !form.value.so_number ||
                 !form.value.so_date ||
-                !form.value.customer_id
+                !form.value.customer_id ||
+                !form.value.currency_code
             ) {
                 error.value = "Harap isi semua field yang wajib diisi.";
                 return;
@@ -637,6 +722,9 @@ export default {
             isSubmitting,
             error,
             isEditMode,
+            sellableItems,
+            selectedCustomer,
+            handleCustomerChange,
             handleItemChange,
             addLine,
             removeLine,
@@ -703,12 +791,12 @@ export default {
 }
 
 .card-header {
-    background-color: #f8fafc;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #e2e8f0;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .card-header h2 {
@@ -783,18 +871,23 @@ export default {
     overflow: hidden;
 }
 
+.order-currency-info {
+    background-color: #eff6ff;
+    color: #1e40af;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-bottom: 1px solid #dbeafe;
+}
+
 .line-headers {
     display: grid;
     grid-template-columns: 3fr 1fr 1fr 1fr 1fr 1fr 1.5fr 1.5fr 0.5fr;
     gap: 0.5rem;
     background-color: #f8fafc;
     padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
     font-weight: 500;
     color: #475569;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.line-header {
     font-size: 0.75rem;
 }
 
@@ -936,6 +1029,15 @@ export default {
 
 .btn-secondary:hover {
     background-color: #cbd5e1;
+}
+
+.currency-badge {
+    background-color: #dbeafe;
+    color: #2563eb;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
 }
 
 @media (max-width: 1024px) {

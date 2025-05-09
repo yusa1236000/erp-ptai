@@ -306,18 +306,17 @@
         try {
           this.calculateVariance();  // Ensure variance is calculated before saving
           
-          let response;
-          if (this.isEditing) {
-            response = await axios.put(
-              `/production-orders/${this.productionId}/consumptions/${this.consumptionId}`, 
-              this.form
-            );
-          } else {
-            response = await axios.post(
-              `/production-orders/${this.productionId}/consumptions`, 
-              this.form
-            );
-          }
+if (this.isEditing) {
+  await axios.put(
+    `/production-orders/${this.productionId}/consumptions/${this.consumptionId}`, 
+    this.form
+  );
+} else {
+  await axios.post(
+    `/production-orders/${this.productionId}/consumptions`, 
+    this.form
+  );
+}
           
           this.$toast.success(
             this.isEditing 

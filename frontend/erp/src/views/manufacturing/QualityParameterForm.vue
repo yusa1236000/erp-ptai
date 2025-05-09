@@ -786,12 +786,10 @@ this.loading = true;
 this.error = null;
 
 try {
-let response;
-
 if (this.isEditMode) {
-response = await axios.put(`/api/quality-parameters/${this.id}`, this.form);
+  await axios.put(`/api/quality-parameters/${this.id}`, this.form);
 } else {
-response = await axios.post('/api/quality-parameters', this.form);
+  await axios.post('/api/quality-parameters', this.form);
 }
 
 // Redirect to parameters list with success message

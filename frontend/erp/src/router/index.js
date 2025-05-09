@@ -121,6 +121,7 @@ import QualityInspectionForm from '../views/manufacturing/QualityInspectionForm.
 import QualityInspectionDetail from '../views/manufacturing/QualityInspectionDetail.vue'
 import QualityParameterForm from '../views/manufacturing/QualityParameterForm.vue'
 import QualityAnalysisDashboard from '../views/manufacturing/QualityAnalysisDashboard.vue'
+import SalesOrderPrint from "../views/sales/SalesOrderPrint.vue";
 
 // import SalesForecastFormModal from "../views/sales/SalesForecastFormModal.vue";
 // Import other components as needed
@@ -1107,6 +1108,22 @@ const routes = [
                 props: true,
                 meta: { title: 'Edit Quality Parameter' }
             },
+
+            {
+                path: "/sales/orders/:id/print",
+                name: "PrintSalesOrder",
+                component: SalesOrderPrint,
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/sales/deliveries/:id/print",
+                name: "PrintDeliveryOrder",
+                component: () =>
+                    import("../views/sales/DeliveryOrderPrint.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+            },
             
             // Dashboard specific route
             {

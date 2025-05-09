@@ -1,4 +1,4 @@
-<!-- src/views/sales/SalesOrderDetail.vue - Complete Template -->
+<!-- src/views/sales/SalesOrderDetail.vue -->
 <template>
     <div class="order-detail">
         <div class="page-header">
@@ -194,10 +194,10 @@
                 </div>
             </div>
 
-            <!-- Order Items -->
+            <!-- Order Items with Outstanding Quantities -->
             <div class="detail-card">
                 <div class="card-header">
-                    <h2>Item Order</h2>
+                    <h2>Item Order dan Status Pengiriman</h2>
                 </div>
                 <div class="card-body">
                     <div class="order-items">
@@ -206,10 +206,11 @@
                                 <tr>
                                     <th>Item</th>
                                     <th>Harga Unit</th>
-                                    <th>Jumlah</th>
+                                    <th>Jumlah Order</th>
+                                    <th>Jumlah Terkirim</th>
+                                    <th>Outstanding</th>
                                     <th>UOM</th>
-                                    <th>Diskon</th>
-                                    <th>Pajak</th>
+                                    <th>Status</th>
                                     <th>Subtotal</th>
                                     <th>Total</th>
                                 </tr>
@@ -218,6 +219,7 @@
                                 <tr
                                     v-for="line in order.salesOrderLines"
                                     :key="line.line_id"
+                                    :class="{'has-outstanding': getOutstandingQuantity(line) > 0}"
                                 >
                                     <td>
                                         <div class="item-info">
@@ -233,22 +235,19 @@
                                         {{ formatCurrency(line.unitPrice) }}
                                     </td>
                                     <td class="right">{{ line.quantity }}</td>
+                                    <td class="right">{{ getDeliveredQuantity(line) }}</td>
+                                    <td class="right outstanding-qty">
+                                        <span :class="{'text-danger': getOutstandingQuantity(line) > 0, 'text-success': getOutstandingQuantity(line) <= 0}">
+                                            {{ getOutstandingQuantity(line) }}
+                                        </span>
+                                    </td>
                                     <td class="center">
                                         {{ getUomSymbol(line.uomId) }}
                                     </td>
-                                    <td class="right">
-                                        {{
-                                            line.discount
-                                                ? formatCurrency(line.discount)
-                                                : "-"
-                                        }}
-                                    </td>
-                                    <td class="right">
-                                        {{
-                                            line.tax
-                                                ? formatCurrency(line.tax)
-                                                : "-"
-                                        }}
+                                    <td class="center">
+                                        <span class="delivery-status" :class="getDeliveryStatusClass(line)">
+                                            {{ getDeliveryStatusLabel(line) }}
+                                        </span>
                                     </td>
                                     <td class="right">
                                         {{ formatCurrency(line.subtotal) }}
@@ -260,7 +259,7 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="6" class="totals-label">
+                                    <td colspan="7" class="totals-label">
                                         Subtotal
                                     </td>
                                     <td colspan="2" class="totals-value">
@@ -270,7 +269,7 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td colspan="6" class="totals-label">
+                                    <td colspan="7" class="totals-label">
                                         Total Diskon
                                     </td>
                                     <td colspan="2" class="totals-value">
@@ -282,7 +281,7 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td colspan="6" class="totals-label">
+                                    <td colspan="7" class="totals-label">
                                         Total Pajak
                                     </td>
                                     <td colspan="2" class="totals-value">
@@ -292,7 +291,7 @@
                                     </td>
                                 </tr>
                                 <tr class="grand-total">
-                                    <td colspan="6" class="totals-label">
+                                    <td colspan="7" class="totals-label">
                                         Total
                                     </td>
                                     <td colspan="2" class="totals-value">
@@ -301,6 +300,43 @@
                                 </tr>
                             </tfoot>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Fulfillment Summary -->
+            <div class="detail-card" v-if="showFulfillmentSummary">
+                <div class="card-header">
+                    <h2>Ringkasan Pengiriman</h2>
+                </div>
+                <div class="card-body">
+                    <div class="fulfillment-summary">
+                        <div class="summary-card">
+                            <div class="summary-title">Total Item Order</div>
+                            <div class="summary-value">{{ getTotalOrderedItems() }}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-title">Total Jumlah Terkirim</div>
+                            <div class="summary-value">{{ getTotalDeliveredQuantity() }}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-title">Total Outstanding</div>
+                            <div class="summary-value" :class="{'text-danger': getTotalOutstandingQuantity() > 0}">
+                                {{ getTotalOutstandingQuantity() }}
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-title">Persentase Pengiriman</div>
+                            <div class="summary-value">{{ getDeliveryPercentage() }}%</div>
+                            <div class="progress-bar">
+                                <div class="progress" :style="{ width: getDeliveryPercentage() + '%' }"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="delivery-actions" v-if="getTotalOutstandingQuantity() > 0 && (order.status === 'Confirmed' || order.status === 'Processing')">
+                        <button class="btn btn-primary" @click="createDelivery">
+                            <i class="fas fa-truck"></i> Proses Pengiriman untuk Outstanding Item
+                        </button>
                     </div>
                 </div>
             </div>
@@ -434,9 +470,13 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "axios";
+import ConfirmationModal from "@/components/common/ConfirmationModal.vue";
 
 export default {
     name: "SalesOrderDetail",
+    components: {
+        ConfirmationModal
+    },
     setup() {
         const router = useRouter();
         const route = useRoute();
@@ -463,6 +503,10 @@ export default {
         const hasInvoices = computed(() => {
             if (!order.value || !order.value.salesInvoices) return false;
             return order.value.salesInvoices.length > 0;
+        });
+        
+        const showFulfillmentSummary = computed(() => {
+            return order.value && order.value.salesOrderLines && order.value.salesOrderLines.length > 0;
         });
 
         // Load order and reference data
@@ -570,6 +614,101 @@ export default {
             }
         };
 
+        // Calculate delivered quantity for a line
+        const getDeliveredQuantity = (line) => {
+            if (!line.deliveryLines || line.deliveryLines.length === 0) {
+                return 0;
+            }
+            
+            // Sum up quantities from completed deliveries
+            return line.deliveryLines.reduce((total, deliveryLine) => {
+                // Check if the delivery is completed
+                const delivery = order.value.deliveries.find(d => 
+                    d.deliveryId === deliveryLine.deliveryId);
+                
+                if (delivery && delivery.status === 'Completed') {
+                    return total + (parseFloat(deliveryLine.deliveredQuantity) || 0);
+                }
+                return total;
+            }, 0);
+        };
+        
+        // Calculate outstanding quantity for a line
+        const getOutstandingQuantity = (line) => {
+            const ordered = parseFloat(line.quantity) || 0;
+            const delivered = getDeliveredQuantity(line);
+            return ordered - delivered;
+        };
+        
+        // Get delivery status for a line
+        const getDeliveryStatusLabel = (line) => {
+            const outstanding = getOutstandingQuantity(line);
+            const ordered = parseFloat(line.quantity) || 0;
+            
+            if (outstanding <= 0) {
+                return "Terkirim Penuh";
+            } else if (outstanding < ordered) {
+                return "Terkirim Sebagian";
+            } else {
+                return "Belum Terkirim";
+            }
+        };
+        
+        // Get delivery status class
+        const getDeliveryStatusClass = (line) => {
+            const status = getDeliveryStatusLabel(line);
+            
+            switch (status) {
+                case "Terkirim Penuh":
+                    return "status-delivered";
+                case "Terkirim Sebagian":
+                    return "status-partial";
+                case "Belum Terkirim":
+                    return "status-pending";
+                default:
+                    return "";
+            }
+        };
+        
+        // Get total ordered quantity across all items
+        const getTotalOrderedItems = () => {
+            if (!order.value || !order.value.salesOrderLines) return 0;
+            return order.value.salesOrderLines.length;
+        };
+        
+        // Get total ordered quantity across all lines
+        const getTotalOrderedQuantity = () => {
+            if (!order.value || !order.value.salesOrderLines) return 0;
+            return order.value.salesOrderLines.reduce((total, line) => {
+                return total + (parseFloat(line.quantity) || 0);
+            }, 0);
+        };
+        
+        // Get total delivered quantity across all lines
+        const getTotalDeliveredQuantity = () => {
+            if (!order.value || !order.value.salesOrderLines) return 0;
+            return order.value.salesOrderLines.reduce((total, line) => {
+                return total + getDeliveredQuantity(line);
+            }, 0);
+        };
+        
+        // Get total outstanding quantity across all lines
+        const getTotalOutstandingQuantity = () => {
+            if (!order.value || !order.value.salesOrderLines) return 0;
+            return order.value.salesOrderLines.reduce((total, line) => {
+                return total + getOutstandingQuantity(line);
+            }, 0);
+        };
+        
+        // Calculate delivery percentage
+        const getDeliveryPercentage = () => {
+            const total = getTotalOrderedQuantity();
+            if (total === 0) return 0;
+            
+            const delivered = getTotalDeliveredQuantity();
+            return Math.round((delivered / total) * 100);
+        };
+
         // Calculate subtotal of all lines
         const calculateSubtotal = () => {
             if (!order.value || !order.value.salesOrderLines) return 0;
@@ -612,7 +751,7 @@ export default {
             }
         };
 
-const viewDelivery = (delivery) => {
+        const viewDelivery = (delivery) => {
             if (delivery && delivery.deliveryId !== undefined && delivery.deliveryId !== null) {
                 router.push(`/sales/deliveries/${delivery.deliveryId}`);
             } else {
@@ -626,7 +765,8 @@ const viewDelivery = (delivery) => {
 
         // Print order
         const printOrder = () => {
-            router.push(`/sales/orders/${order.value.soId}/print`);
+            const printUrl = `/sales/orders/${order.value.soId}/print`;
+            window.open(printUrl, '_blank');
         };
 
         // Confirm order
@@ -638,7 +778,7 @@ const viewDelivery = (delivery) => {
             showConfirmModal.value = false;
         };
 
-const confirmOrderAction = async () => {
+        const confirmOrderAction = async () => {
             try {
                 // Mapping data ke format backend (snake_case dan nama field sesuai)
                 const payload = {
@@ -697,6 +837,7 @@ const confirmOrderAction = async () => {
             hasDeliveries,
             hasInvoices,
             showConfirmModal,
+            showFulfillmentSummary,
             formatDate,
             formatCurrency,
             getUomSymbol,
@@ -705,6 +846,15 @@ const confirmOrderAction = async () => {
             calculateSubtotal,
             calculateTotalDiscount,
             calculateTotalTax,
+            getDeliveredQuantity,
+            getOutstandingQuantity,
+            getDeliveryStatusLabel,
+            getDeliveryStatusClass,
+            getTotalOrderedItems,
+            getTotalOrderedQuantity,
+            getTotalDeliveredQuantity,
+            getTotalOutstandingQuantity,
+            getDeliveryPercentage,
             goBack,
             editOrder,
             viewQuotation,
@@ -715,11 +865,12 @@ const confirmOrderAction = async () => {
             closeConfirmModal,
             confirmOrderAction,
             createDelivery,
-            createInvoice,
+            createInvoice
         };
     },
 };
 </script>
+
 <style scoped>
 .order-detail {
     padding: 1rem 0;
@@ -851,6 +1002,16 @@ const confirmOrderAction = async () => {
 .status-closed {
     background-color: #cbd5e1;
     color: #1e293b;
+}
+
+.status-partial {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+.status-pending {
+    background-color: #fee2e2;
+    color: #dc2626;
 }
 
 .items-table,
@@ -1027,6 +1188,78 @@ const confirmOrderAction = async () => {
     font-size: 0.875rem;
 }
 
+/* New styles for outstanding item tracking */
+.has-outstanding {
+    background-color: #fff7ed;
+}
+
+.outstanding-qty {
+    font-weight: 600;
+}
+
+.text-danger {
+    color: #dc2626;
+}
+
+.text-success {
+    color: #059669;
+}
+
+.delivery-status {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.fulfillment-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-card {
+    background-color: #f8fafc;
+    border-radius: 0.375rem;
+    padding: 1.25rem;
+    border: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+.summary-title {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 0.5rem;
+    background-color: #e2e8f0;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    background-color: #059669;
+    border-radius: 0.25rem;
+}
+
+.delivery-actions {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
 @media (max-width: 768px) {
     .page-header {
         flex-direction: column;
@@ -1053,6 +1286,11 @@ const confirmOrderAction = async () => {
     .related-table {
         display: block;
         overflow-x: auto;
+    }
+    
+    .fulfillment-summary {
+        grid-template-columns: 1fr;
+        gap: 1rem;
     }
 }
 </style>

@@ -333,9 +333,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('sales-orders/outstanding', 'Api\Sales\SalesOrderController@getAllOutstandingSalesOrders');
 
     // Routes untuk Delivery dari Outstanding Items
-    Route::get('deliveries/outstanding-so', 'Api\Sales\DeliveryController@getOutstandingSalesOrders');
-    Route::get('deliveries/outstanding-items/{soId}', 'Api\Sales\DeliveryController@getOutstandingItemsForDelivery');
-    Route::post('deliveries/from-outstanding', 'Api\Sales\DeliveryController@storeFromOutstanding');
+    Route::get('deliveries/outstanding-so', [DeliveryController::class, 'getOutstandingSalesOrders']);
+    Route::get('deliveries/outstanding-items/{soId}', [DeliveryController::class, 'getOutstandingItemsForDelivery']);
+    Route::post('deliveries/from-outstanding', [DeliveryController::class, 'storeFromOutstanding']);
     
     // Routes untuk ItemStock
     Route::get('item-stocks', 'Api\Inventory\ItemStockController@index');

@@ -78,6 +78,14 @@ class SalesInvoiceLine extends Model
     {
         return $this->hasMany(SalesReturnLine::class, 'invoice_line_id');
     }
+
+    /**
+     * Get the delivery line associated with the invoice line.
+     */
+    public function deliveryLine()
+    {
+        return $this->belongsTo(DeliveryLine::class, 'do_line_id', 'line_id');
+    }
     
     /**
      * Get line amounts in specified currency.

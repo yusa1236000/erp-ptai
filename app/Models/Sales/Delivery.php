@@ -52,4 +52,11 @@ class Delivery extends Model
     {
         return $this->hasMany(DeliveryLine::class, 'delivery_id');
     }
+    /**
+     * Get the delivery associated with the invoice.
+     */
+    public function delivery()
+    {
+        return $this->belongsTo(Delivery::class, 'do_id', 'delivery_id');
+    }
 }

@@ -1,628 +1,776 @@
 <!-- src/views/sales/SalesInvoiceList.vue -->
 <template>
-    <div class="sales-invoices">
-        <!-- Search and Filter Section -->
-        <div class="page-actions">
-            <SearchFilter
-                v-model:value="searchQuery"
-                placeholder="Cari faktur..."
-                @search="handleSearch"
-                @clear="clearSearch"
-            >
-                <template #filters>
-                    <div class="filter-group">
-                        <label>Status</label>
-                        <select v-model="statusFilter" @change="applyFilters">
-                            <option value="">Semua Status</option>
-                            <option value="Draft">Draft</option>
-                            <option value="Sent">Terkirim</option>
-                            <option value="Paid">Dibayar</option>
-                            <option value="Partially Paid">
-                                Dibayar Sebagian
-                            </option>
-                            <option value="Overdue">Jatuh Tempo</option>
-                            <option value="Cancelled">Dibatalkan</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label>Periode</label>
-                        <select
-                            v-model="dateRangeFilter"
-                            @change="applyFilters"
-                        >
-                            <option value="all">Semua Waktu</option>
-                            <option value="today">Hari Ini</option>
-                            <option value="week">Minggu Ini</option>
-                            <option value="month">Bulan Ini</option>
-                            <option value="custom">Kustom</option>
-                        </select>
-                    </div>
-                </template>
-
-                <template #actions>
-                    <button class="btn btn-primary" @click="createInvoice">
-                        <i class="fas fa-plus"></i> Buat Faktur
-                    </button>
-                </template>
-            </SearchFilter>
-
-            <!-- Custom Date Range (when Custom is selected) -->
-            <div v-if="dateRangeFilter === 'custom'" class="custom-date-range">
-                <div class="date-range-inputs">
-                    <div class="filter-group">
-                        <label for="startDate">Tanggal Mulai</label>
-                        <input
-                            type="date"
-                            id="startDate"
-                            v-model="customDateRange.startDate"
-                            @change="applyFilters"
-                        />
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="endDate">Tanggal Akhir</label>
-                        <input
-                            type="date"
-                            id="endDate"
-                            v-model="customDateRange.endDate"
-                            @change="applyFilters"
-                        />
-                    </div>
-                </div>
-            </div>
+    <div class="page-container">
+      <div class="page-header">
+        <h1>Sales Invoices</h1>
+        <router-link to="/sales/invoices/create" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Create New Invoice
+        </router-link>
+      </div>
+  
+      <!-- Search and Filter Section -->
+      <div class="search-filter">
+        <div class="search-box">
+          <i class="fas fa-search search-icon"></i>
+          <input
+            type="text"
+            v-model="searchTerm"
+            placeholder="Search invoice number or customer..."
+            @input="handleSearch"
+          />
+          <button v-if="searchTerm" @click="clearSearch" class="clear-search">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
-
-        <!-- DataTable Component -->
-        <DataTable
-            :columns="columns"
-            :items="invoices"
-            :is-loading="isLoading"
-            keyField="invoice_id"
-            emptyIcon="fas fa-file-invoice-dollar"
-            emptyTitle="Tidak ada faktur"
-            emptyMessage="Tidak ada faktur yang tersedia untuk ditampilkan."
-            @sort="handleSort"
-        >
-            <!-- Custom cell templates -->
-            <template #invoice_number="{ value }">
-                <div class="invoice-number">{{ value }}</div>
-            </template>
-
-            <template #customer="{ item }">
-                <div class="customer-info">
-                    <div class="customer-name">
-                        {{ item.customer?.name || "-" }}
-                    </div>
-                </div>
-            </template>
-
-            <template #total="{ value }">
-                <div class="invoice-total">{{ formatCurrency(value) }}</div>
-            </template>
-
-            <template #status="{ value }">
-                <span class="status-badge" :class="getStatusClass(value)">
-                    {{ getStatusLabel(value) }}
+        
+        <div class="filters">
+          <div class="filter-group">
+            <label>Status</label>
+            <select v-model="filters.status" @change="fetchInvoices">
+              <option value="">All Status</option>
+              <option value="Draft">Draft</option>
+              <option value="Sent">Sent</option>
+              <option value="Partially Paid">Partially Paid</option>
+              <option value="Paid">Paid</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label>Date Range</label>
+            <select v-model="filters.dateRange" @change="handleDateRangeChange">
+              <option value="">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          
+          <div class="filter-group" v-if="filters.dateRange === 'custom'">
+            <label>From</label>
+            <input type="date" v-model="filters.startDate" @change="fetchInvoices" />
+          </div>
+          
+          <div class="filter-group" v-if="filters.dateRange === 'custom'">
+            <label>To</label>
+            <input type="date" v-model="filters.endDate" @change="fetchInvoices" />
+          </div>
+        </div>
+      </div>
+      
+      <!-- Loading Indicator -->
+      <div v-if="loading" class="loading-indicator">
+        <i class="fas fa-spinner fa-spin"></i> Loading invoices...
+      </div>
+      
+      <!-- Empty State -->
+      <div v-else-if="invoices.length === 0" class="empty-state">
+        <div class="empty-icon">
+          <i class="fas fa-file-invoice"></i>
+        </div>
+        <h3>No Invoices Found</h3>
+        <p>There are no invoices matching your criteria. Try changing your filters or create a new invoice.</p>
+      </div>
+      
+      <!-- Invoices Table -->
+      <div v-else class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th @click="sortBy('invoice_number')" class="sortable">
+                Invoice Number
+                <i v-if="sortKey === 'invoice_number'" 
+                   :class="sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'"></i>
+              </th>
+              <th @click="sortBy('invoice_date')" class="sortable">
+                Invoice Date
+                <i v-if="sortKey === 'invoice_date'" 
+                   :class="sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'"></i>
+              </th>
+              <th @click="sortBy('due_date')" class="sortable">
+                Due Date
+                <i v-if="sortKey === 'due_date'" 
+                   :class="sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'"></i>
+              </th>
+              <th>Customer</th>
+              <th>Amount</th>
+              <th @click="sortBy('status')" class="sortable">
+                Status
+                <i v-if="sortKey === 'status'" 
+                   :class="sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'"></i>
+              </th>
+              <th class="actions-column">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="invoice in invoices" :key="invoice.invoice_id">
+              <td>{{ invoice.invoice_number }}</td>
+              <td>{{ formatDate(invoice.invoice_date) }}</td>
+              <td>
+                {{ formatDate(invoice.due_date) }}
+                <span v-if="isOverdue(invoice.due_date, invoice.status)" class="overdue-badge">Overdue</span>
+              </td>
+              <td>{{ invoice.customer ? invoice.customer.name : 'N/A' }}</td>
+              <td>{{ formatCurrency(invoice.total_amount, invoice.currency_code) }}</td>
+              <td>
+                <span class="status-badge" :class="getStatusClass(invoice.status)">
+                  {{ invoice.status }}
                 </span>
-            </template>
-
-            <template #date="{ value }">
-                {{ formatDate(value) }}
-            </template>
-
-            <template #due_date="{ value, item }">
-                <span :class="{ 'text-danger': isOverdue(item) }">
-                    {{ formatDate(value) }}
-                </span>
-            </template>
-
-            <template #actions="{ item }">
-                <div class="actions-cell">
-                    <button
-                        class="action-btn view"
-                        title="Lihat Detail"
-                        @click="viewInvoice(item)"
-                    >
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button
-                        v-if="canEditInvoice(item)"
-                        class="action-btn edit"
-                        title="Edit Faktur"
-                        @click="editInvoice(item)"
-                    >
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button
-                        class="action-btn print"
-                        title="Cetak Faktur"
-                        @click="printInvoice(item)"
-                    >
-                        <i class="fas fa-print"></i>
-                    </button>
-                    <button
-                        v-if="canDeleteInvoice(item)"
-                        class="action-btn delete"
-                        title="Hapus Faktur"
-                        @click="confirmDelete(item)"
-                    >
-                        <i class="fas fa-trash"></i>
-                    </button>
+              </td>
+              <td class="actions-cell">
+                <div class="action-buttons">
+                  <router-link :to="`/sales/invoices/${invoice.invoice_id}`" class="btn btn-sm btn-info" title="View">
+                    <i class="fas fa-eye"></i>
+                  </router-link>
+                  <router-link :to="`/sales/invoices/${invoice.invoice_id}/edit`" class="btn btn-sm btn-warning" 
+                               v-if="canEdit(invoice.status)" title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </router-link>
+                  <router-link :to="`/sales/invoices/${invoice.invoice_id}/print`" class="btn btn-sm btn-secondary" title="Print">
+                    <i class="fas fa-print"></i>
+                  </router-link>
+                  <button @click="confirmDelete(invoice)" class="btn btn-sm btn-danger" 
+                          v-if="canDelete(invoice.status)" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
                 </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Pagination -->
+      <div class="pagination-container" v-if="totalPages > 1">
+        <div class="pagination">
+          <div class="pagination-info">
+            Showing {{ (currentPage - 1) * perPage + 1 }} to {{ Math.min(currentPage * perPage, totalItems) }} of {{ totalItems }} invoices
+          </div>
+          <div class="pagination-controls">
+            <button 
+              class="pagination-btn" 
+              :disabled="currentPage === 1" 
+              @click="goToPage(currentPage - 1)"
+            >
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            
+            <template v-for="page in displayedPages" :key="page">
+              <button 
+                v-if="page !== '...'" 
+                class="pagination-btn" 
+                :class="{ active: page === currentPage }"
+                @click="goToPage(page)"
+              >
+                {{ page }}
+              </button>
+              <span v-else class="pagination-ellipsis">...</span>
             </template>
-        </DataTable>
-
-        <!-- Pagination -->
-        <PaginationComponent
-            v-if="totalItems > 0"
-            :current-page="currentPage"
-            :total-pages="totalPages"
-            :from="(currentPage - 1) * itemsPerPage + 1"
-            :to="Math.min(currentPage * itemsPerPage, totalItems)"
-            :total="totalItems"
-            @page-changed="goToPage"
-        />
-
-        <!-- Delete Confirmation Modal -->
-        <ConfirmationModal
-            v-if="showDeleteModal"
-            title="Konfirmasi Hapus"
-            :message="`Apakah Anda yakin ingin menghapus faktur <strong>${invoiceToDelete.invoice_number}</strong>?<br>Tindakan ini tidak dapat dibatalkan.`"
-            confirm-button-text="Hapus"
-            confirm-button-class="btn btn-danger"
-            @confirm="deleteInvoice"
-            @close="closeDeleteModal"
-        />
+            
+            <button 
+              class="pagination-btn" 
+              :disabled="currentPage === totalPages" 
+              @click="goToPage(currentPage + 1)"
+            >
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Confirmation Modal -->
+      <div class="modal" v-if="showDeleteModal">
+        <div class="modal-backdrop" @click="showDeleteModal = false"></div>
+        <div class="modal-content modal-sm">
+          <div class="modal-header">
+            <h2>Confirm Delete</h2>
+            <button class="close-btn" @click="showDeleteModal = false">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to delete invoice <strong>{{ selectedInvoice?.invoice_number }}</strong>?</p>
+            <p>This action cannot be undone.</p>
+            
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" @click="showDeleteModal = false">
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="btn btn-danger"
+                @click="deleteInvoice"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-</template>
-
-<script>
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
-import axios from "axios";
-
-export default {
-    name: "SalesInvoiceList",
-    setup() {
-        const router = useRouter();
-        const invoices = ref([]);
-        const isLoading = ref(true);
-
-        // Pagination
-        const currentPage = ref(1);
-        const itemsPerPage = ref(10);
-        const totalItems = ref(0);
-        const totalPages = ref(1);
-
-        // Filters
-        const searchQuery = ref("");
-        const statusFilter = ref("");
-        const dateRangeFilter = ref("month");
-        const customDateRange = ref({
-            startDate: new Date().toISOString().substr(0, 10),
-            endDate: new Date().toISOString().substr(0, 10),
-        });
-
-        // Sort
-        const sortKey = ref("invoice_id");
-        const sortOrder = ref("desc");
-
-        // Delete modal
-        const showDeleteModal = ref(false);
-        const invoiceToDelete = ref({});
-
-        // Table columns
-        const columns = [
-            {
-                key: "invoice_number",
-                label: "No. Faktur",
-                sortable: true,
-                template: "invoice_number",
-            },
-            {
-                key: "customer",
-                label: "Pelanggan",
-                sortable: false,
-                template: "customer",
-            },
-            {
-                key: "invoice_date",
-                label: "Tanggal Faktur",
-                sortable: true,
-                template: "date",
-            },
-            {
-                key: "due_date",
-                label: "Jatuh Tempo",
-                sortable: true,
-                template: "due_date",
-            },
-            {
-                key: "status",
-                label: "Status",
-                sortable: true,
-                template: "status",
-            },
-            {
-                key: "total_amount",
-                label: "Total",
-                sortable: true,
-                template: "total",
-            },
-        ];
-
-        // Fetch invoices
-        const fetchInvoices = async () => {
-            isLoading.value = true;
-
-            try {
-                // Prepare query parameters
-                const params = {
-                    page: currentPage.value,
-                    status: statusFilter.value,
-                    search: searchQuery.value,
-                    sort_field: sortKey.value,
-                    sort_direction: sortOrder.value,
-                };
-
-                // Add date range filters if applicable
-                if (dateRangeFilter.value === "custom") {
-                    params.start_date = customDateRange.value.startDate;
-                    params.end_date = customDateRange.value.endDate;
-                } else if (dateRangeFilter.value !== "all") {
-                    params.date_range = dateRangeFilter.value;
-                }
-
-                const response = await axios.get("/invoices", {
-                    params,
-                });
-
-                invoices.value = response.data.data;
-                totalItems.value =
-                    response.data.meta?.total || invoices.value.length;
-                totalPages.value =
-                    response.data.meta?.last_page ||
-                    Math.ceil(totalItems.value / itemsPerPage.value);
-            } catch (error) {
-                console.error("Error fetching sales invoices:", error);
-                alert("Terjadi kesalahan saat memuat data. Silakan coba lagi.");
-            } finally {
-                isLoading.value = false;
-            }
-        };
-
-        // Filters and pagination methods
-        const handleSearch = () => {
-            currentPage.value = 1;
-            fetchInvoices();
-        };
-
-        const clearSearch = () => {
-            searchQuery.value = "";
-            handleSearch();
-        };
-
-        const applyFilters = () => {
-            currentPage.value = 1;
-            fetchInvoices();
-        };
-
-        const handleSort = (sortData) => {
-            sortKey.value = sortData.key;
-            sortOrder.value = sortData.order;
-            fetchInvoices();
-        };
-
-        const goToPage = (page) => {
-            currentPage.value = page;
-            fetchInvoices();
-        };
-
-        // CRUD operations
-        const createInvoice = () => {
-            router.push("/sales/invoices/create");
-        };
-
-        const viewInvoice = (invoice) => {
-            router.push(`/sales/invoices/${invoice.invoice_id}`);
-        };
-
-        const editInvoice = (invoice) => {
-            router.push(`/sales/invoices/${invoice.invoice_id}/edit`);
-        };
-
-        const printInvoice = (invoice) => {
-            router.push(`/sales/invoices/${invoice.invoice_id}/print`);
-        };
-
-        const confirmDelete = (invoice) => {
-            invoiceToDelete.value = invoice;
-            showDeleteModal.value = true;
-        };
-
-        const closeDeleteModal = () => {
-            showDeleteModal.value = false;
-        };
-
-        const deleteInvoice = async () => {
-            try {
-                await axios.delete(
-                    `/invoices/${invoiceToDelete.value.invoice_id}`
-                );
-                fetchInvoices(); // Refresh list after delete
-                showDeleteModal.value = false;
-                alert("Faktur berhasil dihapus");
-            } catch (error) {
-                console.error("Error deleting invoice:", error);
-                if (error.response?.data?.message) {
-                    alert(error.response.data.message);
-                } else {
-                    alert("Terjadi kesalahan saat menghapus faktur");
-                }
-            }
-        };
-
-        // Helper methods
-        const formatDate = (dateString) => {
-            if (!dateString) return "-";
-            const date = new Date(dateString);
-            return date.toLocaleDateString("id-ID", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-            });
-        };
-
-        const formatCurrency = (value) => {
-            return new Intl.NumberFormat("id-ID", {
-                style: "currency",
-                currency: "IDR",
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-            }).format(value || 0);
-        };
-
-        const getStatusLabel = (status) => {
-            switch (status) {
-                case "Draft":
-                    return "Draft";
-                case "Sent":
-                    return "Terkirim";
-                case "Paid":
-                    return "Dibayar";
-                case "Partially Paid":
-                    return "Dibayar Sebagian";
-                case "Overdue":
-                    return "Jatuh Tempo";
-                case "Cancelled":
-                    return "Dibatalkan";
-                default:
-                    return status;
-            }
-        };
-
-        const getStatusClass = (status) => {
-            switch (status) {
-                case "Draft":
-                    return "status-draft";
-                case "Sent":
-                    return "status-sent";
-                case "Paid":
-                    return "status-paid";
-                case "Partially Paid":
-                    return "status-partial";
-                case "Overdue":
-                    return "status-overdue";
-                case "Cancelled":
-                    return "status-cancelled";
-                default:
-                    return "";
-            }
-        };
-
-        const isOverdue = (invoice) => {
-            if (!invoice.due_date || invoice.status === "Paid") return false;
-
-            const today = new Date();
-            const dueDate = new Date(invoice.due_date);
-            return today > dueDate;
-        };
-
-        const canEditInvoice = (invoice) => {
-            // Only allow edit for invoices that are in Draft status
-            return invoice.status === "Draft";
-        };
-
-        const canDeleteInvoice = (invoice) => {
-            // Only allow delete if no payments have been made
-            return ["Draft", "Sent"].includes(invoice.status);
-        };
-
-        onMounted(() => {
-            fetchInvoices();
-        });
-
-        return {
-            invoices,
-            columns,
-            isLoading,
-            currentPage,
-            itemsPerPage,
-            totalItems,
-            totalPages,
-            searchQuery,
-            statusFilter,
-            dateRangeFilter,
-            customDateRange,
-            showDeleteModal,
-            invoiceToDelete,
-            handleSearch,
-            clearSearch,
-            applyFilters,
-            handleSort,
-            goToPage,
-            createInvoice,
-            viewInvoice,
-            editInvoice,
-            printInvoice,
-            confirmDelete,
-            closeDeleteModal,
-            deleteInvoice,
-            formatDate,
-            formatCurrency,
-            getStatusLabel,
-            getStatusClass,
-            isOverdue,
-            canEditInvoice,
-            canDeleteInvoice,
-        };
+  </template>
+  
+  <script>
+  import axios from 'axios';
+  
+  export default {
+    name: 'SalesInvoiceList',
+    data() {
+      return {
+        invoices: [],
+        loading: true,
+        currentPage: 1,
+        totalPages: 0,
+        totalItems: 0,
+        perPage: 10,
+        searchTerm: '',
+        searchDebounce: null,
+        sortKey: 'invoice_id',
+        sortOrder: 'desc',
+        filters: {
+          status: '',
+          dateRange: '',
+          startDate: '',
+          endDate: ''
+        },
+        showDeleteModal: false,
+        selectedInvoice: null
+      };
     },
-};
-</script>
-
-<style scoped>
-.sales-invoices {
+    computed: {
+      displayedPages() {
+        const pages = [];
+        const total = this.totalPages;
+        const current = this.currentPage;
+        
+        if (total <= 7) {
+          // Show all pages if 7 or fewer
+          for (let i = 1; i <= total; i++) {
+            pages.push(i);
+          }
+        } else {
+          // Always include first page
+          pages.push(1);
+          
+          // Show ellipsis if current page is more than 3
+          if (current > 3) {
+            pages.push('...');
+          }
+          
+          // Add pages around current page
+          const startPage = Math.max(2, current - 1);
+          const endPage = Math.min(total - 1, current + 1);
+          
+          for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+          }
+          
+          // Show ellipsis if current page is less than total - 2
+          if (current < total - 2) {
+            pages.push('...');
+          }
+          
+          // Always include last page
+          if (total > 1) {
+            pages.push(total);
+          }
+        }
+        
+        return pages;
+      }
+    },
+    mounted() {
+      this.fetchInvoices();
+    },
+    methods: {
+      async fetchInvoices() {
+        this.loading = true;
+        try {
+          // Build query parameters
+          const params = {
+            page: this.currentPage,
+            per_page: this.perPage,
+            sort_field: this.sortKey,
+            sort_direction: this.sortOrder
+          };
+  
+          // Add filters if set
+          if (this.searchTerm) {
+            params.search = this.searchTerm;
+          }
+          
+          if (this.filters.status) {
+            params.status = this.filters.status;
+          }
+          
+          if (this.filters.dateRange && this.filters.dateRange !== 'custom') {
+            params.date_range = this.filters.dateRange;
+          } else if (this.filters.startDate && this.filters.endDate) {
+            params.start_date = this.filters.startDate;
+            params.end_date = this.filters.endDate;
+          }
+  
+          const response = await axios.get('/invoices', { params });
+          
+          this.invoices = response.data.data;
+          this.currentPage = response.data.current_page;
+          this.totalPages = response.data.last_page;
+          this.totalItems = response.data.total;
+        } catch (error) {
+          console.error('Error fetching invoices:', error);
+          this.$toast.error('Failed to load invoices. Please try again later.');
+        } finally {
+          this.loading = false;
+        }
+      },
+      formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('id-ID', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      },
+      formatCurrency(amount, currencyCode = 'IDR') {
+        if (amount === undefined || amount === null) return 'N/A';
+        return new Intl.NumberFormat('id-ID', {
+          style: 'currency',
+          currency: currencyCode || 'IDR',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2
+        }).format(amount);
+      },
+      getStatusClass(status) {
+        switch (status) {
+          case 'Draft':
+            return 'status-draft';
+          case 'Sent':
+            return 'status-sent';
+          case 'Partially Paid':
+            return 'status-partial';
+          case 'Paid':
+            return 'status-paid';
+          case 'Overdue':
+            return 'status-overdue';
+          case 'Cancelled':
+            return 'status-cancelled';
+          default:
+            return '';
+        }
+      },
+      isOverdue(dueDate, status) {
+        if (!dueDate || status === 'Paid' || status === 'Cancelled') return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const due = new Date(dueDate);
+        return due < today;
+      },
+      canEdit(status) {
+        // Can edit if not Paid or Cancelled
+        return !['Paid', 'Cancelled'].includes(status);
+      },
+      canDelete(status) {
+        // Can delete if not Paid and doesn't have related returns
+        return !['Paid'].includes(status);
+      },
+      sortBy(key) {
+        if (this.sortKey === key) {
+          // Toggle sort order if clicking on the same column
+          this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+        } else {
+          // Set new sort key and default to ascending
+          this.sortKey = key;
+          this.sortOrder = 'asc';
+        }
+        this.fetchInvoices();
+      },
+      handleSearch() {
+        // Debounce search to avoid too many API calls
+        clearTimeout(this.searchDebounce);
+        this.searchDebounce = setTimeout(() => {
+          this.currentPage = 1; // Reset to first page
+          this.fetchInvoices();
+        }, 500);
+      },
+      clearSearch() {
+        this.searchTerm = '';
+        this.fetchInvoices();
+      },
+      handleDateRangeChange() {
+        // Reset custom date range if a preset is selected
+        if (this.filters.dateRange !== 'custom') {
+          this.filters.startDate = '';
+          this.filters.endDate = '';
+        } else {
+          // Set default custom range to current month if not already set
+          if (!this.filters.startDate) {
+            const today = new Date();
+            this.filters.startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+            this.filters.endDate = new Date().toISOString().split('T')[0];
+          }
+        }
+        this.fetchInvoices();
+      },
+      goToPage(page) {
+        if (page !== this.currentPage && page >= 1 && page <= this.totalPages) {
+          this.currentPage = page;
+          this.fetchInvoices();
+        }
+      },
+      confirmDelete(invoice) {
+        this.selectedInvoice = invoice;
+        this.showDeleteModal = true;
+      },
+      async deleteInvoice() {
+        if (!this.selectedInvoice) return;
+        
+        try {
+          await axios.delete(`/invoices/${this.selectedInvoice.invoice_id}`);
+          this.$toast.success(`Invoice ${this.selectedInvoice.invoice_number} deleted successfully`);
+          this.showDeleteModal = false;
+          this.fetchInvoices();
+        } catch (error) {
+          console.error('Error deleting invoice:', error);
+          if (error.response && error.response.data.message) {
+            this.$toast.error(error.response.data.message);
+          } else {
+            this.$toast.error('Failed to delete invoice. Please try again later.');
+          }
+        }
+      }
+    }
+  };
+  </script>
+  
+  <style scoped>
+  .page-container {
+    padding: 1.5rem;
+  }
+  
+  .page-header {
     display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.custom-date-range {
-    background-color: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.375rem;
-    padding: 1rem;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .page-header h1 {
+    margin: 0;
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
     margin-bottom: 1rem;
-}
-
-.date-range-inputs {
-    display: flex;
-    gap: 1rem;
-}
-
-.filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-}
-
-.filter-group label {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--gray-500);
-}
-
-.filter-group select,
-.filter-group input {
-    padding: 0.5rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.375rem;
+  }
+  
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 0.875rem;
-}
-
-.invoice-number {
+  }
+  
+  .data-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--gray-200);
+    background-color: var(--gray-50);
     font-weight: 500;
-    color: var(--primary-color);
-}
-
-.customer-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.customer-name {
-    font-weight: 500;
-}
-
-.invoice-total {
-    font-weight: 500;
-}
-
-.status-badge {
+    color: var(--gray-600);
+  }
+  
+  .data-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--gray-100);
+    color: var(--gray-800);
+    vertical-align: middle;
+  }
+  
+  .data-table tr:hover td {
+    background-color: var(--gray-50);
+  }
+  
+  .sortable {
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  .sortable:hover {
+    background-color: var(--gray-100);
+  }
+  
+  .status-badge {
     display: inline-block;
     padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 500;
-}
-
-.status-draft {
-    background-color: #e2e8f0;
-    color: #475569;
-}
-
-.status-sent {
+    text-align: center;
+    white-space: nowrap;
+  }
+  
+  .status-draft {
+    background-color: var(--gray-100);
+    color: var(--gray-700);
+  }
+  
+  .status-sent {
     background-color: #dbeafe;
-    color: #2563eb;
-}
-
-.status-paid {
+    color: #1e40af;
+  }
+  
+  .status-partial {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+  
+  .status-paid {
     background-color: #d1fae5;
-    color: #059669;
-}
-
-.status-partial {
-    background-color: #e0f2fe;
-    color: #0284c7;
-}
-
-.status-overdue {
+    color: #065f46;
+  }
+  
+  .status-overdue {
     background-color: #fee2e2;
-    color: #dc2626;
-}
-
-.status-cancelled {
-    background-color: #f3f4f6;
-    color: #1f2937;
-}
-
-.text-danger {
-    color: #dc2626;
-}
-
-.actions-cell {
+    color: #b91c1c;
+  }
+  
+  .status-cancelled {
+    background-color: var(--gray-200);
+    color: var(--gray-700);
+  }
+  
+  .overdue-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.125rem 0.375rem;
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .action-buttons {
     display: flex;
     gap: 0.5rem;
-    justify-content: flex-end;
-}
-
-.action-btn {
+  }
+  
+  .pagination-container {
+    margin-top: 1.5rem;
+  }
+  
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 0;
+    text-align: center;
+  }
+  
+  .empty-icon {
+    font-size: 2.5rem;
+    color: var(--gray-300);
+    margin-bottom: 1rem;
+  }
+  
+  .empty-state h3 {
+    font-size: 1.125rem;
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+  }
+  
+  .empty-state p {
+    color: var(--gray-500);
+    max-width: 24rem;
+  }
+  
+  .loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem 0;
+    color: var(--gray-500);
+    font-size: 0.875rem;
+  }
+  
+  .loading-indicator i {
+    margin-right: 0.5rem;
+  }
+  
+  .actions-column {
+    width: 1%;
+    white-space: nowrap;
+  }
+  
+  .actions-cell {
+    text-align: right;
+  }
+  
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 50;
+  }
+  
+  .modal-content {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    z-index: 60;
+    overflow: hidden;
+  }
+  
+  .modal-sm {
+    max-width: 400px;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    color: #1e293b;
+  }
+  
+  .close-btn {
     background: none;
     border: none;
+    color: #64748b;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2rem;
-    height: 2rem;
+    padding: 0.25rem;
     border-radius: 0.25rem;
-    transition: background-color 0.2s;
-}
-
-.action-btn.view {
-    color: var(--primary-color);
-}
-
-.action-btn.edit {
-    color: var(--warning-color);
-}
-
-.action-btn.print {
+  }
+  
+  .close-btn:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+  }
+  
+  .modal-body {
+    padding: 1.5rem;
+  }
+  
+  .modal-body p {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #1e293b;
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+  
+  /* Button styles */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    padding: 0.625rem 1rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  
+  .btn-sm {
+    padding: 0.375rem 0.625rem;
+    font-size: 0.75rem;
+  }
+  
+  .btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+  }
+  
+  .btn-secondary {
+    background-color: var(--gray-100);
     color: var(--gray-700);
-}
-
-.action-btn.delete {
-    color: var(--danger-color);
-}
-
-.action-btn:hover {
-    background-color: #f8fafc;
-}
-
-@media (max-width: 768px) {
-    .date-range-inputs {
-        flex-direction: column;
-    }
-}
-</style>
+    border-color: var(--gray-200);
+  }
+  
+  .btn-secondary:hover {
+    background-color: var(--gray-200);
+    color: var(--gray-800);
+  }
+  
+  .btn-info {
+    background-color: #dbeafe;
+    color: #1e40af;
+    border-color: #bfdbfe;
+  }
+  
+  .btn-info:hover {
+    background-color: #bfdbfe;
+    color: #1e3a8a;
+  }
+  
+  .btn-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-color: #fde68a;
+  }
+  
+  .btn-warning:hover {
+    background-color: #fde68a;
+    color: #78350f;
+  }
+  
+  .btn-danger {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border-color: #fecaca;
+  }
+  
+  .btn-danger:hover {
+    background-color: #fecaca;
+    color: #991b1b;
+  }
+  
+  .btn i {
+    margin-right: 0.5rem;
+  }
+  
+  .btn-sm i {
+    margin-right: 0.25rem;
+  }
+  </style>

@@ -50,6 +50,8 @@ import SalesInvoiceList from "../views/sales/SalesInvoiceList.vue";
 import SalesInvoiceDetail from "../views/sales/SalesInvoiceDetail.vue";
 import SalesInvoiceForm from "../views/sales/SalesInvoiceForm.vue";
 import SalesInvoicePrint from "../views/sales/SalesInvoicePrint.vue";
+import SalesInvoicePayment from "../views/sales/SalesInvoicePayment.vue";
+import CreateInvoiceFromDelivery from "../views/sales/CreateInvoiceFromDelivery.vue";
 //Sales Delivery
 import DeliveryList from "../views/sales/DeliveryList.vue";
 import DeliveryDetail from "../views/sales/DeliveryDetail.vue";
@@ -395,7 +397,7 @@ const routes = [
                 props: true,
                 meta: { requiresAuth: true },
             },
-            //SalesInvoice
+            // Sales Invoice routes
             {
                 path: "/sales/invoices",
                 name: "SalesInvoices",
@@ -409,6 +411,12 @@ const routes = [
                 meta: { requiresAuth: true },
             },
             {
+                path: "/sales/invoices/create-from-delivery",
+                name: "CreateInvoiceFromDelivery",
+                component: CreateInvoiceFromDelivery,
+                meta: { requiresAuth: true },
+            },
+            {
                 path: "/sales/invoices/:id",
                 name: "SalesInvoiceDetail",
                 component: SalesInvoiceDetail,
@@ -419,6 +427,13 @@ const routes = [
                 path: "/sales/invoices/:id/edit",
                 name: "EditSalesInvoice",
                 component: SalesInvoiceForm,
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/sales/invoices/:id/payment",
+                name: "SalesInvoicePayment",
+                component: SalesInvoicePayment,
                 props: true,
                 meta: { requiresAuth: true },
             },

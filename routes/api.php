@@ -287,6 +287,8 @@ Route::get('purchase-orders/reports/outstanding-items', [PurchaseOrderController
         Route::put('/{id}', [SalesInvoiceController::class, 'update']);
         Route::delete('/{id}', [SalesInvoiceController::class, 'destroy']);
         Route::get('/{id}/payment-info', [SalesInvoiceController::class, 'paymentInfo']);
+        Route::get('/getDeliveriesForInvoicing', [SalesInvoiceController::class, 'getDeliveriesForInvoicing']);
+        Route::get('/getDeliveryLinesByItem', [SalesInvoiceController::class, 'getDeliveryLinesByItem']);
     });
 
     // Sales Return routes
@@ -297,6 +299,8 @@ Route::get('purchase-orders/reports/outstanding-items', [PurchaseOrderController
         Route::put('/{id}', [SalesReturnController::class, 'update']);
         Route::delete('/{id}', [SalesReturnController::class, 'destroy']);
         Route::post('/{id}/process', [SalesReturnController::class, 'process']);
+        Route::get('/deliveries-for-invoicing', [SalesInvoiceController::class, 'getDeliveriesForInvoicing']);
+        Route::get('/delivery-lines-by-item', [SalesInvoiceController::class, 'getDeliveryLinesByItem']);
     });
 
     // Customer Interaction routes

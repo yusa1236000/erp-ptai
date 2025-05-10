@@ -81,11 +81,13 @@ Route::middleware(['web', 'auth'])->prefix('sales')->group(function () {
         Route::post('/', [SalesInvoiceController::class, 'store'])->name('sales.invoices.store');
         Route::get('/create-from-order/{orderId}', [SalesInvoiceController::class, 'createFromOrder'])->name('sales.invoices.createFromOrder');
         Route::post('/from-order', [SalesInvoiceController::class, 'storeFromOrder'])->name('sales.invoices.storeFromOrder');
-        Route::get('/{id}', [SalesInvoiceController::class, 'show'])->name('sales.invoices.show');
+        Route::get('/getDeliveriesForInvoicing', [SalesInvoiceController::class, 'getDeliveriesForInvoicing'])->name('sales.invoices.getDeliveriesForInvoicing');
+        Route::get('/getDeliveryLinesByItem', [SalesInvoiceController::class, 'getDeliveryLinesByItem'])->name('sales.invoices.getDeliveryLinesByItem');
+        Route::get('/{id}/print', [SalesInvoiceController::class, 'print'])->name('sales.invoices.print');
         Route::get('/{id}/edit', [SalesInvoiceController::class, 'edit'])->name('sales.invoices.edit');
         Route::put('/{id}', [SalesInvoiceController::class, 'update'])->name('sales.invoices.update');
         Route::delete('/{id}', [SalesInvoiceController::class, 'destroy'])->name('sales.invoices.destroy');
-        Route::get('/{id}/print', [SalesInvoiceController::class, 'print'])->name('sales.invoices.print');
+        Route::get('/{id}', [SalesInvoiceController::class, 'show'])->name('sales.invoices.show');
     });
 
     // Sales Return routes

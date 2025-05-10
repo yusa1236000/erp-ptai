@@ -1,48 +1,26 @@
-<!-- src/views/sales/SalesInvoiceDetail.vue -->
+<!-- src/views/sales/SalesInvoicePayment.vue -->
 <template>
     <div class="page-container">
       <div class="page-header">
-        <h1>Invoice Details</h1>
+        <h1>Invoice Payment</h1>
         <div class="header-actions">
-          <router-link :to="`/sales/invoices`" class="btn btn-secondary">
-            <i class="fas fa-list"></i> Back to List
+          <router-link :to="`/sales/invoices/${id}`" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Invoice
           </router-link>
-          <router-link :to="`/sales/invoices/${invoice.invoice_id}/print`" class="btn btn-secondary">
-            <i class="fas fa-print"></i> Print
-          </router-link>
-          <router-link v-if="canEdit" :to="`/sales/invoices/${invoice.invoice_id}/edit`" class="btn btn-warning">
-            <i class="fas fa-edit"></i> Edit
-          </router-link>
-          <button v-if="canDelete" @click="openDeleteModal" class="btn btn-danger">
-            <i class="fas fa-trash"></i> Delete
-          </button>
         </div>
       </div>
   
       <!-- Loading Indicator -->
       <div v-if="loading" class="loading-indicator">
-        <i class="fas fa-spinner fa-spin"></i> Loading invoice...
+        <i class="fas fa-spinner fa-spin"></i> Loading payment information...
       </div>
   
-      <!-- Invoice Content -->
-      <div v-else class="invoice-container">
-        <!-- Status Banner -->
-        <div class="status-banner" :class="getStatusClass(invoice.status)">
-          <span class="status-text">{{ invoice.status }}</span>
-          <div v-if="isOverdue(invoice.due_date, invoice.status)" class="overdue-tag">
-            <i class="fas fa-exclamation-triangle"></i> OVERDUE
-          </div>
-        </div>
-  
-        <!-- Basic Information Card -->
+      <!-- Payment Content -->
+      <div v-else class="payment-container">
+        <!-- Invoice Summary Card -->
         <div class="card">
           <div class="card-header">
-            <h2>Invoice Information</h2>
-            <div v-if="!isPaid && !isCancelled" class="header-actions">
-              <button @click="openPaymentModal" class="btn btn-primary btn-sm">
-                <i class="fas fa-money-bill-wave"></i> Record Payment
-              </button>
-            </div>
+            <h2>Invoice Summary</h2>
           </div>
           <div class="card-body">
             <div class="info-section">
@@ -68,6 +46,7 @@
                   <div class="info-label">Due Date:</div>
                   <div class="info-value" :class="{ 'text-danger': isOverdue(invoice.due_date, invoice.status) }">
                     {{ formatDate(invoice.due_date) }}
+                    <span v-if="isOverdue(invoice.due_date, invoice.status)" class="overdue-badge">Overdue</span>
                   </div>
                 </div>
               </div>
@@ -81,102 +60,14 @@
                   <div class="info-value">{{ invoice.currency_code }}</div>
                 </div>
                 <div class="info-row">
-                  <div class="info-label">Payment Terms:</div>
-                  <div class="info-value">{{ invoice.payment_terms || 'Not specified' }}</div>
-                </div>
-                <div class="info-row">
-                  <div class="info-label">Reference:</div>
-                  <div class="info-value">{{ invoice.reference || 'Not specified' }}</div>
+                  <div class="info-label">Status:</div>
+                  <div class="info-value">
+                    <span class="status-badge" :class="getStatusClass(invoice.status)">
+                      {{ invoice.status }}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Related Delivery Order -->
-        <div v-if="invoice.delivery" class="card mt-4">
-          <div class="card-header">
-            <h2>Related Delivery</h2>
-          </div>
-          <div class="card-body">
-            <div class="related-item">
-              <div class="related-label">Delivery Number:</div>
-              <div class="related-value">
-                <router-link :to="`/sales/deliveries/${invoice.delivery.delivery_id}`">
-                  {{ invoice.delivery.delivery_number }}
-                </router-link>
-              </div>
-            </div>
-            <div class="related-item">
-              <div class="related-label">Delivery Date:</div>
-              <div class="related-value">{{ formatDate(invoice.delivery.delivery_date) }}</div>
-            </div>
-            <div class="related-item">
-              <div class="related-label">Shipping Method:</div>
-              <div class="related-value">{{ invoice.delivery.shipping_method || 'Not specified' }}</div>
-            </div>
-            <div class="related-item">
-              <div class="related-label">Tracking Number:</div>
-              <div class="related-value">{{ invoice.delivery.tracking_number || 'Not specified' }}</div>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Invoice Items Card -->
-        <div class="card mt-4">
-          <div class="card-header">
-            <h2>Invoice Items</h2>
-          </div>
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Discount</th>
-                    <th>Tax</th>
-                    <th>Subtotal</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="line in invoiceLines" :key="line.line_id">
-                    <td>
-                      <div v-if="line.item" class="item-details">
-                        <strong>{{ line.item.item_code }}</strong>
-                        <div>{{ line.item.name }}</div>
-                      </div>
-                      <div v-else>Unknown Item</div>
-                    </td>
-                    <td>{{ line.quantity }}</td>
-                    <td>{{ formatCurrency(line.unit_price, invoice.currency_code) }}</td>
-                    <td>{{ formatCurrency(line.discount || 0, invoice.currency_code) }}</td>
-                    <td>{{ formatCurrency(line.tax || 0, invoice.currency_code) }}</td>
-                    <td>{{ formatCurrency(line.subtotal, invoice.currency_code) }}</td>
-                    <td>{{ formatCurrency(line.total, invoice.currency_code) }}</td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colspan="5" class="text-right"><strong>Subtotal:</strong></td>
-                    <td colspan="2">{{ formatCurrency(calculateSubtotal(), invoice.currency_code) }}</td>
-                  </tr>
-                  <tr>
-                    <td colspan="5" class="text-right"><strong>Total Discount:</strong></td>
-                    <td colspan="2">{{ formatCurrency(calculateTotalDiscount(), invoice.currency_code) }}</td>
-                  </tr>
-                  <tr>
-                    <td colspan="5" class="text-right"><strong>Total Tax:</strong></td>
-                    <td colspan="2">{{ formatCurrency(invoice.tax_amount || 0, invoice.currency_code) }}</td>
-                  </tr>
-                  <tr class="total-row">
-                    <td colspan="5" class="text-right"><strong>Grand Total:</strong></td>
-                    <td colspan="2">{{ formatCurrency(invoice.total_amount, invoice.currency_code) }}</td>
-                  </tr>
-                </tfoot>
-              </table>
             </div>
           </div>
         </div>
@@ -184,13 +75,15 @@
         <!-- Payment Information Card -->
         <div class="card mt-4">
           <div class="card-header">
-            <h2>Payment Information</h2>
+            <h2>Payment Details</h2>
+            <div v-if="!isPaid && !isCancelled" class="header-actions">
+              <button @click="showPaymentModal = true" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Add Payment
+              </button>
+            </div>
           </div>
           <div class="card-body">
-            <div v-if="loading" class="loading-text">
-              <i class="fas fa-spinner fa-spin"></i> Loading payment information...
-            </div>
-            <div v-else-if="!receivable" class="empty-message">
+            <div v-if="!receivable" class="empty-message">
               No payment information available.
             </div>
             <div v-else>
@@ -210,7 +103,7 @@
                   </div>
                 </div>
                 <div class="payment-info-row">
-                  <div class="payment-label">Status:</div>
+                  <div class="payment-label">Payment Status:</div>
                   <div class="payment-value">
                     <span class="status-badge" :class="getPaymentStatusClass(receivable.status)">
                       {{ receivable.status }}
@@ -219,66 +112,82 @@
                 </div>
               </div>
   
-              <div v-if="receivable.receivablePayments && receivable.receivablePayments.length > 0" class="mt-4">
+              <div class="mt-4">
                 <h3>Payment History</h3>
-                <div class="table-responsive">
-                  <table class="data-table">
-                    <thead>
-                      <tr>
-                        <th>Date</th>
-                        <th>Amount</th>
-                        <th>Payment Method</th>
-                        <th>Reference</th>
-                        <th>Currency</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="payment in receivable.receivablePayments" :key="payment.payment_id">
-                        <td>{{ formatDate(payment.payment_date) }}</td>
-                        <td>{{ formatCurrency(payment.amount, payment.payment_currency) }}</td>
-                        <td>{{ payment.payment_method }}</td>
-                        <td>{{ payment.reference_number || 'N/A' }}</td>
-                        <td>{{ payment.payment_currency }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div v-if="receivable.receivablePayments && receivable.receivablePayments.length > 0">
+                  <div class="table-responsive">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Amount</th>
+                          <th>Invoice Amount</th>
+                          <th>Payment Method</th>
+                          <th>Reference</th>
+                          <th>Currency</th>
+                          <th>Exchange Rate</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="payment in receivable.receivablePayments" :key="payment.payment_id">
+                          <td>{{ formatDate(payment.payment_date) }}</td>
+                          <td>{{ formatCurrency(payment.amount, payment.payment_currency) }}</td>
+                          <td>{{ formatCurrency(payment.receivable_amount, invoice.currency_code) }}</td>
+                          <td>{{ payment.payment_method }}</td>
+                          <td>{{ payment.reference_number || 'N/A' }}</td>
+                          <td>{{ payment.payment_currency }}</td>
+                          <td>{{ payment.exchange_rate || '1.00' }}</td>
+                          <td>
+                            <button 
+                              @click="viewPaymentDetails(payment)" 
+                              class="btn btn-sm btn-info"
+                              title="View Details"
+                            >
+                              <i class="fas fa-eye"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-              <div v-else class="empty-message mt-4">
-                No payments recorded yet.
+                <div v-else class="empty-message">
+                  No payments recorded yet.
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
   
-      <!-- Delete Confirmation Modal -->
-      <div class="modal" v-if="showDeleteModal">
-        <div class="modal-backdrop" @click="showDeleteModal = false"></div>
-        <div class="modal-content modal-sm">
-          <div class="modal-header">
-            <h2>Confirm Delete</h2>
-            <button class="close-btn" @click="showDeleteModal = false">
-              <i class="fas fa-times"></i>
-            </button>
+        <!-- Exchange Rate Information -->
+        <div v-if="hasForeignCurrencyPayments" class="card mt-4">
+          <div class="card-header">
+            <h2>Exchange Rate Information</h2>
           </div>
-          <div class="modal-body">
-            <p>Are you sure you want to delete invoice <strong>{{ invoice.invoice_number }}</strong>?</p>
-            <p>This action cannot be undone.</p>
-            
-            <div class="form-actions">
-              <button type="button" class="btn btn-secondary" @click="showDeleteModal = false">
-                Cancel
-              </button>
-              <button
-                type="button"
-                class="btn btn-danger"
-                @click="deleteInvoice"
-                :disabled="deleting"
-              >
-                <i class="fas fa-spinner fa-spin" v-if="deleting"></i>
-                Delete
-              </button>
+          <div class="card-body">
+            <p class="info-text">
+              This invoice has payments in multiple currencies. Exchange rates are used to convert payments to the invoice currency ({{ invoice.currency_code }}).
+            </p>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>From Currency</th>
+                    <th>To Currency</th>
+                    <th>Exchange Rate</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(payment, index) in foreignCurrencyPayments" :key="index">
+                    <td>{{ payment.payment_currency }}</td>
+                    <td>{{ invoice.currency_code }}</td>
+                    <td>{{ payment.exchange_rate }}</td>
+                    <td>{{ formatDate(payment.payment_date) }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -315,6 +224,9 @@
                 <div v-if="paymentErrors.amount" class="error-message">
                   {{ paymentErrors.amount }}
                 </div>
+                <small class="form-text text-muted" v-if="receivable && receivable.balance > 0">
+                  Balance due: {{ formatCurrency(receivable.balance, invoice.currency_code) }}
+                </small>
               </div>
               
               <div class="form-group">
@@ -367,6 +279,10 @@
                   <option value="SGD">SGD - Singapore Dollar</option>
                   <option value="MYR">MYR - Malaysian Ringgit</option>
                 </select>
+                <div v-if="paymentData.payment_currency !== invoice.currency_code" class="currency-notice">
+                  <i class="fas fa-info-circle"></i> 
+                  Payment will be converted to {{ invoice.currency_code }} using the current exchange rate.
+                </div>
               </div>
               
               <div class="form-group">
@@ -397,6 +313,60 @@
           </div>
         </div>
       </div>
+  
+      <!-- Payment Details Modal -->
+      <div class="modal" v-if="showPaymentDetailsModal">
+        <div class="modal-backdrop" @click="showPaymentDetailsModal = false"></div>
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Payment Details</h2>
+            <button class="close-btn" @click="showPaymentDetailsModal = false">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div v-if="selectedPayment" class="payment-details">
+              <div class="detail-row">
+                <div class="detail-label">Payment Date:</div>
+                <div class="detail-value">{{ formatDate(selectedPayment.payment_date) }}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Amount:</div>
+                <div class="detail-value">{{ formatCurrency(selectedPayment.amount, selectedPayment.payment_currency) }}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Invoice Amount:</div>
+                <div class="detail-value">{{ formatCurrency(selectedPayment.receivable_amount, invoice.currency_code) }}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Payment Method:</div>
+                <div class="detail-value">{{ selectedPayment.payment_method }}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Reference Number:</div>
+                <div class="detail-value">{{ selectedPayment.reference_number || 'N/A' }}</div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Payment Currency:</div>
+                <div class="detail-value">{{ selectedPayment.payment_currency }}</div>
+              </div>
+              <div v-if="selectedPayment.payment_currency !== invoice.currency_code" class="detail-row">
+                <div class="detail-label">Exchange Rate:</div>
+                <div class="detail-value">1 {{ selectedPayment.payment_currency }} = {{ selectedPayment.exchange_rate }} {{ invoice.currency_code }}</div>
+              </div>
+              <div v-if="selectedPayment.exchange_difference && selectedPayment.exchange_difference !== 0" class="detail-row">
+                <div class="detail-label">Exchange Difference:</div>
+                <div class="detail-value">{{ formatCurrency(selectedPayment.exchange_difference, selectedPayment.payment_currency) }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="showPaymentDetailsModal = false">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </template>
   
@@ -404,7 +374,7 @@
   import axios from 'axios';
   
   export default {
-    name: 'SalesInvoiceDetail',
+    name: 'SalesInvoicePayment',
     props: {
       id: {
         type: [Number, String],
@@ -416,9 +386,9 @@
         invoice: {},
         receivable: null,
         loading: true,
-        showDeleteModal: false,
-        deleting: false,
         showPaymentModal: false,
+        showPaymentDetailsModal: false,
+        selectedPayment: null,
         recording: false,
         paymentData: {
           amount: 0,
@@ -431,43 +401,53 @@
       };
     },
     computed: {
-      invoiceLines() {
-        return this.invoice.salesInvoiceLines || [];
-      },
       isPaid() {
         return this.invoice.status === 'Paid';
       },
       isCancelled() {
         return this.invoice.status === 'Cancelled';
       },
-      canEdit() {
-        return !this.isPaid && !this.isCancelled;
+      hasForeignCurrencyPayments() {
+        if (!this.receivable || !this.receivable.receivablePayments) return false;
+        
+        return this.receivable.receivablePayments.some(payment => 
+          payment.payment_currency !== this.invoice.currency_code
+        );
       },
-      canDelete() {
-        return !this.isPaid && !(this.invoice.salesReturns && this.invoice.salesReturns.length > 0);
+      foreignCurrencyPayments() {
+        if (!this.receivable || !this.receivable.receivablePayments) return [];
+        
+        return this.receivable.receivablePayments.filter(payment => 
+          payment.payment_currency !== this.invoice.currency_code
+        );
       }
     },
     mounted() {
-      this.fetchInvoice();
+      this.fetchPaymentInfo();
     },
     methods: {
-      async fetchInvoice() {
+      async fetchPaymentInfo() {
         this.loading = true;
+        
         try {
-          const response = await axios.get(`/invoices/${this.id}`);
-          this.invoice = response.data.data;
+          // First get the invoice details
+          const invoiceResponse = await axios.get(`/invoices/${this.id}`);
+          this.invoice = invoiceResponse.data.data;
+          
+          // Then get payment information
+          const paymentResponse = await axios.get(`/invoices/${this.id}/payment-info`);
+          this.receivable = paymentResponse.data.data;
           
           // Set payment currency to invoice currency by default
           this.paymentData.payment_currency = this.invoice.currency_code;
           
           // Set default payment amount to balance due
-          if (this.invoice.customerReceivables && this.invoice.customerReceivables.length > 0) {
-            this.receivable = this.invoice.customerReceivables[0];
-            this.paymentData.amount = this.receivable.balance || 0;
+          if (this.receivable && this.receivable.balance) {
+            this.paymentData.amount = this.receivable.balance;
           }
         } catch (error) {
-          console.error('Error fetching invoice:', error);
-          this.$toast.error('Failed to load invoice details');
+          console.error('Error fetching payment information:', error);
+          this.$toast.error('Failed to load payment information');
         } finally {
           this.loading = false;
         }
@@ -527,37 +507,9 @@
           maximumFractionDigits: 2
         }).format(amount);
       },
-      calculateSubtotal() {
-        return this.invoiceLines.reduce((total, line) => total + (line.subtotal || 0), 0);
-      },
-      calculateTotalDiscount() {
-        return this.invoiceLines.reduce((total, line) => total + (line.discount || 0), 0);
-      },
-      openDeleteModal() {
-        this.showDeleteModal = true;
-      },
-      async deleteInvoice() {
-        this.deleting = true;
-        
-        try {
-          await axios.delete(`/invoices/${this.id}`);
-          this.$toast.success(`Invoice ${this.invoice.invoice_number} deleted successfully`);
-          this.showDeleteModal = false;
-          this.$router.push('/sales/invoices');
-        } catch (error) {
-          console.error('Error deleting invoice:', error);
-          if (error.response && error.response.data.message) {
-            this.$toast.error(error.response.data.message);
-          } else {
-            this.$toast.error('Failed to delete invoice. Please try again.');
-          }
-        } finally {
-          this.deleting = false;
-        }
-      },
-      openPaymentModal() {
-        this.paymentErrors = {};
-        this.showPaymentModal = true;
+      viewPaymentDetails(payment) {
+        this.selectedPayment = payment;
+        this.showPaymentDetailsModal = true;
       },
       async recordPayment() {
         this.paymentErrors = {};
@@ -592,8 +544,8 @@
           this.$toast.success('Payment recorded successfully');
           this.showPaymentModal = false;
           
-          // Refresh invoice data to show updated payment info
-          this.fetchInvoice();
+          // Refresh payment information
+          this.fetchPaymentInfo();
         } catch (error) {
           console.error('Error recording payment:', error);
           if (error.response && error.response.data.errors) {
@@ -639,61 +591,8 @@
     gap: 0.5rem;
   }
   
-  .invoice-container {
+  .payment-container {
     max-width: 100%;
-  }
-  
-  .status-banner {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1.5rem;
-    color: white;
-  }
-  
-  .status-draft {
-    background-color: var(--gray-500);
-  }
-  
-  .status-sent {
-    background-color: #3b82f6;
-  }
-  
-  .status-partial {
-    background-color: #f59e0b;
-  }
-  
-  .status-paid {
-    background-color: #10b981;
-  }
-  
-  .status-overdue {
-    background-color: #ef4444;
-  }
-  
-  .status-cancelled {
-    background-color: var(--gray-700);
-  }
-  
-  .status-text {
-    font-size: 1.125rem;
-    font-weight: 600;
-  }
-  
-  .overdue-tag {
-    display: flex;
-    align-items: center;
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: 0.375rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
-  
-  .overdue-tag i {
-    margin-right: 0.5rem;
   }
   
   .card {
@@ -752,73 +651,55 @@
     color: var(--gray-900);
   }
   
-  .related-item {
-    display: flex;
-    margin-bottom: 0.75rem;
-  }
-  
-  .related-label {
-    width: 30%;
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
     font-weight: 500;
-    color: var(--gray-600);
+    text-align: center;
+    white-space: nowrap;
   }
   
-  .related-value {
-    width: 70%;
-    color: var(--gray-900);
+  .status-draft {
+    background-color: var(--gray-100);
+    color: var(--gray-700);
   }
   
-  .item-details {
-    display: flex;
-    flex-direction: column;
+  .status-sent {
+    background-color: #dbeafe;
+    color: #1e40af;
   }
   
-  .table-responsive {
-    overflow-x: auto;
+  .status-partial {
+    background-color: #fef3c7;
+    color: #92400e;
   }
   
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.875rem;
+  .status-paid {
+    background-color: #d1fae5;
+    color: #065f46;
   }
   
-  .data-table th {
-    text-align: left;
-    padding: 0.75rem;
-    border-bottom: 1px solid var(--gray-200);
-    background-color: var(--gray-50);
+  .status-overdue {
+    background-color: #fee2e2;
+    color: #b91c1c;
+  }
+  
+  .status-cancelled {
+    background-color: var(--gray-200);
+    color: var(--gray-700);
+  }
+  
+  .overdue-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.125rem 0.375rem;
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border-radius: 9999px;
+    font-size: 0.75rem;
     font-weight: 500;
-    color: var(--gray-600);
-  }
-  
-  .data-table td {
-    padding: 0.75rem;
-    border-bottom: 1px solid var(--gray-100);
-    vertical-align: middle;
-  }
-  
-  .data-table tfoot tr td {
-    padding: 0.75rem;
-    background-color: var(--gray-50);
-  }
-  
-  .total-row td {
-    font-weight: 600;
-    font-size: 1rem;
-    background-color: #f0f9ff;
-  }
-  
-  .text-right {
-    text-align: right;
-  }
-  
-  .text-danger {
-    color: #ef4444;
-  }
-  
-  .mt-4 {
-    margin-top: 1.5rem;
   }
   
   .payment-summary {
@@ -849,14 +730,41 @@
     font-weight: 600;
   }
   
-  .status-badge {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
+  .mt-4 {
+    margin-top: 1.5rem;
+  }
+  
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--gray-700);
+  }
+  
+  .table-responsive {
+    overflow-x: auto;
+  }
+  
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  
+  .data-table th {
+    text-align: left;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--gray-200);
+    background-color: var(--gray-50);
     font-weight: 500;
-    text-align: center;
-    white-space: nowrap;
+    color: var(--gray-600);
+  }
+  
+  .data-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: middle;
   }
   
   .loading-indicator {
@@ -872,106 +780,38 @@
     margin-right: 0.5rem;
   }
   
-  .loading-text {
-    display: flex;
-    align-items: center;
-    color: var(--gray-500);
-    font-size: 0.875rem;
-    padding: 0.5rem 0;
-  }
-  
-  .loading-text i {
-    margin-right: 0.5rem;
-  }
-  
   .empty-message {
     color: var(--gray-500);
     font-style: italic;
     padding: 1rem 0;
   }
   
-  h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    margin-top: 0;
+  .info-text {
+    color: var(--gray-700);
     margin-bottom: 1rem;
-    color: var(--gray-700);
   }
   
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    line-height: 1.5;
-    text-align: center;
-    white-space: nowrap;
-    vertical-align: middle;
-    cursor: pointer;
-    user-select: none;
-    border: 1px solid transparent;
+  .text-danger {
+    color: #ef4444;
+  }
+  
+  .text-muted {
+    color: var(--gray-500);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+  }
+  
+  .currency-notice {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background-color: #f0f9ff;
     border-radius: 0.375rem;
-    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-  }
-  
-  .btn-primary {
-    color: white;
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-  }
-  
-  .btn-primary:hover {
-    background-color: var(--primary-dark);
-    border-color: var(--primary-dark);
-  }
-  
-  .btn-secondary {
-    color: var(--gray-700);
-    background-color: var(--gray-100);
-    border-color: var(--gray-300);
-  }
-  
-  .btn-secondary:hover {
-    background-color: var(--gray-200);
-    border-color: var(--gray-400);
-  }
-  
-  .btn-warning {
-    color: #92400e;
-    background-color: #fef3c7;
-    border-color: #fde68a;
-  }
-  
-  .btn-warning:hover {
-    background-color: #fde68a;
-    color: #78350f;
-  }
-  
-  .btn-danger {
-    color: white;
-    background-color: #ef4444;
-    border-color: #ef4444;
-  }
-  
-  .btn-danger:hover {
-    background-color: #dc2626;
-    border-color: #dc2626;
-  }
-  
-  .btn-sm {
-    padding: 0.25rem 0.5rem;
+    color: #0369a1;
     font-size: 0.75rem;
   }
   
-  .btn:disabled {
-    opacity: 0.65;
-    cursor: not-allowed;
-  }
-  
-  .btn i {
-    margin-right: 0.5rem;
+  .currency-notice i {
+    margin-right: 0.25rem;
   }
   
   .modal {
@@ -1004,10 +844,6 @@
     max-width: 500px;
     z-index: 60;
     overflow: hidden;
-  }
-  
-  .modal-sm {
-    max-width: 400px;
   }
   
   .modal-header {
@@ -1046,10 +882,38 @@
     padding: 1.5rem;
   }
   
-  .modal-body p {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #1e293b;
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e2e8f0;
+  }
+  
+  .payment-details {
+    border: 1px solid var(--gray-200);
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .detail-row {
+    display: flex;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  
+  .detail-row:last-child {
+    border-bottom: none;
+  }
+  
+  .detail-label {
+    width: 40%;
+    font-weight: 500;
+    color: var(--gray-600);
+  }
+  
+  .detail-value {
+    width: 60%;
+    color: var(--gray-900);
   }
   
   .form-group {
@@ -1131,32 +995,97 @@
     margin-top: 1.5rem;
   }
   
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  }
+  
+  .btn-primary {
+    color: white;
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  .btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+  }
+  
+  .btn-secondary {
+    color: var(--gray-700);
+    background-color: var(--gray-100);
+    border-color: var(--gray-300);
+  }
+  
+  .btn-secondary:hover {
+    background-color: var(--gray-200);
+    border-color: var(--gray-400);
+  }
+  
+  .btn-info {
+    background-color: #dbeafe;
+    color: #1e40af;
+    border-color: #bfdbfe;
+  }
+  
+  .btn-info:hover {
+    background-color: #bfdbfe;
+    color: #1e3a8a;
+  }
+  
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+  
+  .btn i {
+    margin-right: 0.5rem;
+  }
+  
   @media (max-width: 768px) {
     .info-section, 
     .info-row, 
-    .related-item, 
-    .payment-info-row {
+    .payment-info-row,
+    .detail-row {
       flex-direction: column;
     }
     
     .info-label, 
     .info-value, 
-    .related-label, 
-    .related-value, 
     .payment-label, 
-    .payment-value {
+    .payment-value,
+    .detail-label,
+    .detail-value {
       width: 100%;
     }
     
     .info-label, 
-    .related-label, 
-    .payment-label {
+    .payment-label,
+    .detail-label {
       margin-bottom: 0.25rem;
     }
     
     .info-value, 
-    .related-value, 
-    .payment-value {
+    .payment-value,
+    .detail-value {
       margin-bottom: 0.75rem;
     }
   }

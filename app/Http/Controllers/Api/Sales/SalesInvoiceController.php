@@ -89,7 +89,7 @@ class SalesInvoiceController extends Controller
         $validator = Validator::make($request->all(), [
             'invoice_number' => 'required|unique:SalesInvoice,invoice_number',
             'invoice_date' => 'required|date',
-            'customer_id' => 'required|exists:customers,customer_id',
+            'customer_id' => 'required|exists:Customer,customer_id',
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'status' => 'required|string|max:50',
             'currency_code' => 'nullable|string|size:3',
@@ -278,11 +278,13 @@ class SalesInvoiceController extends Controller
         $validator = Validator::make($request->all(), [
             'invoice_number' => 'required|unique:SalesInvoice,invoice_number',
             'invoice_date' => 'required|date',
-            'customer_id' => 'required|exists:customers,customer_id',
+            'customer_id' => 'required|exists:Customer,customer_id',
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'status' => 'required|string|max:50',
             'delivery_ids' => 'required|array',
             'delivery_ids.*' => 'exists:Delivery,delivery_id'
+        ], [
+            'delivery_ids.required' => 'The delivery ids field is required.'
         ]);
 
         if ($validator->fails()) {
@@ -947,7 +949,7 @@ class SalesInvoiceController extends Controller
     public function getDeliveriesForInvoicing(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'customer_id' => 'required|exists:customers,customer_id'
+            'customer_id' => 'required|exists:Customer,customer_id'
         ]);
 
         if ($validator->fails()) {
@@ -973,7 +975,7 @@ class SalesInvoiceController extends Controller
     public function getDeliveryLinesByItem(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'customer_id' => 'required|exists:customers,customer_id',
+            'customer_id' => 'required|exists:Customer,customer_id',
             'delivery_ids' => 'required|array',
             'delivery_ids.*' => 'exists:Delivery,delivery_id'
         ]);

@@ -283,13 +283,14 @@ Route::get('purchase-orders/reports/outstanding-items', [PurchaseOrderController
         Route::get('/', [SalesInvoiceController::class, 'index']);
         Route::post('/', [SalesInvoiceController::class, 'store']);
         Route::post('/from-order', [SalesInvoiceController::class, 'createFromOrder']);
-        Route::get('/{id}', [SalesInvoiceController::class, 'show']);
-        Route::put('/{id}', [SalesInvoiceController::class, 'update']);
         Route::delete('/{id}', [SalesInvoiceController::class, 'destroy']);
         Route::get('/{id}/payment-info', [SalesInvoiceController::class, 'paymentInfo']);
-         // Change these routes to have a clearer path structure
-        Route::get('available-deliveries', [SalesInvoiceController::class, 'getDeliveriesForInvoicing']);
-        Route::get('delivery-items', [SalesInvoiceController::class, 'getDeliveryLinesByItem']);
+        // Add these routes BEFORE the {id} routes to ensure proper route matching
+        Route::get('getDeliveriesForInvoicing', [SalesInvoiceController::class, 'getDeliveriesForInvoicing']);
+        Route::get('getDeliveryLinesByItem', [SalesInvoiceController::class, 'getDeliveryLinesByItem']);
+        // Then the normal {id} routes
+        Route::get('/{id}', [SalesInvoiceController::class, 'show']);
+        Route::put('/{id}', [SalesInvoiceController::class, 'update']);
     });
 
     // Sales Return routes

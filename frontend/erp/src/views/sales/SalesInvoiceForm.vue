@@ -621,12 +621,14 @@ if (selectedCustomer) {
         if (!this.invoice.customer_id) return;
         
         this.loadingDeliveries = true;
-        
         try {
-          // API endpoint to get deliveries ready for invoicing for a specific customer
-          const response = await axios.get('/invoices/getDeliveriesForInvoicing', {
-            params: { customer_id: this.invoice.customer_id }
-          });
+        // Similarly, update this call:
+        const response = await axios.get('/invoices/getDeliveryLinesByItem', {
+          params: { 
+            customer_id: this.invoice.customer_id,
+            delivery_ids: this.selectedDeliveries
+          }
+        });
           
           this.deliveries = response.data.data || [];
         } catch (error) {

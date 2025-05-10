@@ -416,7 +416,7 @@
           v-model="form.applicable_product_ids"
         />
         <span class="product-name">{{ product.name }}</span>
-        <span class="product-code">{{ product.code }}</span>
+        <span class="product-code">{{ product.item_code }}</span>
       </label>
     </div>
   </div>
@@ -542,8 +542,8 @@ async fetchCategories() {
 this.loadingCategories = true;
 
 try {
-const response = await axios.get('/api/quality-parameter-categories');
-this.categories = response.data;
+const response = await axios.get('/quality-parameters/categories');
+this.categories = response.data.data;
 } catch (err) {
 console.error('Failed to load categories:', err);
 } finally {
@@ -556,8 +556,8 @@ this.loadingProducts = true;
 
 try {
 // Menggunakan endpoint items yang sesuai dengan controller Anda
-const response = await axios.get('/api/quality-parameters/items');
-this.allProducts = response.data;
+const response = await axios.get('/quality-parameters/items');
+this.allProducts = response.data.data;
 this.filteredProducts = [...this.allProducts];
 } catch (err) {
 console.error('Failed to load items:', err);
@@ -571,7 +571,7 @@ this.loading = true;
 this.error = null;
 
 try {
-const response = await axios.get(`/api/quality-parameters/${this.id}`);
+const response = await axios.get(`/quality-parameters/${this.id}`);
 
 // Map API data to form structure
 const parameter = response.data;
@@ -682,8 +682,8 @@ return;
 
 const search = this.productSearch.toLowerCase();
 this.filteredProducts = this.allProducts.filter(product => 
-product.name.toLowerCase().includes(search) || 
-product.code.toLowerCase().includes(search)
+(product.name || '').toLowerCase().includes(search) || 
+(product.item_code || '').toLowerCase().includes(search)
 );
 },
 
@@ -787,9 +787,9 @@ this.error = null;
 
 try {
 if (this.isEditMode) {
-  await axios.put(`/api/quality-parameters/${this.id}`, this.form);
+  await axios.put(`/quality-parameters/${this.id}`, this.form);
 } else {
-  await axios.post('/api/quality-parameters', this.form);
+  await axios.post('/quality-parameters', this.form);
 }
 
 // Redirect to parameters list with success message

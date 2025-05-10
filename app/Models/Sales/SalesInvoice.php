@@ -20,7 +20,7 @@ class SalesInvoice extends Model
         'invoice_number',
         'invoice_date',
         'customer_id',
-        'so_id',
+        'do_id',
         'total_amount',
         'tax_amount',
         'due_date',
@@ -53,9 +53,9 @@ class SalesInvoice extends Model
     /**
      * Get the sales order that owns the sales invoice.
      */
-    public function salesOrder(): BelongsTo
+    public function delivery(): BelongsTo
     {
-        return $this->belongsTo(SalesOrder::class, 'so_id');
+        return $this->belongsTo(Delivery::class, 'delivery_id');
     }
 
     /**

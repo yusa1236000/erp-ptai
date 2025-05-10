@@ -351,7 +351,7 @@
       async fetchPlans() {
         this.isLoading = true;
         try {
-          const response = await axios.get('/api/material-plans', {
+          const response = await axios.get('/material-planning', {
             params: {
               page: this.currentPage,
               search: this.filters.search,
@@ -362,11 +362,11 @@
           });
           
           this.plans = response.data.data;
-          this.total = response.data.total;
-          this.from = response.data.from;
-          this.to = response.data.to;
-          this.currentPage = response.data.current_page;
-          this.totalPages = response.data.last_page;
+          this.total = response.data.total ?? 0;
+          this.from = response.data.from ?? 0;
+          this.to = response.data.to ?? 0;
+          this.currentPage = response.data.current_page ?? 1;
+          this.totalPages = response.data.last_page ?? 1;
         } catch (error) {
           console.error('Error fetching material plans:', error);
           alert('Failed to fetch material plans');
@@ -377,7 +377,7 @@
       
       async fetchItemOptions() {
         try {
-          const response = await axios.get('/api/items');
+          const response = await axios.get('/items');
           this.itemOptions = response.data.data.map(item => ({
             value: item.item_id,
             label: `${item.item_code} - ${item.name}`
@@ -401,7 +401,7 @@
             item_ids: this.generateForm.itemIds.map(item => item.value)
           };
           
-          const response = await axios.post('/api/material-planning/generate', payload);
+          const response = await axios.post('/material-planning/generate', payload);
           this.closeGenerateModal();
           this.fetchPlans();
           alert(response.data.message);
@@ -426,7 +426,7 @@
             lead_time_days: this.prForm.leadTimeDays
           };
           
-          const response = await axios.post('/api/material-planning/purchase-requisition', payload);
+          const response = await axios.post('/material-planning/purchase-requisition', payload);
           
           if (response.data.data) {
             // Redirect to PR detail page
@@ -460,7 +460,7 @@
       
       async confirmDelete() {
         try {
-          await axios.delete(`/api/material-plans/${this.deleteItemId}`);
+          await axios.delete(`/material-plans/${this.deleteItemId}`);
           this.fetchPlans();
           alert('Material plan deleted successfully');
         } catch (error) {

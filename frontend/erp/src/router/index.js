@@ -1123,7 +1123,7 @@ const routes = [
                     import("../views/sales/DeliveryOrderPrint.vue"),
                 props: true,
                 meta: { requiresAuth: true },
-            },
+    },
             
             // Dashboard specific route
             {

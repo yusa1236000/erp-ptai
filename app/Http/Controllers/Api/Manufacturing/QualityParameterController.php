@@ -10,6 +10,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
 
 use App\Models\ItemCategory;
+use App\Models\Item;
 
 class QualityParameterController extends Controller
 {
@@ -160,5 +161,15 @@ class QualityParameterController extends Controller
     {
         $categories = ItemCategory::all();
         return response()->json(['data' => $categories]);
+    }
+    /**
+     * Return a list of items.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getItems()
+    {
+        $items = Item::all(); // Sesuaikan dengan model dan field yang diperlukan
+        return response()->json(['data' =>$items]);
     }
 }

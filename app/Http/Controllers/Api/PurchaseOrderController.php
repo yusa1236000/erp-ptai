@@ -11,6 +11,7 @@ use App\Models\CurrencyRate;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class PurchaseOrderController extends Controller
 {
@@ -45,6 +46,19 @@ class PurchaseOrderController extends Controller
         if ($request->has('search')) {
             $search = $request->search;
             $query->where('po_number', 'like', "%{$search}%");
+        }
+        
+        // Filter untuk Outstanding PO
+        if ($request->has('has_outstanding') && $request->has_outstanding) {
+            $query->whereHas('lines', function($q) {
+                $q->whereRaw('quantity > (
+                    SELECT COALESCE(SUM(grl.received_quantity), 0)
+                    FROM goods_receipt_lines grl
+                    JOIN goods_receipts gr ON grl.receipt_id = gr.receipt_id
+                    WHERE grl.po_line_id = po_lines.line_id
+                    AND gr.status = "confirmed"
+                )');
+            });
         }
         
         // Apply sorting
@@ -512,6 +526,7 @@ class PurchaseOrderController extends Controller
             ], 500);
         }
     }
+    
     /**
      * Convert purchase order currency.
      *
@@ -649,5 +664,297 @@ class PurchaseOrderController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Display outstanding quantities for a specific purchase order.
+     *
+     * @param  \App\Models\PurchaseOrder  $purchaseOrder
+     * @return \Illuminate\Http\Response
+     */
+    public function showOutstanding(PurchaseOrder $purchaseOrder)
+    {
+        $purchaseOrder->load(['lines.item', 'goodsReceipts.lines']);
+        
+        $outstandingLines = [];
+        
+        foreach ($purchaseOrder->lines as $poLine) {
+            // Hitung total yang sudah diterima untuk line ini
+            $receivedQuantity = 0;
+            
+            foreach ($purchaseOrder->goodsReceipts as $receipt) {
+                foreach ($receipt->lines as $receiptLine) {
+                    if ($receiptLine->po_line_id === $poLine->line_id) {
+                        $receivedQuantity += $receiptLine->received_quantity;
+                    }
+                }
+            }
+            
+            // Hitung outstanding
+            $outstandingQuantity = $poLine->quantity - $receivedQuantity;
+            
+            // Jika masih ada outstanding, tambahkan ke hasil
+            if ($outstandingQuantity > 0) {
+                $outstandingLines[] = [
+                    'line_id' => $poLine->line_id,
+                    'item_code' => $poLine->item->item_code,
+                    'item_name' => $poLine->item->name,
+                    'ordered_quantity' => $poLine->quantity,
+                    'received_quantity' => $receivedQuantity,
+                    'outstanding_quantity' => $outstandingQuantity,
+                    'unit_price' => $poLine->unit_price,
+                    'outstanding_value' => $outstandingQuantity * $poLine->unit_price
+                ];
+            }
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'po_number' => $purchaseOrder->po_number,
+                'po_date' => $purchaseOrder->po_date,
+                'vendor' => $purchaseOrder->vendor->name,
+                'outstanding_lines' => $outstandingLines,
+                'total_outstanding_value' => array_sum(array_column($outstandingLines, 'outstanding_value'))
+            ]
+        ]);
+    }
+
+    /**
+     * Get all purchase orders with outstanding quantities.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getAllOutstanding(Request $request)
+    {
+        $query = PurchaseOrder::with(['vendor', 'lines.item'])
+            ->whereIn('status', ['sent', 'partial']) // Hanya PO yang relevan
+            ->whereHas('lines', function($q) {
+                $q->whereRaw('quantity > (
+                    SELECT COALESCE(SUM(grl.received_quantity), 0)
+                    FROM goods_receipt_lines grl
+                    JOIN goods_receipts gr ON grl.receipt_id = gr.receipt_id
+                    WHERE grl.po_line_id = po_lines.line_id
+                    AND gr.status = "confirmed"
+                )');
+            });
+        
+        // Filter tambahan
+        if ($request->filled('vendor_id')) {
+            $query->where('vendor_id', $request->vendor_id);
+        }
+        
+        if ($request->filled('expected_from')) {
+            $query->where('expected_delivery', '>=', $request->expected_from);
+        }
+        
+        if ($request->filled('expected_to')) {
+            $query->where('expected_delivery', '<=', $request->expected_to);
+        }
+        
+        // Sorting
+        $sortField = $request->input('sort_field', 'expected_delivery');
+        $sortDirection = $request->input('sort_direction', 'asc');
+        $query->orderBy($sortField, $sortDirection);
+        
+        // Pagination
+        $perPage = $request->input('per_page', 15);
+        $purchaseOrders = $query->paginate($perPage);
+        
+        // Hitung outstanding untuk setiap PO
+        $result = $purchaseOrders->map(function($po) {
+            $outstandingValue = 0;
+            $outstandingItems = 0;
+            
+            foreach ($po->lines as $line) {
+                // Hitung received quantity
+                $receivedQuantity = DB::table('goods_receipt_lines')
+                    ->join('goods_receipts', 'goods_receipt_lines.receipt_id', '=', 'goods_receipts.receipt_id')
+                    ->where('goods_receipt_lines.po_line_id', $line->line_id)
+                    ->where('goods_receipts.status', 'confirmed')
+                    ->sum('goods_receipt_lines.received_quantity');
+                
+                $outstanding = $line->quantity - $receivedQuantity;
+                
+                if ($outstanding > 0) {
+                    $outstandingValue += $outstanding * $line->unit_price;
+                    $outstandingItems++;
+                }
+            }
+            
+            return [
+                'po_id' => $po->po_id,
+                'po_number' => $po->po_number,
+                'po_date' => $po->po_date,
+                'vendor_name' => $po->vendor->name,
+                'expected_delivery' => $po->expected_delivery,
+                'status' => $po->status,
+                'total_value' => $po->total_amount,
+                'outstanding_value' => $outstandingValue,
+                'outstanding_percentage' => $po->total_amount > 0 ? 
+                    round(($outstandingValue / $po->total_amount) * 100, 2) : 0,
+                'outstanding_items' => $outstandingItems
+            ];
+        });
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'outstanding_pos' => $result,
+                'pagination' => [
+                    'total' => $purchaseOrders->total(),
+                    'per_page' => $purchaseOrders->perPage(),
+                    'current_page' => $purchaseOrders->currentPage(),
+                    'last_page' => $purchaseOrders->lastPage()
+                ]
+            ]
+        ]);
+    }
+    
+    /**
+     * Get detailed outstanding report with item details.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function outstandingItemsReport(Request $request)
+    {
+        // Filter parameters
+        $vendorIds = $request->input('vendor_ids', []);
+        $itemIds = $request->input('item_ids', []);
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $expectedFrom = $request->input('expected_from');
+        $expectedTo = $request->input('expected_to');
+        
+        // Get all POs with outstanding items
+        $query = PurchaseOrder::with(['vendor', 'lines.item'])
+            ->whereIn('status', ['sent', 'partial']) // Hanya PO yang relevan
+            ->whereHas('lines', function($q) {
+                $q->whereRaw('quantity > (
+                    SELECT COALESCE(SUM(grl.received_quantity), 0)
+                    FROM goods_receipt_lines grl
+                    JOIN goods_receipts gr ON grl.receipt_id = gr.receipt_id
+                    WHERE grl.po_line_id = po_lines.line_id
+                    AND gr.status = "confirmed"
+                )');
+            });
+        
+        // Apply filters
+        if (!empty($vendorIds)) {
+            $query->whereIn('vendor_id', $vendorIds);
+        }
+        
+        if ($dateFrom) {
+            $query->whereDate('po_date', '>=', $dateFrom);
+        }
+        
+        if ($dateTo) {
+            $query->whereDate('po_date', '<=', $dateTo);
+        }
+        
+        if ($expectedFrom) {
+            $query->where('expected_delivery', '>=', $expectedFrom);
+        }
+        
+        if ($expectedTo) {
+            $query->where('expected_delivery', '<=', $expectedTo);
+        }
+        
+        // Filter by specific items
+        if (!empty($itemIds)) {
+            $query->whereHas('lines', function($q) use ($itemIds) {
+                $q->whereIn('item_id', $itemIds);
+            });
+        }
+        
+        $purchaseOrders = $query->get();
+        
+        // Prepare report data
+        $outstandingItems = [];
+        
+        foreach ($purchaseOrders as $po) {
+            foreach ($po->lines as $line) {
+                // Calculate received quantity
+                $receivedQuantity = DB::table('goods_receipt_lines')
+                    ->join('goods_receipts', 'goods_receipt_lines.receipt_id', '=', 'goods_receipts.receipt_id')
+                    ->where('goods_receipt_lines.po_line_id', $line->line_id)
+                    ->where('goods_receipts.status', 'confirmed')
+                    ->sum('goods_receipt_lines.received_quantity');
+                
+                $outstandingQuantity = $line->quantity - $receivedQuantity;
+                
+                // Only include if outstanding
+                if ($outstandingQuantity > 0) {
+                    $item = $line->item;
+                    
+                    // Skip if filtering by item and not in the list
+                    if (!empty($itemIds) && !in_array($item->item_id, $itemIds)) {
+                        continue;
+                    }
+                    
+                    // Create item key for grouping
+                    $itemKey = $item->item_id;
+                    
+                    if (!isset($outstandingItems[$itemKey])) {
+                        $outstandingItems[$itemKey] = [
+                            'item_id' => $item->item_id,
+                            'item_code' => $item->item_code,
+                            'item_name' => $item->name,
+                            'total_outstanding' => 0,
+                            'total_value' => 0,
+                            'orders' => []
+                        ];
+                    }
+                    
+                    // Add to total outstanding for this item
+                    $outstandingItems[$itemKey]['total_outstanding'] += $outstandingQuantity;
+                    $outstandingItems[$itemKey]['total_value'] += $outstandingQuantity * $line->unit_price;
+                    
+                    // Add order details
+                    $outstandingItems[$itemKey]['orders'][] = [
+                        'po_id' => $po->po_id,
+                        'po_number' => $po->po_number,
+                        'po_date' => $po->po_date,
+                        'expected_delivery' => $po->expected_delivery,
+                        'vendor_name' => $po->vendor->name,
+                        'ordered_quantity' => $line->quantity,
+                        'received_quantity' => $receivedQuantity,
+                        'outstanding_quantity' => $outstandingQuantity,
+                        'unit_price' => $line->unit_price,
+                        'outstanding_value' => $outstandingQuantity * $line->unit_price,
+                        'days_outstanding' => now()->diffInDays($po->po_date),
+                        'overdue' => $po->expected_delivery && now()->gt($po->expected_delivery)
+                    ];
+                }
+            }
+        }
+        
+        // Convert to indexed array and sort by total outstanding quantity
+        $result = array_values($outstandingItems);
+        usort($result, function($a, $b) {
+            return $b['total_outstanding'] <=> $a['total_outstanding'];
+        });
+        
+        // Calculate overall totals
+        $totalOutstanding = array_sum(array_column($result, 'total_outstanding'));
+        $totalValue = array_sum(array_column($result, 'total_value'));
+        $totalOrders = count(array_unique(array_merge(...array_map(function($item) {
+            return array_column($item['orders'], 'po_id');
+        }, $result))));
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'summary' => [
+                    'total_outstanding_items' => count($result),
+                    'total_outstanding_quantity' => $totalOutstanding,
+                    'total_outstanding_value' => $totalValue,
+                    'total_affected_orders' => $totalOrders
+                ],
+                'items' => $result
+            ]
+        ]);
     }
 }

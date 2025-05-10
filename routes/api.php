@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\MaterialPlan;
 
 // routes/api.php
 use App\Http\Controllers\Api\AuthController;
@@ -205,6 +206,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('purchase-orders', PurchaseOrderController::class);
     Route::patch('purchase-orders/{purchaseOrder}/status', [PurchaseOrderController::class, 'updateStatus']);
     Route::post('purchase-orders/create-from-quotation', [PurchaseOrderController::class, 'createFromQuotation']);
+    // Route untuk outstanding PO
+Route::get('purchase-orders/{purchaseOrder}/outstanding', [PurchaseOrderController::class, 'showOutstanding']);
+Route::get('purchase-orders/outstanding/all', [PurchaseOrderController::class, 'getAllOutstanding']);
+Route::get('purchase-orders/reports/outstanding-items', [PurchaseOrderController::class, 'outstandingItemsReport']);
     // New route for currency conversion
     Route::post('purchase-orders/{purchaseOrder}/convert-currency', [PurchaseOrderController::class, 'convertCurrency']);
 
@@ -450,6 +455,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('quality-inspections/{inspectionId}/parameters', QualityParameterController::class);
     Route::get('quality-parameters/categories', [QualityParameterController::class, 'categories']);
     Route::get('quality-inspections/by-reference/{referenceType}/{referenceId}', [QualityInspectionController::class, 'byReference']);
+    Route::get('quality-parameters/items', [QualityParameterController::class, 'getItems']);
 
     Route::post('/material-planning/generate', [MaterialPlanningController::class, 'generateMaterialPlans']);
     Route::post('/material-planning/purchase-requisition', [MaterialPlanningController::class, 'generatePurchaseRequisitions']);

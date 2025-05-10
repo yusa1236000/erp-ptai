@@ -168,8 +168,14 @@ export default {
       this.error = null;
       
       try {
-        const response = await axios.get('/api/quality-inspections');
-        this.inspections = response.data;
+        const response = await axios.get('/quality-inspections');
+        // Ensure inspections is always an array
+        if (Array.isArray(response.data)) {
+          this.inspections = response.data;
+        } else {
+          this.inspections = [];
+          this.error = 'Data inspeksi tidak valid.';
+        }
         this.filterInspections();
         this.loading = false;
       } catch (err) {
@@ -291,7 +297,7 @@ export default {
     
     async deleteInspection() {
       try {
-        await axios.delete(`/api/quality-inspections/${this.inspectionToDelete}`);
+        await axios.delete(`/quality-inspections/${this.inspectionToDelete}`);
         this.showDeleteModal = false;
         this.inspectionToDelete = null;
         this.fetchInspections();

@@ -30,7 +30,8 @@ class SalesInvoiceLine extends Model
         'base_currency_subtotal', // Baru
         'base_currency_discount', // Baru
         'base_currency_tax', // Baru
-        'base_currency_total' // Baru
+        'base_currency_total', // Baru
+        'do_line_id'
     ];
     
     protected $casts = [

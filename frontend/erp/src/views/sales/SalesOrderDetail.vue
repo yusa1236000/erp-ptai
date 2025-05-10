@@ -224,7 +224,7 @@
                                     <td>
                                         <div class="item-info">
                                             <div class="item-code">
-                                                {{ line.item.item_code }}
+                                                {{ line.item.itemCode }}
                                             </div>
                                             <div class="item-name">
                                                 {{ line.item.name }}

@@ -317,7 +317,9 @@ class SalesOrderController extends Controller
         $order = SalesOrder::with([
             'customer',
             'salesQuotation',
-            'salesOrderLines.item',
+            'salesOrderLines.item' => function ($query) {
+                $query->select('item_id', 'item_code', 'name'); // explicitly select item_code
+            },
             'salesOrderLines.unitOfMeasure',
             'salesOrderLines.deliveryLines', // eager load delivery lines for each sales order line
             'deliveries',

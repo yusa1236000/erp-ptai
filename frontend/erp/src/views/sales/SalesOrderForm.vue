@@ -204,22 +204,25 @@
                             :key="index"
                             class="order-line"
                         >
-                            <div class="line-item" data-label="Item">
-                                <select
-                                    v-model="line.item_id"
-                                    required
-                                    @change="(e) => handleItemChange(e, index)"
-                                >
-                                    <option value="">-- Pilih Item --</option>
-                                    <option
-                                        v-for="item in sellableItems"
-                                        :key="item.item_id"
-                                        :value="item.item_id"
-                                    >
-                                        {{ item.item_code }} - {{ item.name }}
-                                    </option>
-                                </select>
+                        <div class="line-item" data-label="Item">
+                            <div class="item-code" v-if="line.item_code" style="font-weight: bold; margin-bottom: 0.25rem;">
+                                {{ line.item_code }}
                             </div>
+                            <select
+                                v-model="line.item_id"
+                                required
+                                @change="(e) => handleItemChange(e, index)"
+                            >
+                                <option value="">-- Pilih Item --</option>
+                                <option
+                                    v-for="item in sellableItems"
+                                    :key="item.item_id"
+                                    :value="item.item_id"
+                                >
+                                    {{ item.item_code }} - {{ item.name }}
+                                </option>
+                            </select>
+                        </div>
 
                             <div class="line-item" data-label="Harga Unit">
                                 <input
@@ -531,6 +534,9 @@ export default {
             if (selectedItem) {
                 // Set default UOM if available
                 form.value.lines[index].uom_id = selectedItem.uom_id || "";
+
+                // Set item_code in the line
+                form.value.lines[index].item_code = selectedItem.item_code || "";
 
                 try {
                     // Get best price in current currency

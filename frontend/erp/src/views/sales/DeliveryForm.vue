@@ -375,7 +375,7 @@ export default {
         } else {
           console.log('Edit mode: skipping loadSalesOrderDetails to avoid overwriting lines');
           console.log('Current form lines:', form.value.lines);
-          
+
           // Fetch outstanding quantities for existing lines
           if (form.value.so_id) {
             await fetchOutstandingItems(form.value.so_id);
@@ -408,14 +408,14 @@ export default {
       try {
         const response = await axios.get(`/deliveries/outstanding-items/${soId}`);
         const outstandingData = response.data.data;
-        
+
         // Map outstanding data to existing lines or add new lines
         if (outstandingData && outstandingData.outstanding_items) {
           outstandingData.outstanding_items.forEach(outstandingItem => {
-            const existingLine = form.value.lines.find(line => 
+            const existingLine = form.value.lines.find(line =>
               line.so_line_id === outstandingItem.so_line_id
             );
-            
+
             if (existingLine) {
               // Update existing line with outstanding data
               existingLine.ordered_quantity = outstandingItem.ordered_quantity;
@@ -452,11 +452,11 @@ export default {
 
         // Now fetch outstanding items for delivery
         await fetchOutstandingItems(form.value.so_id);
-        
+
         // Create lines based on outstanding items
         const outstandingResponse = await axios.get(`/deliveries/outstanding-items/${form.value.so_id}`);
         const outstandingData = outstandingResponse.data.data;
-        
+
         if (outstandingData && outstandingData.outstanding_items) {
           // If this is a new delivery, set up line items from outstanding items
           if (!isEditMode.value) {
@@ -488,7 +488,7 @@ export default {
       if (line.outstanding_quantity !== undefined) {
         return line.outstanding_quantity;
       }
-      
+
       // Calculate if not directly provided
       const ordered = parseFloat(line.ordered_quantity || 0);
       const delivered = parseFloat(line.previously_delivered_quantity || 0);
@@ -499,7 +499,7 @@ export default {
     const validateDeliveredQuantity = (line) => {
       const delivered = parseFloat(line.delivered_quantity || 0);
       const outstanding = getOutstandingQuantity(line);
-      
+
       if (delivered <= 0) {
         line.quantityError = 'Jumlah harus lebih dari 0';
       } else if (delivered > outstanding) {
@@ -543,12 +543,12 @@ export default {
         if (line.quantityError) {
           hasError = true;
         }
-        
+
         if (line.delivered_quantity <= 0) {
           line.quantityError = `Jumlah pengiriman harus lebih dari 0`;
           hasError = true;
         }
-        
+
         if (!line.warehouse_id) {
           error.value = `Gudang harus dipilih untuk item ke-${index + 1}.`;
           hasError = true;

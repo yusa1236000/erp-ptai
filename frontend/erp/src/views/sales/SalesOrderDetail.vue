@@ -504,7 +504,7 @@ export default {
             if (!order.value || !order.value.salesInvoices) return false;
             return order.value.salesInvoices.length > 0;
         });
-        
+
         const showFulfillmentSummary = computed(() => {
             return order.value && order.value.salesOrderLines && order.value.salesOrderLines.length > 0;
         });
@@ -619,32 +619,32 @@ export default {
             if (!line.deliveryLines || line.deliveryLines.length === 0) {
                 return 0;
             }
-            
+
             // Sum up quantities from completed deliveries
             return line.deliveryLines.reduce((total, deliveryLine) => {
                 // Check if the delivery is completed
-                const delivery = order.value.deliveries.find(d => 
+                const delivery = order.value.deliveries.find(d =>
                     d.deliveryId === deliveryLine.deliveryId);
-                
-                if (delivery && delivery.status === 'Completed') {
+                if (delivery && ['Completed', 'Delivered', 'Invoiced'].includes(delivery.status)) {
+                // if (delivery && delivery.status === 'Completed') {
                     return total + (parseFloat(deliveryLine.deliveredQuantity) || 0);
                 }
                 return total;
             }, 0);
         };
-        
+
         // Calculate outstanding quantity for a line
         const getOutstandingQuantity = (line) => {
             const ordered = parseFloat(line.quantity) || 0;
             const delivered = getDeliveredQuantity(line);
             return ordered - delivered;
         };
-        
+
         // Get delivery status for a line
         const getDeliveryStatusLabel = (line) => {
             const outstanding = getOutstandingQuantity(line);
             const ordered = parseFloat(line.quantity) || 0;
-            
+
             if (outstanding <= 0) {
                 return "Terkirim Penuh";
             } else if (outstanding < ordered) {
@@ -653,11 +653,11 @@ export default {
                 return "Belum Terkirim";
             }
         };
-        
+
         // Get delivery status class
         const getDeliveryStatusClass = (line) => {
             const status = getDeliveryStatusLabel(line);
-            
+
             switch (status) {
                 case "Terkirim Penuh":
                     return "status-delivered";
@@ -669,13 +669,13 @@ export default {
                     return "";
             }
         };
-        
+
         // Get total ordered quantity across all items
         const getTotalOrderedItems = () => {
             if (!order.value || !order.value.salesOrderLines) return 0;
             return order.value.salesOrderLines.length;
         };
-        
+
         // Get total ordered quantity across all lines
         const getTotalOrderedQuantity = () => {
             if (!order.value || !order.value.salesOrderLines) return 0;
@@ -683,7 +683,7 @@ export default {
                 return total + (parseFloat(line.quantity) || 0);
             }, 0);
         };
-        
+
         // Get total delivered quantity across all lines
         const getTotalDeliveredQuantity = () => {
             if (!order.value || !order.value.salesOrderLines) return 0;
@@ -691,7 +691,7 @@ export default {
                 return total + getDeliveredQuantity(line);
             }, 0);
         };
-        
+
         // Get total outstanding quantity across all lines
         const getTotalOutstandingQuantity = () => {
             if (!order.value || !order.value.salesOrderLines) return 0;
@@ -699,12 +699,12 @@ export default {
                 return total + getOutstandingQuantity(line);
             }, 0);
         };
-        
+
         // Calculate delivery percentage
         const getDeliveryPercentage = () => {
             const total = getTotalOrderedQuantity();
             if (total === 0) return 0;
-            
+
             const delivered = getTotalDeliveredQuantity();
             return Math.round((delivered / total) * 100);
         };
@@ -1287,7 +1287,7 @@ export default {
         display: block;
         overflow-x: auto;
     }
-    
+
     .fulfillment-summary {
         grid-template-columns: 1fr;
         gap: 1rem;

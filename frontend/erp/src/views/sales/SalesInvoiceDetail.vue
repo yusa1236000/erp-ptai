@@ -18,12 +18,12 @@
           </button>
         </div>
       </div>
-  
+
       <!-- Loading Indicator -->
       <div v-if="loading" class="loading-indicator">
         <i class="fas fa-spinner fa-spin"></i> Loading invoice...
       </div>
-  
+
       <!-- Invoice Content -->
       <div v-else class="invoice-container">
         <!-- Status Banner -->
@@ -33,7 +33,7 @@
             <i class="fas fa-exclamation-triangle"></i> OVERDUE
           </div>
         </div>
-  
+
         <!-- Basic Information Card -->
         <div class="card">
           <div class="card-header">
@@ -92,7 +92,7 @@
             </div>
           </div>
         </div>
-  
+
         <!-- Related Delivery Order -->
         <div v-if="invoice.delivery" class="card mt-4">
           <div class="card-header">
@@ -121,7 +121,7 @@
             </div>
           </div>
         </div>
-  
+
         <!-- Invoice Items Card -->
         <div class="card mt-4">
           <div class="card-header">
@@ -180,7 +180,7 @@
             </div>
           </div>
         </div>
-  
+
         <!-- Payment Information Card -->
         <div class="card mt-4">
           <div class="card-header">
@@ -218,7 +218,7 @@
                   </div>
                 </div>
               </div>
-  
+
               <div v-if="receivable.receivablePayments && receivable.receivablePayments.length > 0" class="mt-4">
                 <h3>Payment History</h3>
                 <div class="table-responsive">
@@ -251,7 +251,7 @@
           </div>
         </div>
       </div>
-  
+
       <!-- Delete Confirmation Modal -->
       <div class="modal" v-if="showDeleteModal">
         <div class="modal-backdrop" @click="showDeleteModal = false"></div>
@@ -265,7 +265,7 @@
           <div class="modal-body">
             <p>Are you sure you want to delete invoice <strong>{{ invoice.invoice_number }}</strong>?</p>
             <p>This action cannot be undone.</p>
-            
+
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" @click="showDeleteModal = false">
                 Cancel
@@ -283,7 +283,7 @@
           </div>
         </div>
       </div>
-  
+
       <!-- Payment Modal -->
       <div class="modal" v-if="showPaymentModal">
         <div class="modal-backdrop" @click="showPaymentModal = false"></div>
@@ -302,12 +302,12 @@
                   <div class="input-group-prepend">
                     <span class="input-group-text">{{ paymentData.payment_currency }}</span>
                   </div>
-                  <input 
-                    type="number" 
-                    id="paymentAmount" 
+                  <input
+                    type="number"
+                    id="paymentAmount"
                     v-model.number="paymentData.amount"
                     class="form-control"
-                    min="0.01" 
+                    min="0.01"
                     step="0.01"
                     required
                   >
@@ -316,12 +316,12 @@
                   {{ paymentErrors.amount }}
                 </div>
               </div>
-              
+
               <div class="form-group">
                 <label for="paymentDate">Payment Date <span class="required">*</span></label>
-                <input 
-                  type="date" 
-                  id="paymentDate" 
+                <input
+                  type="date"
+                  id="paymentDate"
                   v-model="paymentData.payment_date"
                   class="form-control"
                   required
@@ -330,11 +330,11 @@
                   {{ paymentErrors.payment_date }}
                 </div>
               </div>
-              
+
               <div class="form-group">
                 <label for="paymentMethod">Payment Method <span class="required">*</span></label>
-                <select 
-                  id="paymentMethod" 
+                <select
+                  id="paymentMethod"
                   v-model="paymentData.payment_method"
                   class="form-control"
                   required
@@ -352,11 +352,11 @@
                   {{ paymentErrors.payment_method }}
                 </div>
               </div>
-              
+
               <div class="form-group">
                 <label for="paymentCurrency">Currency</label>
-                <select 
-                  id="paymentCurrency" 
+                <select
+                  id="paymentCurrency"
                   v-model="paymentData.payment_currency"
                   class="form-control"
                 >
@@ -368,18 +368,18 @@
                   <option value="MYR">MYR - Malaysian Ringgit</option>
                 </select>
               </div>
-              
+
               <div class="form-group">
                 <label for="reference">Reference Number</label>
-                <input 
-                  type="text" 
-                  id="reference" 
+                <input
+                  type="text"
+                  id="reference"
                   v-model="paymentData.reference"
                   class="form-control"
                   placeholder="e.g., Transaction ID, Check Number"
                 >
               </div>
-              
+
               <div class="form-actions">
                 <button type="button" class="btn btn-secondary" @click="showPaymentModal = false">
                   Cancel
@@ -399,10 +399,10 @@
       </div>
     </div>
   </template>
-  
+
   <script>
   import axios from 'axios';
-  
+
   export default {
     name: 'SalesInvoiceDetail',
     props: {
@@ -456,10 +456,10 @@
         try {
           const response = await axios.get(`/invoices/${this.id}`);
           this.invoice = response.data.data;
-          
+
           // Set payment currency to invoice currency by default
           this.paymentData.payment_currency = this.invoice.currency_code;
-          
+
           // Set default payment amount to balance due
           if (this.invoice.customerReceivables && this.invoice.customerReceivables.length > 0) {
             this.receivable = this.invoice.customerReceivables[0];
@@ -518,13 +518,13 @@
           day: 'numeric'
         });
       },
-      formatCurrency(amount, currencyCode = 'IDR') {
+formatCurrency(amount, currencyCode = 'IDR') {
         if (amount === undefined || amount === null) return 'N/A';
         return new Intl.NumberFormat('id-ID', {
           style: 'currency',
           currency: currencyCode || 'IDR',
           minimumFractionDigits: 0,
-          maximumFractionDigits: 2
+          maximumFractionDigits: 5
         }).format(amount);
       },
       calculateSubtotal() {
@@ -538,7 +538,7 @@
       },
       async deleteInvoice() {
         this.deleting = true;
-        
+
         try {
           await axios.delete(`/invoices/${this.id}`);
           this.$toast.success(`Invoice ${this.invoice.invoice_number} deleted successfully`);
@@ -561,25 +561,25 @@
       },
       async recordPayment() {
         this.paymentErrors = {};
-        
+
         // Basic validation
         if (!this.paymentData.amount || this.paymentData.amount <= 0) {
           this.paymentErrors.amount = 'Amount must be greater than zero';
           return;
         }
-        
+
         if (!this.paymentData.payment_date) {
           this.paymentErrors.payment_date = 'Payment date is required';
           return;
         }
-        
+
         if (!this.paymentData.payment_method) {
           this.paymentErrors.payment_method = 'Payment method is required';
           return;
         }
-        
+
         this.recording = true;
-        
+
         try {
           await axios.post(`/invoices/${this.id}/recordPayment`, {
             amount: this.paymentData.amount,
@@ -588,22 +588,22 @@
             reference: this.paymentData.reference,
             payment_currency: this.paymentData.payment_currency
           });
-          
+
           this.$toast.success('Payment recorded successfully');
           this.showPaymentModal = false;
-          
+
           // Refresh invoice data to show updated payment info
           this.fetchInvoice();
         } catch (error) {
           console.error('Error recording payment:', error);
           if (error.response && error.response.data.errors) {
             const errors = error.response.data.errors;
-            
+
             // Map API validation errors to form fields
             for (const field in errors) {
               this.paymentErrors[field.replace('amount', 'amount')] = errors[field][0];
             }
-            
+
             this.$toast.error('Please correct the errors in the form');
           } else if (error.response && error.response.data.message) {
             this.$toast.error(error.response.data.message);
@@ -617,32 +617,32 @@
     }
   };
   </script>
-  
+
   <style scoped>
   .page-container {
     padding: 1.5rem;
   }
-  
+
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
   }
-  
+
   .page-header h1 {
     margin: 0;
   }
-  
+
   .header-actions {
     display: flex;
     gap: 0.5rem;
   }
-  
+
   .invoice-container {
     max-width: 100%;
   }
-  
+
   .status-banner {
     display: flex;
     justify-content: space-between;
@@ -652,36 +652,36 @@
     margin-bottom: 1.5rem;
     color: white;
   }
-  
+
   .status-draft {
     background-color: var(--gray-500);
   }
-  
+
   .status-sent {
     background-color: #3b82f6;
   }
-  
+
   .status-partial {
     background-color: #f59e0b;
   }
-  
+
   .status-paid {
     background-color: #10b981;
   }
-  
+
   .status-overdue {
     background-color: #ef4444;
   }
-  
+
   .status-cancelled {
     background-color: var(--gray-700);
   }
-  
+
   .status-text {
     font-size: 1.125rem;
     font-weight: 600;
   }
-  
+
   .overdue-tag {
     display: flex;
     align-items: center;
@@ -691,11 +691,11 @@
     font-size: 0.875rem;
     font-weight: 600;
   }
-  
+
   .overdue-tag i {
     margin-right: 0.5rem;
   }
-  
+
   .card {
     background-color: white;
     border-radius: 0.5rem;
@@ -703,7 +703,7 @@
     overflow: hidden;
     margin-bottom: 1.5rem;
   }
-  
+
   .card-header {
     display: flex;
     justify-content: space-between;
@@ -712,77 +712,77 @@
     background-color: var(--gray-50);
     border-bottom: 1px solid var(--gray-200);
   }
-  
+
   .card-header h2 {
     font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
     color: var(--gray-800);
   }
-  
+
   .card-body {
     padding: 1.5rem;
   }
-  
+
   .info-section {
     display: flex;
     flex-wrap: wrap;
     margin: -0.75rem;
   }
-  
+
   .info-column {
     flex: 1;
     min-width: 250px;
     padding: 0.75rem;
   }
-  
+
   .info-row {
     display: flex;
     margin-bottom: 1rem;
   }
-  
+
   .info-label {
     width: 40%;
     font-weight: 500;
     color: var(--gray-600);
   }
-  
+
   .info-value {
     width: 60%;
     color: var(--gray-900);
   }
-  
+
   .related-item {
     display: flex;
     margin-bottom: 0.75rem;
   }
-  
+
   .related-label {
     width: 30%;
     font-weight: 500;
     color: var(--gray-600);
   }
-  
+
   .related-value {
     width: 70%;
     color: var(--gray-900);
   }
-  
+
   .item-details {
     display: flex;
     flex-direction: column;
   }
-  
+
   .table-responsive {
     overflow-x: auto;
   }
-  
+
   .data-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
   }
-  
+
   .data-table th {
     text-align: left;
     padding: 0.75rem;
@@ -791,64 +791,64 @@
     font-weight: 500;
     color: var(--gray-600);
   }
-  
+
   .data-table td {
     padding: 0.75rem;
     border-bottom: 1px solid var(--gray-100);
     vertical-align: middle;
   }
-  
+
   .data-table tfoot tr td {
     padding: 0.75rem;
     background-color: var(--gray-50);
   }
-  
+
   .total-row td {
     font-weight: 600;
     font-size: 1rem;
     background-color: #f0f9ff;
   }
-  
+
   .text-right {
     text-align: right;
   }
-  
+
   .text-danger {
     color: #ef4444;
   }
-  
+
   .mt-4 {
     margin-top: 1.5rem;
   }
-  
+
   .payment-summary {
     border: 1px solid var(--gray-200);
     border-radius: 0.5rem;
     padding: 1.5rem;
     background-color: var(--gray-50);
   }
-  
+
   .payment-info-row {
     display: flex;
     margin-bottom: 1rem;
   }
-  
+
   .payment-info-row:last-child {
     margin-bottom: 0;
   }
-  
+
   .payment-label {
     width: 40%;
     font-weight: 500;
     color: var(--gray-600);
   }
-  
+
   .payment-value {
     width: 60%;
     color: var(--gray-900);
     font-weight: 600;
   }
-  
+
   .status-badge {
     display: inline-block;
     padding: 0.25rem 0.5rem;
@@ -858,7 +858,7 @@
     text-align: center;
     white-space: nowrap;
   }
-  
+
   .loading-indicator {
     display: flex;
     justify-content: center;
@@ -867,11 +867,11 @@
     color: var(--gray-500);
     font-size: 0.875rem;
   }
-  
+
   .loading-indicator i {
     margin-right: 0.5rem;
   }
-  
+
   .loading-text {
     display: flex;
     align-items: center;
@@ -879,17 +879,17 @@
     font-size: 0.875rem;
     padding: 0.5rem 0;
   }
-  
+
   .loading-text i {
     margin-right: 0.5rem;
   }
-  
+
   .empty-message {
     color: var(--gray-500);
     font-style: italic;
     padding: 1rem 0;
   }
-  
+
   h3 {
     font-size: 1rem;
     font-weight: 600;
@@ -897,7 +897,7 @@
     margin-bottom: 1rem;
     color: var(--gray-700);
   }
-  
+
   .btn {
     display: inline-flex;
     align-items: center;
@@ -915,65 +915,65 @@
     border-radius: 0.375rem;
     transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   }
-  
+
   .btn-primary {
     color: white;
     background-color: var(--primary-color);
     border-color: var(--primary-color);
   }
-  
+
   .btn-primary:hover {
     background-color: var(--primary-dark);
     border-color: var(--primary-dark);
   }
-  
+
   .btn-secondary {
     color: var(--gray-700);
     background-color: var(--gray-100);
     border-color: var(--gray-300);
   }
-  
+
   .btn-secondary:hover {
     background-color: var(--gray-200);
     border-color: var(--gray-400);
   }
-  
+
   .btn-warning {
     color: #92400e;
     background-color: #fef3c7;
     border-color: #fde68a;
   }
-  
+
   .btn-warning:hover {
     background-color: #fde68a;
     color: #78350f;
   }
-  
+
   .btn-danger {
     color: white;
     background-color: #ef4444;
     border-color: #ef4444;
   }
-  
+
   .btn-danger:hover {
     background-color: #dc2626;
     border-color: #dc2626;
   }
-  
+
   .btn-sm {
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
   }
-  
+
   .btn:disabled {
     opacity: 0.65;
     cursor: not-allowed;
   }
-  
+
   .btn i {
     margin-right: 0.5rem;
   }
-  
+
   .modal {
     position: fixed;
     top: 0;
@@ -985,7 +985,7 @@
     justify-content: center;
     align-items: center;
   }
-  
+
   .modal-backdrop {
     position: fixed;
     top: 0;
@@ -995,7 +995,7 @@
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 50;
   }
-  
+
   .modal-content {
     background-color: white;
     border-radius: 0.5rem;
@@ -1005,11 +1005,11 @@
     z-index: 60;
     overflow: hidden;
   }
-  
+
   .modal-sm {
     max-width: 400px;
   }
-  
+
   .modal-header {
     display: flex;
     justify-content: space-between;
@@ -1017,14 +1017,14 @@
     padding: 1rem 1.5rem;
     border-bottom: 1px solid #e2e8f0;
   }
-  
+
   .modal-header h2 {
     font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
     color: #1e293b;
   }
-  
+
   .close-btn {
     background: none;
     border: none;
@@ -1036,33 +1036,33 @@
     padding: 0.25rem;
     border-radius: 0.25rem;
   }
-  
+
   .close-btn:hover {
     background-color: #f1f5f9;
     color: #0f172a;
   }
-  
+
   .modal-body {
     padding: 1.5rem;
   }
-  
+
   .modal-body p {
     margin-top: 0;
     margin-bottom: 1rem;
     color: #1e293b;
   }
-  
+
   .form-group {
     margin-bottom: 1.5rem;
   }
-  
+
   .form-group label {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 500;
     color: var(--gray-700);
   }
-  
+
   .form-control {
     display: block;
     width: 100%;
@@ -1075,22 +1075,22 @@
     border-radius: 0.375rem;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   }
-  
+
   .form-control:focus {
     border-color: var(--primary-color);
     outline: 0;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
   }
-  
+
   .input-group {
     display: flex;
     width: 100%;
   }
-  
+
   .input-group-prepend {
     display: flex;
   }
-  
+
   .input-group-text {
     display: flex;
     align-items: center;
@@ -1107,55 +1107,55 @@
     border-bottom-left-radius: 0.375rem;
     border-right: none;
   }
-  
+
   .input-group .form-control {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
     flex: 1;
   }
-  
+
   .required {
     color: #ef4444;
   }
-  
+
   .error-message {
     color: #ef4444;
     font-size: 0.75rem;
     margin-top: 0.25rem;
   }
-  
+
   .form-actions {
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
     margin-top: 1.5rem;
   }
-  
+
   @media (max-width: 768px) {
-    .info-section, 
-    .info-row, 
-    .related-item, 
+    .info-section,
+    .info-row,
+    .related-item,
     .payment-info-row {
       flex-direction: column;
     }
-    
-    .info-label, 
-    .info-value, 
-    .related-label, 
-    .related-value, 
-    .payment-label, 
+
+    .info-label,
+    .info-value,
+    .related-label,
+    .related-value,
+    .payment-label,
     .payment-value {
       width: 100%;
     }
-    
-    .info-label, 
-    .related-label, 
+
+    .info-label,
+    .related-label,
     .payment-label {
       margin-bottom: 0.25rem;
     }
-    
-    .info-value, 
-    .related-value, 
+
+    .info-value,
+    .related-value,
     .payment-value {
       margin-bottom: 0.75rem;
     }

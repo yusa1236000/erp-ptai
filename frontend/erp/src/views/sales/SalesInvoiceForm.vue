@@ -9,12 +9,12 @@
           </button>
         </div>
       </div>
-      
+
       <!-- Loading Indicator -->
       <div v-if="loading" class="loading-indicator">
         <i class="fas fa-spinner fa-spin"></i> Loading...
       </div>
-      
+
       <!-- Form Content -->
       <div v-else class="form-container">
         <form @submit.prevent="saveInvoice">
@@ -27,9 +27,9 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="invoiceNumber">Invoice Number <span class="required">*</span></label>
-                  <input 
-                    type="text" 
-                    id="invoiceNumber" 
+                  <input
+                    type="text"
+                    id="invoiceNumber"
                     v-model="invoice.invoice_number"
                     :disabled="isEditing"
                     required
@@ -39,12 +39,12 @@
                     {{ errors.invoice_number[0] }}
                   </div>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="invoiceDate">Invoice Date <span class="required">*</span></label>
-                  <input 
-                    type="date" 
-                    id="invoiceDate" 
+                  <input
+                    type="date"
+                    id="invoiceDate"
                     v-model="invoice.invoice_date"
                     required
                     class="form-control"
@@ -53,12 +53,12 @@
                     {{ errors.invoice_date[0] }}
                   </div>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="dueDate">Due Date <span class="required">*</span></label>
-                  <input 
-                    type="date" 
-                    id="dueDate" 
+                  <input
+                    type="date"
+                    id="dueDate"
                     v-model="invoice.due_date"
                     required
                     class="form-control"
@@ -68,12 +68,12 @@
                   </div>
                 </div>
               </div>
-              
+
               <div class="form-row">
                 <div class="form-group">
                   <label for="customer">Customer <span class="required">*</span></label>
-                  <select 
-                    id="customer" 
+                  <select
+                    id="customer"
                     v-model="invoice.customer_id"
                     class="form-control"
                     required
@@ -89,11 +89,11 @@
                     {{ errors.customer_id[0] }}
                   </div>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="status">Status <span class="required">*</span></label>
-                  <select 
-                    id="status" 
+                  <select
+                    id="status"
                     v-model="invoice.status"
                     class="form-control"
                     required
@@ -108,11 +108,11 @@
                     {{ errors.status[0] }}
                   </div>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="currency">Currency</label>
-                  <select 
-                    id="currency" 
+                  <select
+                    id="currency"
                     v-model="invoice.currency_code"
                     class="form-control"
                     :disabled="isEditing"
@@ -128,23 +128,23 @@
                   </div>
                 </div>
               </div>
-              
+
               <div class="form-row">
                 <div class="form-group">
                   <label for="reference">Reference Number</label>
-                  <input 
-                    type="text" 
-                    id="reference" 
+                  <input
+                    type="text"
+                    id="reference"
                     v-model="invoice.reference"
                     class="form-control"
                     placeholder="Optional reference number"
                   >
                 </div>
-                
+
                 <div class="form-group">
                   <label for="paymentTerms">Payment Terms</label>
-                  <select 
-                    id="paymentTerms" 
+                  <select
+                    id="paymentTerms"
                     v-model="invoice.payment_terms"
                     class="form-control"
                   >
@@ -159,7 +159,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Delivery Order Selection (for creating from delivery) -->
           <div v-if="!isEditing" class="card mt-4">
             <div class="card-header">
@@ -183,7 +183,7 @@
                   </div>
                 </div>
               </div>
-              
+
               <div v-if="createFromDelivery">
                 <div class="form-row">
                   <div class="form-group col-md-12">
@@ -216,13 +216,13 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Invoice Items Card -->
           <div class="card mt-4">
             <div class="card-header">
               <h2>Invoice Items</h2>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 class="btn btn-sm btn-primary"
                 @click="addItemRow"
                 :disabled="createFromDelivery && !isEditing"
@@ -255,7 +255,7 @@
                   <tbody>
                     <tr v-for="(line, index) in invoice.lines" :key="index">
                       <td>
-                        <select 
+                        <select
                           v-model="line.item_id"
                           class="form-control"
                           @change="updateLineItem(index)"
@@ -268,19 +268,19 @@
                         </select>
                       </td>
                       <td>
-                        <input 
-                          type="text" 
-                          v-model="line.description" 
+                        <input
+                          type="text"
+                          v-model="line.description"
                           class="form-control"
                           placeholder="Item description"
                         >
                       </td>
                       <td>
-                        <input 
-                          type="number" 
-                          v-model.number="line.quantity" 
+                        <input
+                          type="number"
+                          v-model.number="line.quantity"
                           class="form-control"
-                          min="0.01" 
+                          min="0.01"
                           step="0.01"
                           @change="calculateLineTotals(index)"
                           :disabled="line.do_line_id || createFromDelivery"
@@ -291,12 +291,12 @@
                           <div class="input-group-prepend">
                             <span class="input-group-text">{{ invoice.currency_code }}</span>
                           </div>
-                          <input 
-                            type="number" 
-                            v-model.number="line.unit_price" 
+                          <input
+                            type="number"
+                            v-model.number="line.unit_price"
                             class="form-control"
-                            min="0" 
-                            step="0.01"
+                            min="0"
+                            step="0.00001"
                             @change="calculateLineTotals(index)"
                           >
                         </div>
@@ -306,12 +306,12 @@
                           <div class="input-group-prepend">
                             <span class="input-group-text">{{ invoice.currency_code }}</span>
                           </div>
-                          <input 
-                            type="number" 
-                            v-model.number="line.discount" 
+                          <input
+                            type="number"
+                            v-model.number="line.discount"
                             class="form-control"
-                            min="0" 
-                            step="0.01"
+                            min="0"
+                            step="0.00001"
                             @change="calculateLineTotals(index)"
                           >
                         </div>
@@ -321,12 +321,12 @@
                           <div class="input-group-prepend">
                             <span class="input-group-text">{{ invoice.currency_code }}</span>
                           </div>
-                          <input 
-                            type="number" 
-                            v-model.number="line.tax" 
+                          <input
+                            type="number"
+                            v-model.number="line.tax"
                             class="form-control"
-                            min="0" 
-                            step="0.01"
+                            min="0"
+                            step="0.00001"
                             @change="calculateLineTotals(index)"
                           >
                         </div>
@@ -336,9 +336,9 @@
                           <div class="input-group-prepend">
                             <span class="input-group-text">{{ invoice.currency_code }}</span>
                           </div>
-                          <input 
-                            type="number" 
-                            v-model.number="line.subtotal" 
+                          <input
+                            type="number"
+                            v-model.number="line.subtotal"
                             class="form-control"
                             readonly
                           >
@@ -349,17 +349,17 @@
                           <div class="input-group-prepend">
                             <span class="input-group-text">{{ invoice.currency_code }}</span>
                           </div>
-                          <input 
-                            type="number" 
-                            v-model.number="line.total" 
+                          <input
+                            type="number"
+                            v-model.number="line.total"
                             class="form-control"
                             readonly
                           >
                         </div>
                       </td>
                       <td>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           class="btn btn-sm btn-danger"
                           @click="removeItemRow(index)"
                           :disabled="line.do_line_id || createFromDelivery"
@@ -419,7 +419,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Form Actions -->
           <div class="form-actions mt-4">
             <button type="button" class="btn btn-secondary" @click="goBack">
@@ -434,10 +434,10 @@
       </div>
     </div>
   </template>
-  
+
   <script>
   import axios from 'axios';
-  
+
   export default {
     name: 'SalesInvoiceForm',
     props: {
@@ -488,7 +488,7 @@
       this.isEditing = !!this.id;
       await this.loadCustomers();
       await this.loadItems();
-      
+
       if (this.isEditing) {
         await this.loadInvoice();
       } else {
@@ -497,7 +497,7 @@
         // Generate invoice number
         this.generateInvoiceNumber();
       }
-      
+
       this.loading = false;
     },
     methods: {
@@ -510,7 +510,7 @@
           this.$toast.error('Failed to load customers');
         }
       },
-      
+
       async loadItems() {
         try {
           const response = await axios.get('/items', {
@@ -522,16 +522,16 @@
           this.$toast.error('Failed to load items');
         }
       },
-      
+
       async loadInvoice() {
         try {
           const response = await axios.get(`/invoices/${this.id}`);
           const invoice = response.data.data;
-          
+
           // Format dates
           invoice.invoice_date = invoice.invoice_date ? invoice.invoice_date.split('T')[0] : '';
           invoice.due_date = invoice.due_date ? invoice.due_date.split('T')[0] : '';
-          
+
           // Process lines to ensure they have the necessary properties
           if (invoice.salesInvoiceLines) {
             invoice.lines = invoice.salesInvoiceLines.map(line => ({
@@ -549,7 +549,7 @@
             }));
             delete invoice.salesInvoiceLines;
           }
-          
+
           this.invoice = invoice;
           this.calculateTotals();
         } catch (error) {
@@ -557,7 +557,7 @@
           this.$toast.error('Failed to load invoice');
         }
       },
-      
+
       generateInvoiceNumber() {
         // Generate invoice number based on current date
         const date = new Date();
@@ -565,30 +565,30 @@
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const day = date.getDate().toString().padStart(2, '0');
         const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        
+
         this.invoice.invoice_number = `INV-${year}${month}${day}-${random}`;
       },
-      
+
       async handleCustomerChange() {
         if (this.invoice.customer_id && !this.isEditing) {
           // Find selected customer
           const selectedCustomer = this.customers.find(c => c.customer_id === this.invoice.customer_id);
-          
+
 if (selectedCustomer) {
   // Set preferred currency if available
   if (selectedCustomer.preferred_currency) {
     this.invoice.currency_code = selectedCustomer.preferred_currency;
   }
-  
+
   // Set payment terms if available
   if (selectedCustomer.payment_term) {
     // Convert payment_term to string to avoid includes error
     this.invoice.payment_terms = String(selectedCustomer.payment_term);
-    
+
     // Adjust due date based on payment terms
     const today = new Date();
     let daysToAdd = 30; // Default
-    
+
     if ((this.invoice.payment_terms || '').includes('15')) {
       daysToAdd = 15;
     } else if ((this.invoice.payment_terms || '').includes('30')) {
@@ -600,23 +600,23 @@ if (selectedCustomer) {
     } else if ((this.invoice.payment_terms || '').includes('Receipt')) {
       daysToAdd = 0;
     }
-    
+
     today.setDate(today.getDate() + daysToAdd);
     this.invoice.due_date = today.toISOString().split('T')[0];
   }
 }
         }
-        
+
         // Reset deliveries and selected deliveries if customer changes
         this.deliveries = [];
         this.selectedDeliveries = [];
-        
+
         // If creating from delivery is enabled, load deliveries for the customer
         if (this.createFromDelivery && this.invoice.customer_id) {
           this.loadDeliveries();
         }
       },
-      
+
 async loadDeliveries() {
   if (!this.invoice.customer_id) return;
 
@@ -654,27 +654,27 @@ async loadDeliveries() {
     this.loadingDeliveries = false;
   }
 },
-      
+
 async handleDeliverySelection() {
   if (this.selectedDeliveries.length > 0) {
     this.isLoadingItems = true;
-    
+
     try {
       // API endpoint to get delivery lines grouped by item
       const response = await axios.get('/invoices/getDeliveryLinesByItem', {
-        params: { 
+        params: {
           customer_id: this.invoice.customer_id,
           delivery_ids: this.selectedDeliveries
         }
       });
-      
+
       // Defensive check and logging for debugging
       if (!response.data || !response.data.data) {
         console.warn('handleDeliverySelection: response.data or response.data.data is missing', response);
       }
-      
+
       const items = response.data.data || [];
-      
+
       // Clear existing lines and add new ones from the deliveries
       this.invoice.lines = items.map(item => ({
         item_id: item.item_id,
@@ -688,12 +688,12 @@ async handleDeliverySelection() {
         subtotal: 0, // Will be calculated
         total: 0 // Will be calculated
       }));
-      
+
       // Calculate totals for each line
       this.invoice.lines.forEach((line, index) => {
         this.calculateLineTotals(index);
       });
-      
+
       this.calculateTotals();
     } catch (error) {
       console.error('Error loading delivery items:', error);
@@ -707,13 +707,13 @@ async handleDeliverySelection() {
     this.calculateTotals();
   }
 },
-      
+
       toggleDeliveryMode() {
         if (this.createFromDelivery) {
           // Cleared lines when switching to delivery mode
           this.invoice.lines = [];
           this.calculateTotals();
-          
+
           // Load deliveries if customer is selected
           if (this.invoice.customer_id) {
             this.loadDeliveries();
@@ -723,7 +723,7 @@ async handleDeliverySelection() {
           this.selectedDeliveries = [];
         }
       },
-      
+
       addItemRow() {
         this.invoice.lines.push({
           item_id: '',
@@ -736,65 +736,65 @@ async handleDeliverySelection() {
           total: 0
         });
       },
-      
+
       removeItemRow(index) {
         this.invoice.lines.splice(index, 1);
         this.calculateTotals();
       },
-      
+
       updateLineItem(index) {
         const line = this.invoice.lines[index];
         const selectedItem = this.items.find(item => item.item_id === line.item_id);
-        
+
         if (selectedItem) {
           line.description = selectedItem.name;
           line.unit_price = selectedItem.sale_price || 0;
           line.uom_id = selectedItem.uom_id;
-          
+
           this.calculateLineTotals(index);
         }
       },
-      
+
       calculateLineTotals(index) {
         const line = this.invoice.lines[index];
-        
+
         if (!line) return;
-        
-        line.subtotal = parseFloat((line.quantity * line.unit_price).toFixed(2));
-        line.total = parseFloat((line.subtotal - (line.discount || 0) + (line.tax || 0)).toFixed(2));
-        
+
+        line.subtotal = parseFloat((line.quantity * line.unit_price).toFixed(5));
+        line.total = parseFloat((line.subtotal - (line.discount || 0) + (line.tax || 0)).toFixed(5));
+
         // Recalculate overall totals
         this.calculateTotals();
       },
-      
+
       calculateTotals() {
         this.subtotal = 0;
         this.totalDiscount = 0;
         this.invoice.tax_amount = 0;
         this.invoice.total_amount = 0;
-        
+
         this.invoice.lines.forEach(line => {
           this.subtotal += parseFloat(line.subtotal || 0);
           this.totalDiscount += parseFloat(line.discount || 0);
           this.invoice.tax_amount += parseFloat(line.tax || 0);
         });
-        
-        this.invoice.total_amount = parseFloat((this.subtotal - this.totalDiscount + this.invoice.tax_amount).toFixed(2));
+
+        this.invoice.total_amount = parseFloat((this.subtotal - this.totalDiscount + this.invoice.tax_amount).toFixed(5));
       },
-      
+
       async saveInvoice() {
         if (this.invoice.lines.length === 0) {
           this.$toast.error('Please add at least one item to the invoice');
           return;
         }
-        
+
         this.saving = true;
         this.errors = {};
-        
+
         try {
           let response;
           const payload = this.preparePayload();
-          
+
           if (this.isEditing) {
             response = await axios.put(`/invoices/${this.id}`, payload);
             this.$toast.success('Invoice updated successfully');
@@ -812,21 +812,21 @@ async handleDeliverySelection() {
                 payment_terms: this.invoice.payment_terms,
                 delivery_ids: this.selectedDeliveries
               };
-              
+
               response = await axios.post('/invoices/from-deliveries', deliveryPayload);
             } else {
               response = await axios.post('/invoices', payload);
             }
-            
+
             this.$toast.success('Invoice created successfully');
           }
-          
+
           // Navigate to the detail page
           const invoiceId = response.data.data.invoice_id;
           this.$router.push(`/sales/invoices/${invoiceId}`);
         } catch (error) {
           console.error('Error saving invoice:', error);
-          
+
           if (error.response && error.response.data.errors) {
             this.errors = error.response.data.errors;
             this.$toast.error('Please correct the errors in the form');
@@ -839,7 +839,7 @@ async handleDeliverySelection() {
           this.saving = false;
         }
       },
-      
+
       preparePayload() {
         // Prepare lines data for API
         const lines = this.invoice.lines.map(line => ({
@@ -851,7 +851,7 @@ async handleDeliverySelection() {
           uom_id: line.uom_id,
           do_line_id: line.do_line_id
         }));
-        
+
         return {
           invoice_number: this.invoice.invoice_number,
           invoice_date: this.invoice.invoice_date,
@@ -865,7 +865,7 @@ async handleDeliverySelection() {
           lines: lines
         };
       },
-      
+
       formatDate(dateString) {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
@@ -875,30 +875,30 @@ async handleDeliverySelection() {
           day: 'numeric'
         });
       },
-      
+
       goBack() {
         this.$router.go(-1);
       }
     }
   };
   </script>
-  
+
   <style scoped>
   .page-container {
     padding: 1.5rem;
   }
-  
+
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
   }
-  
+
   .page-header h1 {
     margin: 0;
   }
-  
+
   .loading-indicator {
     display: flex;
     justify-content: center;
@@ -907,18 +907,18 @@ async handleDeliverySelection() {
     color: var(--gray-500);
     font-size: 0.875rem;
   }
-  
+
   .form-container {
     max-width: 100%;
   }
-  
+
   .card {
     background-color: white;
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
   }
-  
+
   .card-header {
     display: flex;
     justify-content: space-between;
@@ -927,31 +927,31 @@ async handleDeliverySelection() {
     background-color: var(--gray-50);
     border-bottom: 1px solid var(--gray-200);
   }
-  
+
   .card-header h2 {
     font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
     color: var(--gray-800);
   }
-  
+
   .card-body {
     padding: 1.5rem;
   }
-  
+
   .form-row {
     display: flex;
     flex-wrap: wrap;
     margin: -0.5rem;
     margin-bottom: 1rem;
   }
-  
+
   .form-group {
     flex: 1;
     min-width: 0;
     padding: 0.5rem;
   }
-  
+
   .form-control {
     display: block;
     width: 100%;
@@ -964,51 +964,51 @@ async handleDeliverySelection() {
     border-radius: 0.375rem;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   }
-  
+
   .form-control:focus {
     border-color: var(--primary-color);
     outline: 0;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
   }
-  
+
   .form-check {
     display: flex;
     align-items: center;
     margin-bottom: 0.5rem;
   }
-  
+
   .form-check-input {
     margin-right: 0.5rem;
   }
-  
+
   .form-check-label {
     margin-bottom: 0;
   }
-  
+
   .required {
     color: #dc2626;
   }
-  
+
   .error-message {
     color: #dc2626;
     font-size: 0.75rem;
     margin-top: 0.25rem;
   }
-  
+
   .mt-4 {
     margin-top: 1.5rem;
   }
-  
+
   .table-responsive {
     overflow-x: auto;
   }
-  
+
   .data-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
   }
-  
+
   .data-table th {
     text-align: left;
     padding: 0.75rem;
@@ -1017,31 +1017,31 @@ async handleDeliverySelection() {
     font-weight: 500;
     color: var(--gray-600);
   }
-  
+
   .data-table td {
     padding: 0.75rem;
     border-bottom: 1px solid var(--gray-100);
     vertical-align: middle;
   }
-  
+
   .data-table tfoot tr td {
     padding: 0.75rem;
     background-color: var(--gray-50);
   }
-  
+
   .text-right {
     text-align: right;
   }
-  
+
   .input-group {
     display: flex;
     width: 100%;
   }
-  
+
   .input-group-prepend {
     display: flex;
   }
-  
+
   .input-group-text {
     display: flex;
     align-items: center;
@@ -1058,20 +1058,20 @@ async handleDeliverySelection() {
     border-bottom-left-radius: 0.375rem;
     border-right: none;
   }
-  
+
   .input-group .form-control {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
     flex: 1;
   }
-  
+
   .form-actions {
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
     margin-top: 1.5rem;
   }
-  
+
   .btn {
     display: inline-flex;
     align-items: center;
@@ -1089,59 +1089,59 @@ async handleDeliverySelection() {
     border-radius: 0.375rem;
     transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   }
-  
+
   .btn-primary {
     color: white;
     background-color: var(--primary-color);
     border-color: var(--primary-color);
   }
-  
+
   .btn-primary:hover {
     background-color: var(--primary-dark);
     border-color: var(--primary-dark);
   }
-  
+
   .btn-primary:disabled {
     opacity: 0.65;
     cursor: not-allowed;
   }
-  
+
   .btn-secondary {
     color: var(--gray-700);
     background-color: var(--gray-100);
     border-color: var(--gray-300);
   }
-  
+
   .btn-secondary:hover {
     background-color: var(--gray-200);
     border-color: var(--gray-400);
   }
-  
+
   .btn-danger {
     color: white;
     background-color: #dc2626;
     border-color: #dc2626;
   }
-  
+
   .btn-danger:hover {
     background-color: #b91c1c;
     border-color: #b91c1c;
   }
-  
+
   .btn-sm {
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
     border-radius: 0.25rem;
   }
-  
+
   .btn i {
     margin-right: 0.5rem;
   }
-  
+
   .btn-sm i {
     margin-right: 0.25rem;
   }
-  
+
   .loading-text {
     display: flex;
     align-items: center;
@@ -1149,17 +1149,17 @@ async handleDeliverySelection() {
     font-size: 0.875rem;
     padding: 0.5rem 0;
   }
-  
+
   .loading-text i {
     margin-right: 0.5rem;
   }
-  
+
   .empty-message {
     color: var(--gray-500);
     font-style: italic;
     padding: 1rem 0;
   }
-  
+
   .delivery-selection {
     max-height: 200px;
     overflow-y: auto;
@@ -1167,21 +1167,21 @@ async handleDeliverySelection() {
     border-radius: 0.375rem;
     padding: 0.5rem;
   }
-  
+
   .delivery-item {
     padding: 0.5rem;
     border-bottom: 1px solid var(--gray-100);
   }
-  
+
   .delivery-item:last-child {
     border-bottom: none;
   }
-  
+
   @media (max-width: 768px) {
     .form-row {
       flex-direction: column;
     }
-    
+
     .form-group {
       flex: none;
       width: 100%;

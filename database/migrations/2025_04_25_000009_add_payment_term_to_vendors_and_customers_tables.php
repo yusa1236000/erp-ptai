@@ -16,8 +16,8 @@ return new class extends Migration
             $table->integer('payment_term')->default(30)->after('preferred_currency');
         });
 
-        // Add payment_term to customers table  
-        Schema::table('Customer', function (Blueprint $table) {
+        // Add payment_term to customers table
+        Schema::table('customers', function (Blueprint $table) {
             $table->integer('payment_term')->default(30)->after('preferred_currency');
         });
     }
@@ -33,7 +33,7 @@ return new class extends Migration
         });
 
         // Remove payment_term from customers table
-        Schema::table('Customer', function (Blueprint $table) {
+        Schema::table('customers', function (Blueprint $table) {
             $table->dropColumn('payment_term');
         });
     }

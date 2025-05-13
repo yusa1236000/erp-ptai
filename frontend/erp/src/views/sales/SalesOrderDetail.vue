@@ -558,9 +558,11 @@ export default {
 
         // Format currency
         const formatCurrency = (value) => {
-            return new Intl.NumberFormat("id-ID", {
+            return new Intl.NumberFormat("en-US", {
                 style: "currency",
-                currency: "IDR",
+                currency: "USD",
+                minimumFractionDigits: 5,
+                maximumFractionDigits: 5,
             }).format(value || 0);
         };
 

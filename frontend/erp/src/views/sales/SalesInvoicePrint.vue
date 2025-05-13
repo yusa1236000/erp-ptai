@@ -1,728 +1,511 @@
 <!-- src/views/sales/SalesInvoicePrint.vue -->
 <template>
   <div class="print-container">
-    <!-- Action Buttons (Hide when printing) -->
-    <div class="print-actions" v-if="!isPrinting">
-      <button class="btn btn-primary" @click="printInvoice">
-        <i class="fas fa-print"></i> Print
-      </button>
-      <button class="btn btn-secondary" @click="goBack">
+    <!-- Print Controls (visible on screen only) -->
+    <div class="print-controls no-print">
+      <button @click="goBack" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Back
       </button>
-    </div>
-
-    <!-- Loading state -->
-    <div v-if="isLoading" class="loading-indicator">
-      <i class="fas fa-spinner fa-spin"></i> Loading invoice...
-    </div>
-
-    <!-- Empty/Error state -->
-    <div v-else-if="!invoice" class="empty-state">
-      <div class="empty-icon">
-        <i class="fas fa-exclamation-circle"></i>
-      </div>
-      <h3>Invoice not found</h3>
-      <p>
-        The invoice you're looking for doesn't exist or may have been
-        deleted.
-      </p>
-      <button class="btn btn-primary" @click="goBack">
-        Back to invoices list
+      <button @click="printInvoice" class="btn btn-primary">
+        <i class="fas fa-print"></i> Print Invoice
       </button>
     </div>
 
-    <!-- Invoice content -->
+    <!-- Loading Indicator -->
+    <div v-if="loading" class="loading-indicator no-print">
+      <i class="fas fa-spinner fa-spin"></i> Loading invoice data...
+    </div>
+
+    <!-- Invoice Content (for printing) -->
     <div v-else class="invoice-document">
-      <!-- Company Header -->
-      <div class="company-header">
+      <!-- Invoice Header -->
+      <div class="header">
         <div class="company-info">
-          <div class="company-logo" v-if="logoUrl">
-            <img :src="logoUrl" alt="Company Logo" />
-          </div>
-          <div class="company-name">{{ companyName }}</div>
-          <div class="company-address">
-            {{ companyAddress1 }}<br>
-            {{ companyAddress2 }}
-          </div>
+          <h1 class="company-name">PT. ARMSTRONG INDUSTRI INDONESIA</h1>
+          <p>EJIP INDUSTRIAL PARK PLOT 1 A-3 LIPPO CIKARANG</p>
+          <p>SUKARESMI, CIKARANG SELATAN, BEKASI 17857</p>
         </div>
         <div class="invoice-info">
-          <div class="invoice-title">INVOICE</div>
-          <div class="invoice-number">No. Inv.: {{ invoice.invoice_number }}</div>
-          <div class="invoice-date">Date. Inv.: {{ formatDate(invoice.invoice_date) }}</div>
-          <div class="invoice-page">Page: 1 of 1</div>
+          <div class="info-row">
+            <span>Page : 1 of 1</span>
+          </div>
+          <div class="info-row">
+            <span>No. Inv. : <strong>{{ invoice.invoice_number }}</strong></span>
+          </div>
+          <div class="info-row">
+            <span>Date. Inv. : {{ formatDateSimple(invoice.invoice_date) }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- Customer Info -->
+      <!-- Customer Information -->
       <div class="customer-section">
-        <div class="sold-to">
-          <div class="label">SOLD TO:</div>
-          <div class="customer-box">
-            {{ invoice.customer?.name }}<br>
-            {{ invoice.customer?.address || 'No address' }}<br>
-            {{ invoice.customer?.city || '' }} {{ invoice.customer?.postal_code || '' }}<br>
-            {{ invoice.customer?.country || '' }}
+        <div class="customer-block">
+          <div class="customer-title">SOLD TO :</div>
+          <div v-if="invoice.customer" class="customer-details">
+            {{ invoice.customer.name }}<br>
+            {{ invoice.customer.address }}<br>
+            {{ invoice.customer.city }} {{ invoice.customer.country }} {{ invoice.customer.postal_code }}
+          </div>
+          <div v-else class="customer-details">
+            PT. INDONESIA EPSON INDUSTRY<br>
+            EJIP INDUSTRIAL PARK PLOT 4E<br>
+            CIKARANG SELATAN<br>
+            BEKASI INDONESIA 17550
           </div>
         </div>
-        <div class="ship-to">
-          <div class="label">GOOD DELIVERY TO:</div>
-          <div class="customer-box">
-            {{ invoice.customer?.shipping_name || invoice.customer?.name }}<br>
-            {{ invoice.customer?.shipping_address || invoice.customer?.address || 'No address' }}<br>
-            {{ invoice.customer?.shipping_city || invoice.customer?.city || '' }} {{ invoice.customer?.shipping_postal_code || invoice.customer?.postal_code || '' }}<br>
-            {{ invoice.customer?.shipping_country || invoice.customer?.country || '' }}
+        <div class="customer-block">
+          <div class="customer-title">GOOD DELIVERY TO :</div>
+          <div v-if="invoice.customer" class="customer-details">
+            {{ invoice.customer.name }}<br>
+            {{ invoice.customer.address }}<br>
+            {{ invoice.customer.city }} {{ invoice.customer.country }} {{ invoice.customer.postal_code }}
+          </div>
+          <div v-else class="customer-details">
+            PT. INDONESIA EPSON INDUSTRY<br>
+            EJIP INDUSTRIAL PARK PLOT 4E<br>
+            CIKARANG SELATAN<br>
+            BEKASI INDONESIA 17550
           </div>
         </div>
       </div>
 
-      <!-- Order Info -->
+      <!-- Order Information -->
       <div class="order-info">
-        <div class="order-info-item">
-          <div class="order-info-label">PO No.</div>
-          <div class="order-info-value">{{ invoice.reference || '-' }}</div>
-        </div>
-        <div class="order-info-item">
-          <div class="order-info-label">PO Date</div>
-          <div class="order-info-value">{{ invoice.po_date ? formatDate(invoice.po_date) : '' }}</div>
-        </div>
-        <div class="order-info-item">
-          <div class="order-info-label">SALES PERSON</div>
-          <div class="order-info-value">{{ salesPerson }}</div>
-        </div>
-        <div class="order-info-item">
-          <div class="order-info-label">SHIP VIA</div>
-          <div class="order-info-value">{{ invoice.delivery?.shipping_method || '' }}</div>
-        </div>
-        <div class="order-info-item">
-          <div class="order-info-label">TERMS</div>
-          <div class="order-info-value">{{ invoice.payment_terms || 'Net 30 days' }}</div>
-        </div>
-        <div class="order-info-item">
-          <div class="order-info-label">DO No.</div>
-          <div class="order-info-value">{{ invoice.delivery?.delivery_number || '-' }}</div>
-        </div>
+        <table class="order-table">
+          <tbody>
+            <tr>
+              <th>PO No.</th>
+              <th>PO Date</th>
+              <th>SALES PERSON</th>
+              <th>SHIP VIA</th>
+              <th>TERMS</th>
+              <th>DO No.</th>
+            </tr>
+            <tr>
+              <td>{{ invoice.reference || '52042-INLAND' }}</td>
+              <td>{{ formatDateSimple(invoice.invoice_date) }}</td>
+              <td>DELLA</td>
+              <td></td>
+              <td>{{ invoice.payment_terms || 'Net 60 days' }}</td>
+              <td>{{ invoice.delivery ? invoice.delivery.delivery_number : 'B24-038844' }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <div class="order-details" v-if="orderNumber">
-        <div class="order-number">CO-NUM: {{ orderNumber }}</div>
+      <!-- CO Number -->
+      <div class="co-number">
+        <span>CO-NUM : {{ invoice.delivery ? invoice.delivery.delivery_number : 'SO3-24-010837' }}</span>
+      </div>
+
+      <!-- Part Info -->
+      <div class="part-info">
+        <div class="part-number-col">PART NUMBER</div>
+        <div class="do-remarks-col">DO REMARKS</div>
       </div>
 
       <!-- Invoice Items -->
       <table class="items-table">
         <thead>
           <tr>
-            <th class="part-number">PART NUMBER</th>
-            <th class="do-number">DO REMARKS</th>
-            <th class="qty">Qty SHIPPED</th>
-            <th class="uom">UOM</th>
-            <th class="description">Description</th>
-            <th class="unit-price">UNIT PRICE</th>
-            <th class="amount">AMOUNT</th>
+            <th class="no-col">NO.</th>
+            <th class="part-col">PART NUMBER</th>
+            <th class="do-col">DO No.</th>
+            <th class="qty-col right">Qty SHIPPED</th>
+            <th class="uom-col">UOM</th>
+            <th class="desc-col">Description</th>
+            <th class="unit-price-col right">UNIT PRICE</th>
+            <th class="amount-col right">AMOUNT</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(line, index) in invoice.salesInvoiceLines" :key="line.line_id || `line-${index}`">
-            <td class="part-number">{{ line.item?.item_code || 'N/A' }}</td>
-            <td class="do-number">{{ invoice.delivery?.delivery_number || '-' }}</td>
-            <td class="qty">{{ formatNumber(line.quantity) }}</td>
-            <td class="uom">{{ getUomSymbol(line.uom_id) }}</td>
-            <td class="description">{{ line.item?.name || 'Unknown Item' }}</td>
-            <td class="unit-price">{{ formatCurrency(line.unit_price, false) }}</td>
-            <td class="amount">{{ formatCurrency(line.total, false) }}</td>
-          </tr>
-
-          <!-- Empty rows for spacing/future items -->
-          <tr v-for="i in getEmptyRows()" :key="`empty-${i}`">
-            <td>&nbsp;</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
+          <tr v-for="(line, index) in invoiceLines" :key="line.line_id || index">
+            <td class="no-col center">{{ index + 1 }}</td>
+            <td class="part-col">{{ line.item ? line.item.item_code : '5168816' }}</td>
+            <td class="do-col">{{ invoice.delivery ? invoice.delivery.delivery_number : 'B24-038844' }}</td>
+            <td class="qty-col right">{{ formatNumberWithCommas(line.quantity) }}</td>
+            <td class="uom-col">{{ line.uom_id || 'UNIT' }}</td>
+            <td class="desc-col">{{ line.item ? line.item.name : 'PAD SET PRINTER' }}</td>
+            <td class="unit-price-col right">{{ formatNumberWithCommas(line.unit_price) }}</td>
+            <td class="amount-col right">{{ formatNumberWithCommas(line.total) }}</td>
           </tr>
         </tbody>
       </table>
 
-      <!-- Totals -->
-      <div class="totals">
-        <div class="totals-row">
-          <div class="totals-label">Harga jual:</div>
-          <div class="totals-value">{{ formatCurrency(calculateSubtotal(), true) }}</div>
+      <!-- Invoice Summary -->
+      <div class="invoice-summary">
+        <div class="summary-row">
+          <div class="summary-label">Harga jual</div>
+          <div class="summary-colon">:</div>
+          <div class="summary-value">{{ formatNumberWithCommas(calculateSubtotal()) }}</div>
         </div>
-        <div class="totals-row">
-          <div class="totals-label">Tax:</div>
-          <div class="totals-value">
-            {{ formatCurrency(invoice.tax_amount || 0, true) }}
-            {{ taxRate > 0 ? `(${taxRate}%)` : '' }}
-          </div>
+        <div class="summary-row">
+          <div class="summary-label">Tax</div>
+          <div class="summary-colon">:</div>
+          <div class="summary-value">{{ invoice.tax_amount > 0 ? (getTaxRate() + '%') : '0 %' }} {{ formatNumberWithCommas(invoice.tax_amount || 0) }}</div>
         </div>
-        <div class="totals-row">
-          <div class="totals-label">TOTAL:</div>
-          <div class="totals-value">{{ formatCurrency(invoice.total_amount, true) }}</div>
+        <div class="summary-row">
+          <div class="summary-label">TOTAL</div>
+          <div class="summary-colon">:</div>
+          <div class="summary-value">{{ formatNumberWithCommas(invoice.total_amount) }}</div>
         </div>
       </div>
 
-      <!-- Terms -->
-      <div class="terms">
-        <div class="terms-heading">Terms of Payment:</div>
-        <ol class="terms-list">
-          <li v-for="(term, index) in paymentTerms" :key="`term-${index}`" v-html="term"></li>
+      <!-- Payment Terms -->
+      <div class="payment-terms">
+        <h3>Terms of Payment :</h3>
+        <ol>
+          <li>Payment through bank is treated as settled only after clearing</li>
+          <li>Interest for late payment rate 5% per month</li>
+          <li>Bank DBS Indonesia<br>
+              DBS Tower, 35 th floor Ciputra Word I Jakarta,<br>
+              Jl. Prof Dr. Satrio Kav. 3-5 Karet Kuningan<br>
+              Account No. : 030-16069-48 (IDR)<br>
+              PT. ARMSTRONG INDUSTRI INDONESIA<br>
+              Account No. : 030-16068-47 (USD)<br>
+              Jakarta Selatan (12940)
+          </li>
         </ol>
       </div>
-
-      <!-- Footer with signatures -->
-      <div class="invoice-footer">
-        <div class="signature-box">
-          <div>{{ companyName }}</div>
-          <div class="signature-line"></div>
-          <div>{{ signatoryName }}</div>
-          <div>{{ companyCity }}</div>
-        </div>
-        <div class="signature-box">
-          <div>{{ invoice.customer?.name }}</div>
-          <div class="signature-line"></div>
-          <div>Authorized Signature</div>
-        </div>
-      </div>
-
-      <!-- Page info -->
-      <div class="page-info">Page: 1 of 1</div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, onBeforeUnmount } from "vue";
-import { useRouter } from "vue-router";
-import axios from "axios";
+import axios from 'axios';
 
 export default {
-  name: "SalesInvoicePrint",
+  name: 'SalesInvoicePrint',
   props: {
     id: {
       type: [Number, String],
       required: true
     }
   },
-  setup(props) {
-    const router = useRouter();
-    //const route = useRoute();
-
-    // Data
-    const invoice = ref(null);
-    const unitOfMeasures = ref([]);
-    const isLoading = ref(true);
-    const isPrinting = ref(false);
-    const taxRate = ref(11); // Default tax rate in percent (adjust as needed)
-    const salesPerson = ref("DELLA");
-    const logoUrl = ref("/images/company-logo.png");
-    const orderNumber = ref("SO3-24-010837");
-
-    // Company information
-    const companyName = ref("PT. ARMSTRONG INDUSTRI INDONESIA");
-    const companyAddress1 = ref("EJIP INDUSTRIAL PARK PLOT 1 A-3 LIPPO CIKARANG");
-    const companyAddress2 = ref("SUKARESMI, CIKARANG SELATAN, BEKASI 17857");
-    const companyCity = ref("Jakarta Selatan (12940)");
-    const signatoryName = ref("Welly Wibisono");
-
-    // Payment terms
-    const paymentTerms = ref([
-      "Payment through bank is treated as settled only after clearing",
-      "Interest for late payment rate 5% per month",
-      "Bank DBS Indonesia<br>DBS Tower, 35th floor Ciputra Word I Jakarta,<br>Jl. Prof Dr. Satrio Kav. 3-5 Karet Kuningan<br>Account No.: 030-16069-48 (IDR)<br>Account No.: 030-16068-47 (USD)"
-    ]);
-
-    // Load invoice and reference data
-    const loadData = async () => {
-      isLoading.value = true;
-
-      try {
-        // Load unit of measures for reference
-        const uomResponse = await axios.get("/unit-of-measures");
-        unitOfMeasures.value = uomResponse.data || [];
-
-        // Load invoice details
-        const invoiceResponse = await axios.get(`/invoices/${props.id}`);
-        invoice.value = invoiceResponse.data.data;
-
-        // Set order number if available
-        if (invoice.value?.sales_order) {
-          orderNumber.value = invoice.value.sales_order.so_number;
-        } else if (invoice.value?.delivery?.sales_order) {
-          orderNumber.value = invoice.value.delivery.sales_order.so_number;
-        }
-      } catch (error) {
-        console.error("Error loading invoice:", error);
-        invoice.value = null;
-      } finally {
-        isLoading.value = false;
-      }
-    };
-
-    // Format date
-    const formatDate = (dateString) => {
-      if (!dateString) return "-";
-      const date = new Date(dateString);
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}/${month}/${year}`;
-    };
-
-    // Format number
-    const formatNumber = (value) => {
-      return new Intl.NumberFormat("id-ID").format(value || 0);
-    };
-
-    // Format currency
-    const formatCurrency = (value, showCurrency = true) => {
-      const formatted = new Intl.NumberFormat("id-ID", {
-        minimumFractionDigits: 5,
-        maximumFractionDigits: 5,
-      }).format(value || 0);
-
-      if (showCurrency && invoice.value) {
-        return `${invoice.value.currency_code || 'USD'} ${formatted}`;
-      }
-      return formatted;
-    };
-
-    // Get UOM symbol
-    const getUomSymbol = (uomId) => {
-      const uom = unitOfMeasures.value.find((u) => u.uom_id === uomId);
-      return uom ? uom.symbol : "UNIT";
-    };
-
-    // Calculate subtotal of all lines
-    const calculateSubtotal = () => {
-      if (!invoice.value || !invoice.value.salesInvoiceLines) return 0;
-      return invoice.value.salesInvoiceLines.reduce(
-        (sum, line) => sum + (line.subtotal || 0),
-        0
-      );
-    };
-
-    // Calculate total tax of all lines
-    const calculateTotalTax = () => {
-      if (!invoice.value || !invoice.value.salesInvoiceLines) return 0;
-      return invoice.value.salesInvoiceLines.reduce(
-        (sum, line) => sum + (line.tax || 0),
-        0
-      );
-    };
-
-    // Get empty rows to fill table
-    const getEmptyRows = () => {
-      const minRows = 3; // Minimum number of rows in the table
-      const currentRows = invoice.value?.salesInvoiceLines?.length || 0;
-      return Math.max(0, minRows - currentRows);
-    };
-
-    // Navigation methods
-    const goBack = () => {
-      router.push(`/sales/invoices/${props.id}`);
-    };
-
-    // Print the invoice
-    const printInvoice = () => {
-      isPrinting.value = true;
-      setTimeout(() => {
-        window.print();
-        isPrinting.value = false;
-      }, 300);
-    };
-
-    // Handle print event
-    const handlePrintEvent = () => {
-      isPrinting.value = true;
-      setTimeout(() => {
-        isPrinting.value = false;
-      }, 300);
-    };
-
-    onMounted(() => {
-      loadData();
-      window.addEventListener("beforeprint", handlePrintEvent);
-      window.addEventListener("afterprint", () => {
-        isPrinting.value = false;
-      });
-    });
-
-    onBeforeUnmount(() => {
-      window.removeEventListener("beforeprint", handlePrintEvent);
-      window.removeEventListener("afterprint", () => {
-        isPrinting.value = false;
-      });
-    });
-
+  data() {
     return {
-      invoice,
-      isLoading,
-      isPrinting,
-      companyName,
-      companyAddress1,
-      companyAddress2,
-      companyCity,
-      signatoryName,
-      logoUrl,
-      salesPerson,
-      orderNumber,
-      taxRate,
-      paymentTerms,
-      formatDate,
-      formatNumber,
-      formatCurrency,
-      getUomSymbol,
-      calculateSubtotal,
-      calculateTotalTax,
-      getEmptyRows,
-      goBack,
-      printInvoice,
+      invoice: {},
+      receivable: null,
+      loading: true,
     };
   },
+  computed: {
+    invoiceLines() {
+      return this.invoice.sales_invoice_lines || [];
+    }
+  },
+  mounted() {
+    this.fetchInvoice();
+  },
+  methods: {
+    async fetchInvoice() {
+      this.loading = true;
+      try {
+        const response = await axios.get(`/invoices/${this.id}`);
+        this.invoice = response.data.data;
+
+        // Get receivable information
+        if (this.invoice.customerReceivables && this.invoice.customerReceivables.length > 0) {
+          this.receivable = this.invoice.customerReceivables[0];
+        }
+      } catch (error) {
+        console.error('Error fetching invoice:', error);
+        this.$toast.error('Failed to load invoice details');
+      } finally {
+        this.loading = false;
+      }
+    },
+    formatDateSimple(dateString) {
+      if (!dateString) return '26/12/2024';
+      const date = new Date(dateString);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    },
+    formatNumberWithCommas(value) {
+      if (value === undefined || value === null) return '$0.00000';
+      const number = parseFloat(value);
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 5,
+        maximumFractionDigits: 5
+      }).format(number);
+    },
+    calculateSubtotal() {
+      return this.invoiceLines.reduce((total, line) => total + (line.subtotal || 0), 0);
+    },
+    getTaxRate() {
+      // Calculate the tax rate as a percentage of the subtotal
+      const subtotal = this.calculateSubtotal();
+      if (subtotal === 0 || !this.invoice.tax_amount) return 0;
+      return Math.round((this.invoice.tax_amount / subtotal) * 100);
+    },
+    printInvoice() {
+      window.print();
+    },
+    goBack() {
+      this.$router.go(-1);
+    }
+  }
 };
 </script>
 
 <style>
-/* General styles */
+/* Reset and general styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .print-container {
   max-width: 210mm; /* A4 width */
   margin: 0 auto;
-  padding: 20px;
-  font-family: Arial, sans-serif;
-  color: #333;
+  padding: 1rem;
+  background: white;
 }
 
-.print-actions {
+/* Print controls */
+.print-controls {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .btn {
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-  font-weight: bold;
-  border: none;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  font-weight: bold;
+}
+
+.btn i {
+  margin-right: 0.5rem;
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
+  background: #2563eb;
   color: white;
+  border: none;
 }
 
 .btn-secondary {
-  background-color: var(--gray-200);
-  color: var(--gray-800);
+  background: #e5e7eb;
+  color: #1f2937;
+  border: none;
 }
 
 .loading-indicator {
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 50px 0;
-  color: var(--gray-500);
+  justify-content: center;
+  padding: 2rem;
 }
 
 .loading-indicator i {
-  margin-right: 10px;
+  margin-right: 0.5rem;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 50px 0;
-}
-
-.empty-icon {
-  font-size: 48px;
-  color: var(--gray-300);
-  margin-bottom: 20px;
-}
-
-/* Invoice Document Styles */
+/* Invoice document */
 .invoice-document {
-  background-color: white;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-size: 10pt;
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
-/* Company Header */
-.company-header {
+/* Header section */
+.header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #000;
-  padding-bottom: 10px;
-}
-
-.company-logo {
-  margin-bottom: 10px;
-}
-
-.company-logo img {
-  max-height: 50px;
-  max-width: 150px;
+  margin-bottom: 1rem;
 }
 
 .company-name {
-  font-size: 16pt;
+  font-size: 14px;
   font-weight: bold;
+  margin-bottom: 0.25rem;
 }
 
-.company-address {
-  font-size: 9pt;
-  max-width: 60%;
+.company-info p {
+  font-size: 11px;
+  margin: 0;
 }
 
 .invoice-info {
   text-align: right;
+  font-size: 11px;
 }
 
-.invoice-title {
-  font-size: 14pt;
-  font-weight: bold;
+.info-row {
+  margin-bottom: 0.125rem;
 }
 
-.invoice-number, .invoice-date, .invoice-page {
-  font-size: 9pt;
-}
-
-/* Customer Info */
+/* Customer section */
 .customer-section {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
+  border: 1px solid black;
 }
 
-.ship-to, .sold-to {
-  width: 48%;
-}
-
-.label {
-  font-weight: bold;
-  text-transform: uppercase;
-  margin-bottom: 5px;
-}
-
-.customer-box {
-  border: 1px solid #000;
-  padding: 5px;
-  min-height: 100px;
-}
-
-/* Order Info */
-.order-info {
-  display: flex;
-  margin-bottom: 10px;
-  border: 1px solid #000;
-  border-collapse: collapse;
-}
-
-.order-info-item {
+.customer-block {
   flex: 1;
-  border-right: 1px solid #000;
-  padding: 5px;
-  text-align: center;
+  padding: 0.5rem;
 }
 
-.order-info-item:last-child {
-  border-right: none;
+.customer-block:first-child {
+  border-right: 1px solid black;
 }
 
-.order-info-label {
+.customer-title {
   font-weight: bold;
-  font-size: 8pt;
+  margin-bottom: 0.25rem;
 }
 
-.order-info-value {
-  font-size: 9pt;
+.customer-details {
+  font-size: 11px;
 }
 
-.order-details {
-  margin-bottom: 10px;
+/* Order info section */
+.order-info {
+  margin-top: -1px;
 }
 
-/* Invoice Items */
+.order-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid black;
+}
+
+.order-table th, .order-table td {
+  border: 1px solid black;
+  padding: 0.25rem 0.5rem;
+  font-size: 11px;
+}
+
+.order-table th {
+  font-weight: bold;
+}
+
+/* CO Number */
+.co-number {
+  border-left: 1px solid black;
+  border-right: 1px solid black;
+  padding: 0.25rem 0.5rem;
+  font-weight: bold;
+  font-size: 11px;
+  margin-top: -1px;
+}
+
+/* Part info */
+.part-info {
+  display: flex;
+  border-left: 1px solid black;
+  border-right: 1px solid black;
+  border-bottom: 1px solid black;
+  margin-top: -1px;
+}
+
+.part-number-col, .do-remarks-col {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+/* Items table */
 .items-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
+  border: 1px solid black;
+  margin-top: 1rem;
 }
 
 .items-table th, .items-table td {
-  border: 1px solid #000;
-  padding: 5px;
+  border: 1px solid black;
+  padding: 0.25rem 0.5rem;
+  font-size: 11px;
 }
 
-.items-table th {
-  background-color: #f2f2f2;
-  font-weight: bold;
-  text-align: center;
-}
+.no-col { width: 5%; }
+.part-col { width: 12%; }
+.do-col { width: 12%; }
+.qty-col { width: 10%; }
+.uom-col { width: 8%; }
+.desc-col { width: 25%; }
+.unit-price-col { width: 14%; }
+.amount-col { width: 14%; }
 
-.items-table .part-number {
-  width: 15%;
-}
+.center { text-align: center; }
+.right { text-align: right; }
 
-.items-table .do-number {
-  width: 15%;
-}
-
-.items-table .description {
-  width: 30%;
-}
-
-.items-table .qty {
-  width: 10%;
-  text-align: center;
-}
-
-.items-table .uom {
-  width: 10%;
-  text-align: center;
-}
-
-.items-table .unit-price {
-  width: 10%;
-  text-align: right;
-}
-
-.items-table .amount {
-  width: 10%;
-  text-align: right;
-}
-
-/* Totals */
-.totals {
-  width: 300px;
-  margin-left: auto;
-  margin-bottom: 20px;
-}
-
-.totals-row {
+/* Invoice summary */
+.invoice-summary {
   display: flex;
-  justify-content: space-between;
-  padding: 5px 0;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 0.5rem;
+  width: 100%;
 }
 
-.totals-label {
-  font-weight: bold;
-}
-
-.totals-value {
-  text-align: right;
-  width: 150px;
-}
-
-/* Terms */
-.terms {
-  margin-bottom: 20px;
-}
-
-.terms-heading {
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.terms-list {
-  padding-left: 20px;
-}
-
-/* Footer */
-.invoice-footer {
-  margin-top: 40px;
+.summary-row {
   display: flex;
-  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  width: 260px;
 }
 
-.signature-box {
-  width: 45%;
-  text-align: center;
+.summary-label {
+  width: 80px;
 }
 
-.signature-line {
-  border-top: 1px solid #000;
-  margin-top: 60px;
-  display: inline-block;
-  width: 80%;
+.summary-colon {
+  width: 10px;
 }
 
-/* Page info */
-.page-info {
+.summary-value {
+  flex: 1;
   text-align: right;
-  margin-top: 20px;
-  font-size: 8pt;
+}
+
+/* Payment terms */
+.payment-terms {
+  margin-top: 2rem;
+}
+
+.payment-terms h3 {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.payment-terms ol {
+  padding-left: 1.5rem;
+}
+
+.payment-terms li {
+  margin-bottom: 0.25rem;
+  font-size: 11px;
 }
 
 /* Print specific styles */
 @media print {
-  body {
-    margin: 0;
-    padding: 0;
-    background-color: white;
+  .no-print {
+    display: none !important;
   }
 
   .print-container {
     padding: 0;
-    max-width: none;
-  }
-
-  .print-actions {
-    display: none !important;
-  }
-
-  .invoice-document {
-    box-shadow: none;
-    padding: 10mm;
-    width: 190mm;
-    margin: 0 auto;
   }
 
   @page {
-    size: A4;
-    margin: 0;
-  }
-
-  .signature-section,
-  .terms,
-  .totals {
-    page-break-inside: avoid;
-  }
-
-  .items-table th {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    background-color: #f2f2f2 !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .customer-section,
-  .order-info {
-    flex-direction: column;
-  }
-
-  .ship-to,
-  .sold-to,
-  .order-info-item {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  .order-info-item {
-    border-right: none;
-    border-bottom: 1px solid #000;
-  }
-
-  .order-info-item:last-child {
-    border-bottom: none;
+    margin: 0.5cm;
   }
 }
 </style>

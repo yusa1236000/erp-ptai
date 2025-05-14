@@ -229,7 +229,7 @@ export default {
         const searchQuery = ref("");
         const showDeleteModal = ref(false);
         const selectedReceipt = ref(null);
-        
+
         // Get the API base URL from axios configuration
         const apiBaseUrl = axios.defaults.baseURL || "http://127.0.0.1:8020/api";
 
@@ -336,7 +336,7 @@ const fetchGoodsReceipts = async () => {
     } finally {
         isLoading.value = false;
     }
-} 
+}
 
         // Fetch vendors for the filter dropdown
         const fetchVendors = async () => {

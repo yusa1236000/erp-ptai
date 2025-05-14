@@ -7,7 +7,7 @@
           <i class="fas fa-plus"></i> Create New Invoice
         </router-link>
       </div>
-  
+
       <!-- Search and Filter Section -->
       <div class="search-filter">
         <div class="search-box">
@@ -22,7 +22,7 @@
             <i class="fas fa-times"></i>
           </button>
         </div>
-        
+
         <div class="filters">
           <div class="filter-group">
             <label>Status</label>
@@ -36,7 +36,7 @@
               <option value="Cancelled">Cancelled</option>
             </select>
           </div>
-          
+
           <div class="filter-group">
             <label>Date Range</label>
             <select v-model="filters.dateRange" @change="handleDateRangeChange">
@@ -47,24 +47,24 @@
               <option value="custom">Custom Range</option>
             </select>
           </div>
-          
+
           <div class="filter-group" v-if="filters.dateRange === 'custom'">
             <label>From</label>
             <input type="date" v-model="filters.startDate" @change="fetchInvoices" />
           </div>
-          
+
           <div class="filter-group" v-if="filters.dateRange === 'custom'">
             <label>To</label>
             <input type="date" v-model="filters.endDate" @change="fetchInvoices" />
           </div>
         </div>
       </div>
-      
+
       <!-- Loading Indicator -->
       <div v-if="loading" class="loading-indicator">
         <i class="fas fa-spinner fa-spin"></i> Loading invoices...
       </div>
-      
+
       <!-- Empty State -->
       <div v-else-if="invoices.length === 0" class="empty-state">
         <div class="empty-icon">
@@ -73,7 +73,7 @@
         <h3>No Invoices Found</h3>
         <p>There are no invoices matching your criteria. Try changing your filters or create a new invoice.</p>
       </div>
-      
+
       <!-- Invoices Table -->
       <div v-else class="table-responsive">
         <table class="data-table">
@@ -81,24 +81,24 @@
             <tr>
               <th @click="sortBy('invoice_number')" class="sortable">
                 Invoice Number
-                <i v-if="sortKey === 'invoice_number'" 
+                <i v-if="sortKey === 'invoice_number'"
                    :class="sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'"></i>
               </th>
               <th @click="sortBy('invoice_date')" class="sortable">
                 Invoice Date
-                <i v-if="sortKey === 'invoice_date'" 
+                <i v-if="sortKey === 'invoice_date'"
                    :class="sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'"></i>
               </th>
               <th @click="sortBy('due_date')" class="sortable">
                 Due Date
-                <i v-if="sortKey === 'due_date'" 
+                <i v-if="sortKey === 'due_date'"
                    :class="sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'"></i>
               </th>
               <th>Customer</th>
               <th>Amount</th>
               <th @click="sortBy('status')" class="sortable">
                 Status
-                <i v-if="sortKey === 'status'" 
+                <i v-if="sortKey === 'status'"
                    :class="sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'"></i>
               </th>
               <th class="actions-column">Actions</th>
@@ -124,14 +124,14 @@
                   <router-link :to="`/sales/invoices/${invoice.invoice_id}`" class="btn btn-sm btn-info" title="View">
                     <i class="fas fa-eye"></i>
                   </router-link>
-                  <router-link :to="`/sales/invoices/${invoice.invoice_id}/edit`" class="btn btn-sm btn-warning" 
+                  <router-link :to="`/sales/invoices/${invoice.invoice_id}/edit`" class="btn btn-sm btn-warning"
                                v-if="canEdit(invoice.status)" title="Edit">
                     <i class="fas fa-edit"></i>
                   </router-link>
                   <router-link :to="`/sales/invoices/${invoice.invoice_id}/print`" class="btn btn-sm btn-secondary" title="Print">
                     <i class="fas fa-print"></i>
                   </router-link>
-                  <button @click="confirmDelete(invoice)" class="btn btn-sm btn-danger" 
+                  <button @click="confirmDelete(invoice)" class="btn btn-sm btn-danger"
                           v-if="canDelete(invoice.status)" title="Delete">
                     <i class="fas fa-trash"></i>
                   </button>
@@ -141,7 +141,7 @@
           </tbody>
         </table>
       </div>
-      
+
       <!-- Pagination -->
       <div class="pagination-container" v-if="totalPages > 1">
         <div class="pagination">
@@ -149,18 +149,18 @@
             Showing {{ (currentPage - 1) * perPage + 1 }} to {{ Math.min(currentPage * perPage, totalItems) }} of {{ totalItems }} invoices
           </div>
           <div class="pagination-controls">
-            <button 
-              class="pagination-btn" 
-              :disabled="currentPage === 1" 
+            <button
+              class="pagination-btn"
+              :disabled="currentPage === 1"
               @click="goToPage(currentPage - 1)"
             >
               <i class="fas fa-chevron-left"></i>
             </button>
-            
+
             <template v-for="page in displayedPages" :key="page">
-              <button 
-                v-if="page !== '...'" 
-                class="pagination-btn" 
+              <button
+                v-if="page !== '...'"
+                class="pagination-btn"
                 :class="{ active: page === currentPage }"
                 @click="goToPage(page)"
               >
@@ -168,10 +168,10 @@
               </button>
               <span v-else class="pagination-ellipsis">...</span>
             </template>
-            
-            <button 
-              class="pagination-btn" 
-              :disabled="currentPage === totalPages" 
+
+            <button
+              class="pagination-btn"
+              :disabled="currentPage === totalPages"
               @click="goToPage(currentPage + 1)"
             >
               <i class="fas fa-chevron-right"></i>
@@ -179,7 +179,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Confirmation Modal -->
       <div class="modal" v-if="showDeleteModal">
         <div class="modal-backdrop" @click="showDeleteModal = false"></div>
@@ -193,7 +193,7 @@
           <div class="modal-body">
             <p>Are you sure you want to delete invoice <strong>{{ selectedInvoice?.invoice_number }}</strong>?</p>
             <p>This action cannot be undone.</p>
-            
+
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" @click="showDeleteModal = false">
                 Cancel
@@ -211,10 +211,10 @@
       </div>
     </div>
   </template>
-  
+
   <script>
   import axios from 'axios';
-  
+
   export default {
     name: 'SalesInvoiceList',
     data() {
@@ -244,7 +244,7 @@
         const pages = [];
         const total = this.totalPages;
         const current = this.currentPage;
-        
+
         if (total <= 7) {
           // Show all pages if 7 or fewer
           for (let i = 1; i <= total; i++) {
@@ -253,31 +253,31 @@
         } else {
           // Always include first page
           pages.push(1);
-          
+
           // Show ellipsis if current page is more than 3
           if (current > 3) {
             pages.push('...');
           }
-          
+
           // Add pages around current page
           const startPage = Math.max(2, current - 1);
           const endPage = Math.min(total - 1, current + 1);
-          
+
           for (let i = startPage; i <= endPage; i++) {
             pages.push(i);
           }
-          
+
           // Show ellipsis if current page is less than total - 2
           if (current < total - 2) {
             pages.push('...');
           }
-          
+
           // Always include last page
           if (total > 1) {
             pages.push(total);
           }
         }
-        
+
         return pages;
       }
     },
@@ -295,25 +295,25 @@
             sort_field: this.sortKey,
             sort_direction: this.sortOrder
           };
-  
+
           // Add filters if set
           if (this.searchTerm) {
             params.search = this.searchTerm;
           }
-          
+
           if (this.filters.status) {
             params.status = this.filters.status;
           }
-          
+
           if (this.filters.dateRange && this.filters.dateRange !== 'custom') {
             params.date_range = this.filters.dateRange;
           } else if (this.filters.startDate && this.filters.endDate) {
             params.start_date = this.filters.startDate;
             params.end_date = this.filters.endDate;
           }
-  
+
           const response = await axios.get('/invoices', { params });
-          
+
           this.invoices = response.data.data;
           this.currentPage = response.data.current_page;
           this.totalPages = response.data.last_page;
@@ -334,12 +334,12 @@
           day: 'numeric'
         });
       },
-      formatCurrency(amount, currencyCode = 'IDR') {
+formatCurrency(amount, currencyCode = 'IDR') {
         if (amount === undefined || amount === null) return 'N/A';
         return new Intl.NumberFormat('id-ID', {
           style: 'currency',
           currency: currencyCode || 'IDR',
-          minimumFractionDigits: 0,
+          minimumFractionDigits: 2,
           maximumFractionDigits: 2
         }).format(amount);
       },
@@ -426,7 +426,7 @@
       },
       async deleteInvoice() {
         if (!this.selectedInvoice) return;
-        
+
         try {
           await axios.delete(`/invoices/${this.selectedInvoice.invoice_id}`);
           this.$toast.success(`Invoice ${this.selectedInvoice.invoice_number} deleted successfully`);
@@ -444,34 +444,34 @@
     }
   };
   </script>
-  
+
   <style scoped>
   .page-container {
     padding: 1.5rem;
   }
-  
+
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
   }
-  
+
   .page-header h1 {
     margin: 0;
   }
-  
+
   .table-responsive {
     overflow-x: auto;
     margin-bottom: 1rem;
   }
-  
+
   .data-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.875rem;
   }
-  
+
   .data-table th {
     text-align: left;
     padding: 0.75rem 1rem;
@@ -480,27 +480,27 @@
     font-weight: 500;
     color: var(--gray-600);
   }
-  
+
   .data-table td {
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--gray-100);
     color: var(--gray-800);
     vertical-align: middle;
   }
-  
+
   .data-table tr:hover td {
     background-color: var(--gray-50);
   }
-  
+
   .sortable {
     cursor: pointer;
     user-select: none;
   }
-  
+
   .sortable:hover {
     background-color: var(--gray-100);
   }
-  
+
   .status-badge {
     display: inline-block;
     padding: 0.25rem 0.5rem;
@@ -510,37 +510,37 @@
     text-align: center;
     white-space: nowrap;
   }
-  
+
   .status-draft {
     background-color: var(--gray-100);
     color: var(--gray-700);
   }
-  
+
   .status-sent {
     background-color: #dbeafe;
     color: #1e40af;
   }
-  
+
   .status-partial {
     background-color: #fef3c7;
     color: #92400e;
   }
-  
+
   .status-paid {
     background-color: #d1fae5;
     color: #065f46;
   }
-  
+
   .status-overdue {
     background-color: #fee2e2;
     color: #b91c1c;
   }
-  
+
   .status-cancelled {
     background-color: var(--gray-200);
     color: var(--gray-700);
   }
-  
+
   .overdue-badge {
     display: inline-block;
     margin-left: 0.5rem;
@@ -551,16 +551,16 @@
     font-size: 0.75rem;
     font-weight: 500;
   }
-  
+
   .action-buttons {
     display: flex;
     gap: 0.5rem;
   }
-  
+
   .pagination-container {
     margin-top: 1.5rem;
   }
-  
+
   .empty-state {
     display: flex;
     flex-direction: column;
@@ -569,24 +569,24 @@
     padding: 3rem 0;
     text-align: center;
   }
-  
+
   .empty-icon {
     font-size: 2.5rem;
     color: var(--gray-300);
     margin-bottom: 1rem;
   }
-  
+
   .empty-state h3 {
     font-size: 1.125rem;
     color: var(--gray-700);
     margin-bottom: 0.5rem;
   }
-  
+
   .empty-state p {
     color: var(--gray-500);
     max-width: 24rem;
   }
-  
+
   .loading-indicator {
     display: flex;
     justify-content: center;
@@ -595,20 +595,20 @@
     color: var(--gray-500);
     font-size: 0.875rem;
   }
-  
+
   .loading-indicator i {
     margin-right: 0.5rem;
   }
-  
+
   .actions-column {
     width: 1%;
     white-space: nowrap;
   }
-  
+
   .actions-cell {
     text-align: right;
   }
-  
+
   .modal {
     position: fixed;
     top: 0;
@@ -620,7 +620,7 @@
     justify-content: center;
     align-items: center;
   }
-  
+
   .modal-backdrop {
     position: fixed;
     top: 0;
@@ -630,7 +630,7 @@
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 50;
   }
-  
+
   .modal-content {
     background-color: white;
     border-radius: 0.5rem;
@@ -639,11 +639,11 @@
     z-index: 60;
     overflow: hidden;
   }
-  
+
   .modal-sm {
     max-width: 400px;
   }
-  
+
   .modal-header {
     display: flex;
     justify-content: space-between;
@@ -651,14 +651,14 @@
     padding: 1rem 1.5rem;
     border-bottom: 1px solid #e2e8f0;
   }
-  
+
   .modal-header h2 {
     font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
     color: #1e293b;
   }
-  
+
   .close-btn {
     background: none;
     border: none;
@@ -670,28 +670,28 @@
     padding: 0.25rem;
     border-radius: 0.25rem;
   }
-  
+
   .close-btn:hover {
     background-color: #f1f5f9;
     color: #0f172a;
   }
-  
+
   .modal-body {
     padding: 1.5rem;
   }
-  
+
   .modal-body p {
     margin-top: 0;
     margin-bottom: 1.5rem;
     color: #1e293b;
   }
-  
+
   .form-actions {
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
   }
-  
+
   /* Button styles */
   .btn {
     display: inline-flex;
@@ -705,71 +705,71 @@
     cursor: pointer;
     border: 1px solid transparent;
   }
-  
+
   .btn-sm {
     padding: 0.375rem 0.625rem;
     font-size: 0.75rem;
   }
-  
+
   .btn-primary {
     background-color: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
   }
-  
+
   .btn-primary:hover {
     background-color: var(--primary-dark);
     border-color: var(--primary-dark);
   }
-  
+
   .btn-secondary {
     background-color: var(--gray-100);
     color: var(--gray-700);
     border-color: var(--gray-200);
   }
-  
+
   .btn-secondary:hover {
     background-color: var(--gray-200);
     color: var(--gray-800);
   }
-  
+
   .btn-info {
     background-color: #dbeafe;
     color: #1e40af;
     border-color: #bfdbfe;
   }
-  
+
   .btn-info:hover {
     background-color: #bfdbfe;
     color: #1e3a8a;
   }
-  
+
   .btn-warning {
     background-color: #fef3c7;
     color: #92400e;
     border-color: #fde68a;
   }
-  
+
   .btn-warning:hover {
     background-color: #fde68a;
     color: #78350f;
   }
-  
+
   .btn-danger {
     background-color: #fee2e2;
     color: #b91c1c;
     border-color: #fecaca;
   }
-  
+
   .btn-danger:hover {
     background-color: #fecaca;
     color: #991b1b;
   }
-  
+
   .btn i {
     margin-right: 0.5rem;
   }
-  
+
   .btn-sm i {
     margin-right: 0.25rem;
   }

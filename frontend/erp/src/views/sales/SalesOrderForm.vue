@@ -628,7 +628,7 @@ export default {
             return new Intl.NumberFormat("id-ID", {
                 style: "currency",
                 currency: form.value.currency_code || "IDR",
-                minimumFractionDigits: 0,
+                minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }).format(value || 0);
         };

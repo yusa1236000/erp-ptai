@@ -32,30 +32,35 @@
             <div class="customer-name">{{ order?.customer?.name }}</div>
             <div class="customer-address">{{ order?.customer?.address }}</div>
           </div>
-          <div class="order-details">
-            <table class="info-table">
-              <tr>
-                <td>Date</td>
-                <td>:</td>
-                <td>{{ formatDate(order?.soDate) }}</td>
-              </tr>
-              <tr>
-                <td>Terms</td>
-                <td>:</td>
-                <td>{{ order?.payment_terms || 'Net 30 days' }}</td>
-              </tr>
-              <tr>
-                <td>Our Ref No.</td>
-                <td>:</td>
-                <td>{{ order?.quotation_id ? order?.salesQuotation?.quotation_number : '-' }}</td>
-              </tr>
-              <tr>
-                <td>Your Ref No.</td>
-                <td>:</td>
-                <td>-</td>
-              </tr>
-            </table>
-          </div>
+        <div class="order-details">
+          <table class="info-table">
+            <tr>
+              <td>Date</td>
+              <td>:</td>
+              <td>{{ formatDate(order?.soDate) }}</td>
+            </tr>
+            <tr>
+              <td>Terms</td>
+              <td>:</td>
+              <td>{{ order?.payment_terms || 'Net 30 days' }}</td>
+            </tr>
+            <tr>
+              <td>Description</td>
+              <td>:</td>
+              <td>{{ order?.description || '-' }}</td>
+            </tr>
+            <tr>
+              <td>Our Ref No.</td>
+              <td>:</td>
+              <td>{{ order?.quotation_id ? order?.salesQuotation?.quotation_number : '-' }}</td>
+            </tr>
+            <tr>
+              <td>Your Ref No.</td>
+              <td>:</td>
+              <td>-</td>
+            </tr>
+          </table>
+        </div>
         </div>
 
         <div class="order-items">
@@ -79,7 +84,7 @@
                 <td class="description">{{ line.item.description }}</td>
                 <td class="qty">{{ formatNumber(line.quantity) }}</td>
                 <td class="uom">{{ getUomSymbol(line.uomId) }}</td>
-                <td class="price">{{ formatCurrency(line.unitPrice, order.currencyCode, true) }}</td>
+                <td class="price">{{ formatCurrency(line.unitPrice, order.currencyCode, true, 4) }}</td>
                 <td class="disc">{{ line.discount ? formatCurrency(line.discount, order.currencyCode, true) : '-' }}</td>
                 <td class="amount">{{ formatCurrency(line.total, order.currencyCode, true) }}</td>
               </tr>
@@ -165,6 +170,7 @@
           );
           console.log("Order API response data:", orderResponse.data.data);
           order.value = toCamelCase(orderResponse.data.data);
+          console.log("Order description:", order.value.description);
         } catch (error) {
           console.error("Error loading order:", error);
           order.value = null;
@@ -229,13 +235,13 @@
       });
 
       // Format currency
-      const formatCurrency = (value, currencyCode = "IDR", noSymbol = false) => {
+      const formatCurrency = (value, currencyCode = "IDR", noSymbol = false, decimalPlaces = 2) => {
         if (!value) return "0.00";
 
-        // Format number with 2 decimal places
+        // Format number with specified decimal places
         const formattedValue = new Intl.NumberFormat('en-US', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
+          minimumFractionDigits: decimalPlaces,
+          maximumFractionDigits: decimalPlaces
         }).format(value);
 
         if (noSymbol) {

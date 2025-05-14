@@ -366,13 +366,14 @@ export default {
             });
         };
 
-        const formatCurrency = (value) => {
-            return new Intl.NumberFormat("id-ID", {
-                style: "currency",
-                currency: "IDR",
-                minimumFractionDigits: 0,
-            }).format(value || 0);
-        };
+const formatCurrency = (value) => {
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(value ?? 0);
+};
 
         const getStatusLabel = (status) => {
             switch (status) {

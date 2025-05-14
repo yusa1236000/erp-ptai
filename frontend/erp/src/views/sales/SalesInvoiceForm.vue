@@ -336,12 +336,12 @@
                           <div class="input-group-prepend">
                             <span class="input-group-text">{{ invoice.currency_code }}</span>
                           </div>
-                          <input
-                            type="number"
-                            v-model.number="line.subtotal"
-                            class="form-control"
-                            readonly
-                          >
+                  <input
+                    type="number"
+                    :value="formatNumber2Decimals(line.subtotal)"
+                    class="form-control"
+                    readonly
+                  >
                         </div>
                       </td>
                       <td>
@@ -349,12 +349,12 @@
                           <div class="input-group-prepend">
                             <span class="input-group-text">{{ invoice.currency_code }}</span>
                           </div>
-                          <input
-                            type="number"
-                            v-model.number="line.total"
-                            class="form-control"
-                            readonly
-                          >
+                  <input
+                    type="number"
+                    :value="formatNumber2Decimals(line.total)"
+                    class="form-control"
+                    readonly
+                  >
                         </div>
                       </td>
                       <td>
@@ -377,7 +377,7 @@
                           <div class="input-group-prepend">
                             <span class="input-group-text">{{ invoice.currency_code }}</span>
                           </div>
-                          <input type="number" v-model.number="subtotal" class="form-control" readonly>
+                          <input type="text" :value="formatNumber2Decimals(subtotal)" class="form-control" readonly>
                         </div>
                       </td>
                     </tr>
@@ -388,7 +388,7 @@
                           <div class="input-group-prepend">
                             <span class="input-group-text">{{ invoice.currency_code }}</span>
                           </div>
-                          <input type="number" v-model.number="totalDiscount" class="form-control" readonly>
+                          <input type="text" :value="formatNumber2Decimals(totalDiscount)" class="form-control" readonly>
                         </div>
                       </td>
                     </tr>
@@ -399,7 +399,7 @@
                           <div class="input-group-prepend">
                             <span class="input-group-text">{{ invoice.currency_code }}</span>
                           </div>
-                          <input type="number" v-model.number="invoice.tax_amount" class="form-control" readonly>
+                          <input type="text" :value="formatNumber2Decimals(invoice.tax_amount)" class="form-control" readonly>
                         </div>
                       </td>
                     </tr>
@@ -410,7 +410,7 @@
                           <div class="input-group-prepend">
                             <span class="input-group-text">{{ invoice.currency_code }}</span>
                           </div>
-                          <input type="number" v-model.number="invoice.total_amount" class="form-control" readonly>
+                          <input type="text" :value="formatNumber2Decimals(invoice.total_amount)" class="form-control" readonly>
                         </div>
                       </td>
                     </tr>
@@ -501,6 +501,13 @@
       this.loading = false;
     },
     methods: {
+      formatNumber2Decimals(value) {
+        if (value === null || value === undefined || isNaN(value)) {
+          return '0.00';
+        }
+        return Number(value).toFixed(2);
+      },
+
       async loadCustomers() {
         try {
           const response = await axios.get('/customers');

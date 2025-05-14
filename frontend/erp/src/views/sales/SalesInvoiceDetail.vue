@@ -154,14 +154,14 @@
                     <td>{{ formatCurrency(line.unit_price, invoice.currency_code) }}</td>
                     <td>{{ formatCurrency(line.discount || 0, invoice.currency_code) }}</td>
                     <td>{{ formatCurrency(line.tax || 0, invoice.currency_code) }}</td>
-                    <td>{{ formatCurrency(line.subtotal, invoice.currency_code) }}</td>
-                    <td>{{ formatCurrency(line.total, invoice.currency_code) }}</td>
+                    <td>{{ formatCurrency(line.subtotal, invoice.currency_code, 2) }}</td>
+                    <td>{{ formatCurrency(line.total, invoice.currency_code, 2) }}</td>
                   </tr>
                 </tbody>
                 <tfoot>
                   <tr>
                     <td colspan="5" class="text-right"><strong>Subtotal:</strong></td>
-                    <td colspan="2">{{ formatCurrency(calculateSubtotal(), invoice.currency_code) }}</td>
+                    <td colspan="2">{{ formatCurrency(calculateSubtotal(), invoice.currency_code, 2) }}</td>
                   </tr>
                   <tr>
                     <td colspan="5" class="text-right"><strong>Total Discount:</strong></td>
@@ -173,7 +173,7 @@
                   </tr>
                   <tr class="total-row">
                     <td colspan="5" class="text-right"><strong>Grand Total:</strong></td>
-                    <td colspan="2">{{ formatCurrency(invoice.total_amount, invoice.currency_code) }}</td>
+                    <td colspan="2">{{ formatCurrency(invoice.total_amount, invoice.currency_code, 2) }}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -518,13 +518,13 @@
           day: 'numeric'
         });
       },
-formatCurrency(amount, currencyCode = 'IDR') {
+formatCurrency(amount, currencyCode = 'IDR', decimalPlaces = 0) {
         if (amount === undefined || amount === null) return 'N/A';
         return new Intl.NumberFormat('id-ID', {
           style: 'currency',
           currency: currencyCode || 'IDR',
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 5
+          minimumFractionDigits: decimalPlaces,
+          maximumFractionDigits: decimalPlaces
         }).format(amount);
       },
       calculateSubtotal() {

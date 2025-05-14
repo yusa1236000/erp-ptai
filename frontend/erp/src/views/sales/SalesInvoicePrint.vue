@@ -78,17 +78,17 @@
               <th>PO No.</th>
               <th>PO Date</th>
               <th>SALES PERSON</th>
+              <th>DO No.</th>
               <th>SHIP VIA</th>
               <th>TERMS</th>
-              <th>DO No.</th>
             </tr>
             <tr>
               <td>{{ invoice.reference || '52042-INLAND' }}</td>
               <td>{{ formatDateSimple(invoice.invoice_date) }}</td>
               <td>DELLA</td>
+              <td>{{ invoice.delivery ? invoice.delivery.delivery_number : 'B24-038844' }}</td>
               <td></td>
               <td>{{ invoice.payment_terms || 'Net 60 days' }}</td>
-              <td>{{ invoice.delivery ? invoice.delivery.delivery_number : 'B24-038844' }}</td>
             </tr>
           </tbody>
         </table>
@@ -128,7 +128,7 @@
             <td class="uom-col">{{ line.uom_id || 'UNIT' }}</td>
             <td class="desc-col">{{ line.item ? line.item.name : 'PAD SET PRINTER' }}</td>
             <td class="unit-price-col right">{{ formatNumberWithCommas(line.unit_price) }}</td>
-            <td class="amount-col right">{{ formatNumberWithCommas(line.total) }}</td>
+            <td class="amount-col right">{{ formatNumberTwoDecimals(line.total) }}</td>
           </tr>
         </tbody>
       </table>
@@ -138,17 +138,17 @@
         <div class="summary-row">
           <div class="summary-label">Harga jual</div>
           <div class="summary-colon">:</div>
-          <div class="summary-value">{{ formatNumberWithCommas(calculateSubtotal()) }}</div>
+          <div class="summary-value">{{ formatNumberTwoDecimals(calculateSubtotal()) }}</div>
         </div>
         <div class="summary-row">
           <div class="summary-label">Tax</div>
           <div class="summary-colon">:</div>
-          <div class="summary-value">{{ invoice.tax_amount > 0 ? (getTaxRate() + '%') : '0 %' }} {{ formatNumberWithCommas(invoice.tax_amount || 0) }}</div>
+          <div class="summary-value">{{ invoice.tax_amount > 0 ? (getTaxRate() + '%') : '0 %' }} {{ formatNumberTwoDecimals(invoice.tax_amount || 0) }}</div>
         </div>
         <div class="summary-row">
           <div class="summary-label">TOTAL</div>
           <div class="summary-colon">:</div>
-          <div class="summary-value">{{ formatNumberWithCommas(invoice.total_amount) }}</div>
+          <div class="summary-value">{{ formatNumberTwoDecimals(invoice.total_amount) }}</div>
         </div>
       </div>
 
@@ -233,6 +233,11 @@ export default {
         minimumFractionDigits: 5,
         maximumFractionDigits: 5
       }).format(number);
+    },
+    formatNumberTwoDecimals(value) {
+      if (value === undefined || value === null) return '0.00';
+      const number = parseFloat(value);
+      return number.toFixed(2);
     },
     calculateSubtotal() {
       return this.invoiceLines.reduce((total, line) => total + (line.subtotal || 0), 0);

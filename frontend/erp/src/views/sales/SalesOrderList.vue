@@ -11,7 +11,7 @@
             >
                 <template #filters>
                     <div class="filter-group">
-                        <label>Status</label>
+                        <!-- <label>Status</label> -->
                         <select v-model="statusFilter" @change="applyFilters">
                             <option value="">All Statuses</option>
                             <option value="Draft">Draft</option>
@@ -25,7 +25,7 @@
                     </div>
 
                     <div class="filter-group">
-                        <label>Periode</label>
+                        <!-- <label>Periode</label> -->
                         <select
                             v-model="dateRangeFilter"
                             @change="applyFilters"

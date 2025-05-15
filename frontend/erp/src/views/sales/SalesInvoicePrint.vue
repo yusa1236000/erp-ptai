@@ -44,7 +44,7 @@
         </div>
       </div>
 
-      <!-- Customer Information -->
+      <!-- Customer Information - Modified to be side by side -->
       <div class="customer-section">
         <div class="customer-block">
           <div class="customer-title">SOLD TO :</div>
@@ -101,15 +101,11 @@
       </div>
 
       <!-- CO Number -->
-      <div class="co-number">
+      <!-- <div class="co-number">
         <span>CO-NUM : {{ invoice.delivery ? invoice.delivery.sales_order_id : 'N/A' }}</span>
-      </div>
-
-      <!-- Part Info -->
-      <div class="part-info">
         <div class="part-number-col">PART NUMBER</div>
         <div class="do-remarks-col">DO REMARKS</div>
-      </div>
+      </div> -->
 
       <!-- Invoice Items -->
       <table class="items-table">
@@ -118,9 +114,9 @@
             <th class="no-col">NO.</th>
             <th class="part-col">PART NUMBER</th>
             <th class="do-col">DO No.</th>
-            <th class="qty-col right">Qty SHIPPED</th>
+            <th class="qty-col right">QTY SHIPPED</th>
             <th class="uom-col">UOM</th>
-            <th class="desc-col">Description</th>
+            <th class="desc-col">DESCRIPTION</th>
             <th class="unit-price-col right">UNIT PRICE</th>
             <th class="amount-col right">AMOUNT</th>
           </tr>
@@ -429,22 +425,19 @@ body {
   margin-bottom: 0.25rem;
 }
 
-/* Customer section */
+/* Customer section - Updated to remove all borders */
 .customer-section {
   display: flex;
-  border: 1px solid #94a3b8;
+  border: none;
   margin-bottom: 1rem;
   flex-wrap: nowrap;
+  width: 100%;
 }
 
 .customer-block {
-  flex: 0 0 48%;
+  flex: 1; /* Each block takes equal width */
   padding: 0.5rem 0.75rem;
   font-size: 11px;
-}
-
-.customer-block:first-child {
-  border-right: 1px solid #94a3b8;
 }
 
 .customer-title {
@@ -481,47 +474,52 @@ body {
   background-color: #f1f5f9;
 }
 
-/* CO Number */
-.co-number {
-  border-left: 1px solid #94a3b8;
-  border-right: 1px solid #94a3b8;
-  padding: 0.5rem;
-  font-weight: bold;
-  font-size: 11px;
-}
-
-/* Part info */
-.part-info {
+/* Horizontal info line with items side by side */
+.info-horizontal-row {
   display: flex;
-  border-left: 1px solid #94a3b8;
-  border-right: 1px solid #94a3b8;
-  border-bottom: 1px solid #94a3b8;
-}
-
-.part-number-col, .do-remarks-col {
-  flex: 1;
-  padding: 0.5rem;
-  font-weight: bold;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
   font-size: 11px;
+  font-weight: bold;
 }
 
-/* Items table */
+.info-item {
+  flex: 1;
+  margin: 0 0.5rem;
+}
+
+.info-separator {
+  color: #94a3b8;
+  margin: 0 0.5rem;
+  font-weight: normal;
+}
+
+/* Items table - Modified to have only top border for headers */
 .items-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid #94a3b8;
+  border: none;
   margin-top: 1rem;
 }
 
-.items-table th, .items-table td {
-  border: 1px solid #94a3b8;
+.items-table th {
+  border-top: 1px solid #94a3b8;
+  border-bottom: 1px solid #94a3b8;
+  border-left: none;
+  border-right: none;
   padding: 0.5rem;
   font-size: 11px;
-}
-
-.items-table th {
   background-color: #f1f5f9;
   font-weight: bold;
+}
+
+.items-table td {
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 0.5rem;
+  font-size: 11px;
 }
 
 .no-col { width: 5%; }
@@ -568,9 +566,6 @@ body {
   text-align: right;
   font-size: 12px;
 }
-
-/* Amount in words */
-/* Removed as per user request */
 
 /* Payment terms */
 .payment-terms {
@@ -653,5 +648,3 @@ body {
   }
 }
 </style>
-
-

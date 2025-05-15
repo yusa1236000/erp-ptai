@@ -20,7 +20,7 @@
           <div class="filters">
             <select v-model="statusFilter" @change="applyFilters">
               <option value="">All Status</option>
-              <option value="Pending">Waiting</option>
+              <option value="Pending">Pending</option>
               <option value="In Transit">In Transit</option>
               <option value="Completed">Completed</option>
               <option value="Cancelled">Cancelled</option>
@@ -357,10 +357,10 @@
 
       const getStatusLabel = (status) => {
         switch (status) {
-          case 'Pending': return 'Menunggu';
-          case 'In Transit': return 'Dalam Pengiriman';
-          case 'Completed': return 'Selesai';
-          case 'Cancelled': return 'Dibatalkan';
+          case 'Pending': return 'Pending';
+          case 'In Transit': return 'In Transit';
+          case 'Completed': return 'Completed';
+          case 'Cancelled': return 'Cancelled';
           default: return status;
         }
       };

@@ -64,6 +64,7 @@ import VendorCreate from "../views/purchasing/VendorCreate.vue";
 import VendorEdit from "../views/purchasing/VendorEdit.vue";
 
 //Puchase Requisition
+// Import components Purchase Requisition
 import PurchaseRequisitionList from "../views/purchasing/PurchaseRequisitionList.vue";
 import PurchaseRequisitionForm from "../views/purchasing/PurchaseRequisitionForm.vue";
 import PurchaseRequisitionDetail from "../views/purchasing/PurchaseRequisitionDetail.vue";
@@ -78,10 +79,10 @@ import RFQSend from "../views/purchasing/RFQSend.vue";
 import RFQCompare from "../views/purchasing/RFQCompare.vue";
 
 // Import Purchase Order components
-//import PurchaseOrderList from '@/views/purchasing/PurchaseOrderList.vue';
-// import PurchaseOrderDetail from '@/views/purchasing/PurchaseOrderDetail.vue';
-// import PurchaseOrderFormView from '@/views/purchasing/PurchaseOrderFormView.vue';
-// import PurchaseOrderTrack from '@/views/purchasing/PurchaseOrderTrack.vue';
+import PurchaseOrderList from '@/views/purchasing/PurchaseOrderList.vue';
+import PurchaseOrderDetail from '@/views/purchasing/PurchaseOrderDetail.vue';
+import PurchaseOrderFormView from '@/views/purchasing/PurchaseOrderFormView.vue';
+import PurchaseOrderTrack from '@/views/purchasing/PurchaseOrderTrack.vue';
 import CreatePOFromQuotation from '@/views/purchasing/CreatePOFromQuotation.vue';
 
 //GoodReceipt
@@ -596,42 +597,54 @@ const routes = [
             },
             {
                 path: "/purchasing/requisitions",
-                name: "PurchaseRequisitions",
+                name: "PurchaseRequisitionList",
                 component: PurchaseRequisitionList,
-                meta: { requiresAuth: true },
+                meta: { requiresAuth: true }
             },
             {
                 path: "/purchasing/requisitions/create",
                 name: "CreatePurchaseRequisition",
                 component: PurchaseRequisitionForm,
-                meta: { requiresAuth: true },
+                meta: { requiresAuth: true }
             },
             {
                 path: "/purchasing/requisitions/:id",
                 name: "PurchaseRequisitionDetail",
                 component: PurchaseRequisitionDetail,
                 props: true,
-                meta: { requiresAuth: true },
+                meta: { requiresAuth: true }
             },
             {
                 path: "/purchasing/requisitions/:id/edit",
                 name: "EditPurchaseRequisition",
                 component: PurchaseRequisitionForm,
                 props: true,
-                meta: { requiresAuth: true },
+                meta: { requiresAuth: true }
             },
             {
                 path: "/purchasing/requisitions/:id/approve",
                 name: "ApprovePurchaseRequisition",
                 component: PurchaseRequisitionApproval,
                 props: true,
-                meta: { requiresAuth: true },
+                meta: { requiresAuth: true }
             },
             {
                 path: "/purchasing/requisitions/:id/convert",
                 name: "ConvertToRFQ",
                 component: ConvertToRFQ,
                 props: true,
+                meta: { requiresAuth: true }
+            },
+            {
+                path: "/purchasing/requisitions/approvals",
+                name: "PRApprovalList",
+                component: () => import("../views/purchasing/PRApprovalList.vue"),
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/purchasing/requisitions/to-rfq",
+                name: "PRToRFQList",
+                component: () => import("../views/purchasing/PRToRFQList.vue"),
                 meta: { requiresAuth: true },
             },
 
@@ -677,40 +690,89 @@ const routes = [
                 meta: { requiresAuth: true },
             },
 
+            // Add these routes to your router.js file in the purchasing section
+            {
+                path: "/purchasing/quotations",
+                name: "VendorQuotations",
+                component: () => import("../views/purchasing/VendorQuotationList.vue"),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: "/purchasing/quotations/create",
+                name: "CreateVendorQuotation",
+                component: () => import("../views/purchasing/VendorQuotationForm.vue"),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: "/purchasing/quotations/:id",
+                name: "VendorQuotationDetail",
+                component: () => import("../views/purchasing/VendorQuotationDetail.vue"),
+                props: true,
+                meta: { requiresAuth: true }
+            },
+            {
+                path: "/purchasing/quotations/:id/edit",
+                name: "EditVendorQuotation",
+                component: () => import("../views/purchasing/VendorQuotationForm.vue"),
+                props: true,
+                meta: { requiresAuth: true }
+            },
+            {
+                path: "/purchasing/quotations/compare",
+                name: "CompareVendorQuotations",
+                component: () => import("../views/purchasing/VendorQuotationCompare.vue"),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: "/purchasing/quotations/:id/create-po",
+                name: "CreatePOFromQuotation",
+                component: () => import("../views/purchasing/CreatePOFromQuotation.vue"),
+                props: true,
+                meta: { requiresAuth: true }
+            },
+            
+
             // Purchase Order routes
-            // {
-            //     path: '/purchasing/orders',
-            //     name: 'PurchaseOrders',
-            //     component: PurchaseOrderList,
-            //     meta: { requiresAuth: true }
-            // },
-            // {
-            //     path: '/purchasing/orders/create',
-            //     name: 'CreatePurchaseOrder',
-            //     component: PurchaseOrderFormView,
-            //     meta: { requiresAuth: true }
-            // },
-            // {
-            //     path: '/purchasing/orders/:id',
-            //     name: 'PurchaseOrderDetail',
-            //     component: PurchaseOrderDetail,
-            //     props: true,
-            //     meta: { requiresAuth: true }
-            // },
-            // {
-            //     path: '/purchasing/orders/:id/edit',
-            //     name: 'EditPurchaseOrder',
-            //     component: PurchaseOrderFormView,
-            //     props: true,
-            //     meta: { requiresAuth: true }
-            // },
-            // {
-            //     path: '/purchasing/orders/:id/track',
-            //     name: 'PurchaseOrderTrack',
-            //     component: PurchaseOrderTrack,
-            //     props: true,
-            //     meta: { requiresAuth: true }
-            // },
+            {
+                path: '/purchasing/orders',
+                name: 'PurchaseOrders',
+                component: PurchaseOrderList,
+                meta: { requiresAuth: true }
+            },
+            {
+                path: '/purchasing/orders/create',
+                name: 'CreatePurchaseOrder',
+                component: PurchaseOrderFormView,
+                meta: { requiresAuth: true }
+            },
+            {
+                path: '/purchasing/orders/:id',
+                name: 'PurchaseOrderDetail',
+                component: PurchaseOrderDetail,
+                props: true,
+                meta: { requiresAuth: true }
+            },
+            {
+                path: '/purchasing/orders/:id/edit',
+                name: 'EditPurchaseOrder',
+                component: PurchaseOrderFormView,
+                props: true,
+                meta: { requiresAuth: true }
+            },
+            {
+                path: '/purchasing/orders/:id/track',
+                name: 'PurchaseOrderTrack',
+                component: PurchaseOrderTrack,
+                props: true,
+                meta: { requiresAuth: true }
+            },
+            {
+                path: '/purchasing/quotations/:id/create-po',
+                name: 'CreatePOFromQuotation',
+                component: CreatePOFromQuotation,
+                props: true,
+                meta: { requiresAuth: true }
+            },
             {
                 path: '/purchasing/quotations/:id/create-po',
                 name: 'CreatePOFromQuotation',
@@ -760,52 +822,52 @@ const routes = [
             },
 
             // Vendor Invoice
-            // {
-            //     path: "/purchasing/vendor-invoices",
-            //     name: "VendorInvoiceList",
-            //     component: () =>
-            //         import("../views/purchasing/VendorInvoiceList.vue"),
-            //     meta: { requiresAuth: true },
-            // },
-            // {
-            //     path: "/purchasing/vendor-invoices/create",
-            //     name: "VendorInvoiceCreate",
-            //     component: () =>
-            //         import("../views/purchasing/VendorInvoiceCreate.vue"),
-            //     meta: { requiresAuth: true },
-            // },
-            // {
-            //     path: "/purchasing/vendor-invoices/",
-            //     name: "VendorInvoiceDetail",
-            //     component: () =>
-            //         import("../views/purchasing/VendorInvoiceDetail.vue"),
-            //     props: true,
-            //     meta: { requiresAuth: true },
-            // },
-            // {
-            //     path: "/purchasing/vendor-invoices//edit",
-            //     name: "VendorInvoiceEdit",
-            //     component: () =>
-            //         import("../views/purchasing/VendorInvoiceEdit.vue"),
-            //     props: true,
-            //     meta: { requiresAuth: true },
-            // },
-            // {
-            //     path: "/purchasing/vendor-invoices//approve",
-            //     name: "VendorInvoiceApproval",
-            //     component: () =>
-            //         import("../views/purchasing/VendorInvoiceApproval.vue"),
-            //     props: true,
-            //     meta: { requiresAuth: true },
-            // },
-            // {
-            //     path: "/purchasing/vendor-invoices//payment",
-            //     name: "VendorInvoicePayment",
-            //     component: () =>
-            //         import("../views/purchasing/VendorInvoicePayment.vue"),
-            //     props: true,
-            //     meta: { requiresAuth: true },
-            // },
+            {
+                path: "/purchasing/vendor-invoices",
+                name: "VendorInvoiceList",
+                component: () =>
+                    import("../views/purchasing/VendorInvoiceList.vue"),
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/purchasing/vendor-invoices/create",
+                name: "VendorInvoiceCreate",
+                component: () =>
+                    import("../views/purchasing/VendorInvoiceForm.vue"),
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/purchasing/vendor-invoices/:id",
+                name: "VendorInvoiceDetail",
+                component: () =>
+                    import("../views/purchasing/VendorInvoiceDetail.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/purchasing/vendor-invoices/:id/edit",
+                name: "VendorInvoiceEdit",
+                component: () =>
+                    import("../views/purchasing/VendorInvoiceForm.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/purchasing/vendor-invoices/approve",
+                name: "VendorInvoiceApproval",
+                component: () =>
+                    import("../views/purchasing/VendorInvoiceApproval.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/purchasing/vendor-invoices/payment",
+                name: "VendorInvoicePayment",
+                component: () =>
+                    import("../views/purchasing/VendorInvoicePayment.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+            },
             // vendor contract service
             // {
             //     path: "/purchasing/contracts",

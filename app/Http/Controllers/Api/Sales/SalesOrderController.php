@@ -23,10 +23,67 @@ class SalesOrderController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        $orders = SalesOrder::with(['customer', 'salesQuotation'])->get();
-        return response()->json(['data' => $orders], 200);
+        $query = SalesOrder::with(['customer', 'salesQuotation']);
+
+        // Search filter
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('so_number', 'like', '%' . $search . '%')
+                    ->orWhereHas('customer', function ($q2) use ($search) {
+                        $q2->where('name', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        // Status filter
+        if ($request->has('status') && !empty($request->status)) {
+            $query->where('status', $request->status);
+        }
+
+        // Date range filter
+        if ($request->has('date_range') && $request->date_range !== 'all') {
+            $dateRange = $request->date_range;
+            $today = now()->startOfDay();
+
+            if ($dateRange === 'today') {
+                $query->whereDate('so_date', $today);
+            } elseif ($dateRange === 'week') {
+                $query->whereBetween('so_date', [$today->copy()->startOfWeek(), $today->copy()->endOfWeek()]);
+            } elseif ($dateRange === 'month') {
+                $query->whereBetween('so_date', [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()]);
+            }
+        }
+
+        // Custom date range filter
+        if ($request->has('start_date') && $request->has('end_date') && $request->date_range === 'custom') {
+            $startDate = $request->start_date;
+            $endDate = $request->end_date;
+            $query->whereBetween('so_date', [$startDate, $endDate]);
+        }
+
+        // Sorting
+        $sortField = $request->get('sort_field', 'so_id');
+        $sortDirection = $request->get('sort_direction', 'desc');
+        $query->orderBy($sortField, $sortDirection);
+
+        // Pagination
+        $perPage = $request->get('per_page', 10);
+        $page = $request->get('page', 1);
+
+        $orders = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data' => $orders->items(),
+            'meta' => [
+                'total' => $orders->total(),
+                'per_page' => $orders->perPage(),
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+            ]
+        ], 200);
     }
 
     /**

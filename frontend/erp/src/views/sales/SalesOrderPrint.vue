@@ -4,10 +4,10 @@
       <!-- Print Actions -->
       <div class="print-actions" v-if="!isPrinting">
         <button class="btn btn-primary" @click="printDocument">
-          <i class="fas fa-print"></i> Cetak Dokumen
+          <i class="fas fa-print"></i> Print Document
         </button>
         <button class="btn btn-secondary" @click="goBack">
-          <i class="fas fa-arrow-left"></i> Kembali
+          <i class="fas fa-arrow-left"></i> Back
         </button>
       </div>
 
@@ -15,10 +15,9 @@
       <div class="sales-order-document" ref="printSection">
         <div class="document-header">
           <div class="company-info">
-            <h1 class="company-name">PT. ANEKA RESIN</h1>
-            <p>Jl. Industri Selatan Blok HH No.8</p>
-            <p>Jababeka, Cikarang, Bekasi 17530</p>
-            <p>TEL: (021) 8984-1926 FAX: (021) 8984-1927</p>
+            <h1 class="company-name">PT. ARMSTRONG INDUSTRI INDONESIA</h1>
+            <p>EJIP Industrial park Plot1 A-3, Desa Sukaresmi</p>
+            <p>Cikarang Selatan, Bekasi 17857, Indonesia</p>
           </div>
           <div class="document-title">
             <h2>SALES ORDER</h2>
@@ -43,11 +42,6 @@
               <td>Terms</td>
               <td>:</td>
               <td>{{ order?.payment_terms || 'Net 30 days' }}</td>
-            </tr>
-            <tr>
-              <td>Description</td>
-              <td>:</td>
-              <td>{{ order?.description || '-' }}</td>
             </tr>
             <tr>
               <td>Our Ref No.</td>
@@ -103,14 +97,10 @@
             <tfoot>
               <tr>
                 <td colspan="7" class="total-label">Total</td>
-                <td class="total-value">{{ formatCurrency(order?.totalAmount, order?.currencyCode, true) }}</td>
+                <td class="total-value"> {{ order?.currencyCode }} {{ formatCurrency(order?.totalAmount, order?.currencyCode, true) }}</td>
               </tr>
             </tfoot>
           </table>
-        </div>
-
-        <div class="amount-in-words">
-          {{ getCurrencyName(order?.currencyCode) }} {{ amountInWords }}
         </div>
 
         <div class="document-footer">
@@ -583,14 +573,6 @@
 
   .total-value {
     text-align: right;
-  }
-
-  .amount-in-words {
-    border: 1px solid #000;
-    padding: 0.5rem;
-    margin-bottom: 2rem;
-    font-size: 10pt;
-    font-weight: bold;
   }
 
   .document-footer {

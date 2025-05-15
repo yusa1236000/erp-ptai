@@ -1,14 +1,16 @@
 <!-- src/views/sales/DeliveryForm.vue -->
+```html
+<!-- src/views/sales/DeliveryForm.vue (Template section with English translations) -->
 <template>
   <div class="delivery-form">
     <div class="page-header">
-      <h1>{{ isEditMode ? 'Edit Pengiriman' : 'Buat Pengiriman Baru' }}</h1>
+      <h1>{{ isEditMode ? 'Edit Delivery' : 'Create New Delivery' }}</h1>
       <div class="page-actions">
         <button class="btn btn-secondary" @click="goBack">
-          <i class="fas fa-arrow-left"></i> Kembali
+          <i class="fas fa-arrow-left"></i> Back
         </button>
         <button class="btn btn-primary" @click="saveDelivery" :disabled="isSubmitting">
-          <i class="fas fa-save"></i> {{ isSubmitting ? 'Menyimpan...' : 'Simpan' }}
+          <i class="fas fa-save"></i> {{ isSubmitting ? 'Saving...' : 'Save' }}
         </button>
       </div>
     </div>
@@ -20,12 +22,12 @@
     <div class="form-container">
       <div class="form-card">
         <div class="card-header">
-          <h2>Informasi Pengiriman</h2>
+          <h2>Delivery Information</h2>
         </div>
         <div class="card-body">
           <div class="form-row">
             <div class="form-group">
-              <label for="delivery_number">Nomor Pengiriman*</label>
+              <label for="delivery_number">Delivery Number*</label>
               <input
                 type="text"
                 id="delivery_number"
@@ -34,11 +36,11 @@
                 :readonly="isEditMode"
                 :class="{ 'readonly': isEditMode }"
               />
-              <small v-if="isEditMode" class="text-muted">Nomor pengiriman tidak dapat diubah</small>
+              <small v-if="isEditMode" class="text-muted">Delivery number cannot be changed</small>
             </div>
 
             <div class="form-group">
-              <label for="delivery_date">Tanggal Pengiriman*</label>
+              <label for="delivery_date">Delivery Date*</label>
               <input
                 type="date"
                 id="delivery_date"
@@ -52,7 +54,7 @@
             <div class="form-group">
               <label for="so_id">Sales Order*</label>
               <select id="so_id" v-model="form.so_id" required @change="loadSalesOrderDetails">
-                <option value="">-- Pilih Sales Order --</option>
+                <option value="">-- Select Sales Order --</option>
                 <option v-for="so in salesOrders" :key="so.so_id" :value="so.so_id">
                   {{ so.so_number }} - {{ so.customer.name }}
                 </option>
@@ -60,12 +62,12 @@
             </div>
 
             <div class="form-group">
-              <label for="shipping_method">Metode Pengiriman</label>
+              <label for="shipping_method">Shipping Method</label>
               <select id="shipping_method" v-model="form.shipping_method">
-                <option value="">-- Pilih Metode --</option>
-                <option value="Road">Darat</option>
-                <option value="Sea">Laut</option>
-                <option value="Air">Udara</option>
+                <option value="">-- Select Method --</option>
+                <option value="Road">Road</option>
+                <option value="Sea">Sea</option>
+                <option value="Air">Air</option>
                 <option value="Express">Express</option>
               </select>
             </div>
@@ -73,22 +75,22 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="tracking_number">Nomor Pelacakan</label>
+              <label for="tracking_number">Tracking Number</label>
               <input
                 type="text"
                 id="tracking_number"
                 v-model="form.tracking_number"
-                placeholder="Nomor pelacakan pengiriman"
+                placeholder="Delivery tracking number"
               />
             </div>
 
             <div class="form-group" v-if="isEditMode">
               <label for="status">Status*</label>
               <select id="status" v-model="form.status" required>
-                <option value="Pending">Menunggu</option>
-                <option value="In Transit">Dalam Pengiriman</option>
-                <option value="Completed">Selesai</option>
-                <option value="Cancelled">Dibatalkan</option>
+                <option value="Pending">Pending</option>
+                <option value="In Transit">In Transit</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
               </select>
             </div>
           </div>
@@ -102,17 +104,17 @@
         <div class="card-body" v-if="selectedCustomer">
           <div class="customer-info">
             <div class="info-group">
-              <label>Nama Pelanggan</label>
+              <label>Customer Name</label>
               <div class="info-value">{{ selectedCustomer.name }}</div>
             </div>
 
             <div class="info-group">
-              <label>Kode Pelanggan</label>
+              <label>Customer Code</label>
               <div class="info-value">{{ selectedCustomer.customer_code }}</div>
             </div>
 
             <div class="info-group">
-              <label>Alamat</label>
+              <label>Address</label>
               <div class="info-value">{{ selectedCustomer.address || '-' }}</div>
             </div>
 
@@ -122,35 +124,35 @@
             </div>
 
             <div class="info-group">
-              <label>Telepon</label>
+              <label>Phone</label>
               <div class="info-value">{{ selectedCustomer.phone || '-' }}</div>
             </div>
           </div>
         </div>
         <div class="card-body empty-info" v-else>
-          <p>Pilih Sales Order terlebih dahulu untuk melihat informasi pelanggan</p>
+          <p>Select a Sales Order first to view customer information</p>
         </div>
       </div>
 
       <div class="form-card">
         <div class="card-header">
-          <h2>Item Pengiriman</h2>
+          <h2>Delivery Items</h2>
         </div>
         <div class="card-body">
           <div v-if="form.lines.length === 0" class="empty-lines">
-            <p>Pilih Sales Order terlebih dahulu untuk menambahkan item pengiriman.</p>
+            <p>Select a Sales Order first to add delivery items.</p>
           </div>
 
           <div v-else class="delivery-lines">
             <div class="line-headers">
               <div class="line-header">Item</div>
-              <div class="line-header">Jumlah Dipesan</div>
-              <div class="line-header">Jumlah Terkirim</div>
-              <div class="line-header">Sisa Outstanding</div>
-              <div class="line-header">Jumlah Dikirim</div>
-              <div class="line-header">Gudang</div>
+              <div class="line-header">Ordered Quantity</div>
+              <div class="line-header">Delivered Quantity</div>
+              <div class="line-header">Remaining Outstanding</div>
+              <div class="line-header">Quantity to Ship</div>
+              <div class="line-header">Warehouse</div>
               <div class="line-header">Batch Number</div>
-              <div class="line-header">Aksi</div>
+              <div class="line-header">Action</div>
             </div>
 
             <div
@@ -195,7 +197,7 @@
 
               <div class="line-item">
                 <select v-model="line.warehouse_id" required>
-                  <option value="">-- Pilih Gudang --</option>
+                  <option value="">-- Select Warehouse --</option>
                   <option v-for="warehouse in warehouses" :key="warehouse.warehouse_id" :value="warehouse.warehouse_id">
                     {{ warehouse.name }}
                   </option>
@@ -206,7 +208,7 @@
                 <input
                   type="text"
                   v-model="line.batch_number"
-                  placeholder="Batch Number (opsional)"
+                  placeholder="Batch Number (optional)"
                 />
               </div>
 
@@ -214,7 +216,7 @@
                 <button
                   type="button"
                   class="btn-icon delete-btn"
-                  title="Hapus Item"
+                  title="Delete Item"
                   @click="removeLine(index)"
                 >
                   <i class="fas fa-trash"></i>
@@ -226,12 +228,12 @@
       </div>
 
       <div class="form-actions">
-        <button type="button" class="btn btn-secondary" @click="goBack">
-          Batal
+        <!-- <button type="button" class="btn btn-secondary" @click="goBack">
+          Cancel
         </button>
         <button type="button" class="btn btn-primary" @click="saveDelivery" :disabled="isSubmitting">
-          {{ isSubmitting ? 'Menyimpan...' : 'Simpan Pengiriman' }}
-        </button>
+          {{ isSubmitting ? 'Saving...' : 'Save Delivery' }}
+        </button> -->
       </div>
     </div>
   </div>
@@ -383,7 +385,7 @@ export default {
         }
       } catch (err) {
         console.error('Error loading delivery:', err);
-        error.value = 'Terjadi kesalahan saat memuat data pengiriman.';
+        error.value = 'An error occurred while loading the delivery data.';
       } finally {
         isLoading.value = false;
       }
@@ -526,7 +528,7 @@ export default {
     const saveDelivery = async () => {
       // Validate form
       if (!form.value.delivery_number || !form.value.delivery_date || !form.value.so_id) {
-        error.value = 'Harap isi semua field yang wajib diisi.';
+        error.value = 'Please fill in all required fields.';
         return;
       }
 

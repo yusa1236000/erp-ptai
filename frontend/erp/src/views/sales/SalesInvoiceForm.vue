@@ -533,14 +533,21 @@
       async loadInvoice() {
         try {
           const response = await axios.get(`/invoices/${this.id}`);
+
+          if (!response || !response.data || !response.data.data) {
+            console.warn('loadInvoice: response.data.data is undefined', response);
+            this.$toast.error('Invoice data is missing or invalid');
+            return;
+          }
+
           const invoice = response.data.data;
 
-          // Format dates
+          // Format dates safely
           invoice.invoice_date = invoice.invoice_date ? invoice.invoice_date.split('T')[0] : '';
           invoice.due_date = invoice.due_date ? invoice.due_date.split('T')[0] : '';
 
           // Process lines to ensure they have the necessary properties
-          if (invoice.salesInvoiceLines) {
+          if (invoice.salesInvoiceLines && Array.isArray(invoice.salesInvoiceLines)) {
             invoice.lines = invoice.salesInvoiceLines.map(line => ({
               line_id: line.line_id,
               item_id: line.item_id,
@@ -555,13 +562,17 @@
               do_line_id: line.do_line_id
             }));
             delete invoice.salesInvoiceLines;
+          } else {
+            invoice.lines = [];
           }
 
           this.invoice = invoice;
           this.calculateTotals();
         } catch (error) {
           console.error('Error loading invoice:', error);
-          this.$toast.error('Failed to load invoice');
+          if (this.$toast && typeof this.$toast.error === 'function') {
+            this.$toast.error('Failed to load invoice');
+          }
         }
       },
 

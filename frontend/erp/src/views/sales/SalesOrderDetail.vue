@@ -5,7 +5,7 @@
             <h1>Detail Order</h1>
             <div class="page-actions">
                 <button class="btn btn-secondary" @click="goBack">
-                    <i class="fas fa-arrow-left"></i> Kembali
+                    <i class="fas fa-arrow-left"></i> Back
                 </button>
                 <div class="btn-group" v-if="order">
                     <button
@@ -44,14 +44,14 @@
                     </button>
 
                     <button class="btn btn-secondary" @click="printOrder">
-                        <i class="fas fa-print"></i> Cetak
+                        <i class="fas fa-print"></i> Priview Print
                     </button>
                 </div>
             </div>
         </div>
 
         <div v-if="isLoading" class="loading-indicator">
-            <i class="fas fa-spinner fa-spin"></i> Memuat data order...
+            <i class="fas fa-spinner fa-spin"></i> Loading order data...
         </div>
 
         <div v-else-if="!order" class="empty-state">
@@ -69,7 +69,7 @@
             <!-- Order Header -->
             <div class="detail-card">
                 <div class="card-header">
-                    <h2>Informasi Order</h2>
+                    <h2>Order Information</h2>
                     <div
                         class="order-status"
                         :class="getStatusClass(order.status)"
@@ -80,26 +80,26 @@
                 <div class="card-body">
                     <div class="info-grid">
                         <div class="info-group">
-                            <label>Nomor Order</label>
+                            <label>Order Number</label>
                             <div class="info-value">{{ order.soNumber }}</div>
                         </div>
 
                         <div class="info-group">
-                            <label>Tanggal Order</label>
+                            <label>Order Date</label>
                             <div class="info-value">
                                 {{ formatDate(order.soDate) }}
                             </div>
                         </div>
 
                         <div class="info-group">
-                            <label>Pelanggan</label>
+                            <label>Customer</label>
                             <div class="info-value">
                                 {{ order.customer.name }}
                             </div>
                         </div>
 
                         <div class="info-group">
-                            <label>Referensi Penawaran</label>
+                            <label>Quotation Reference</label>
                             <div class="info-value">
                                 <template v-if="order.quotation_id">
                                     <a
@@ -119,14 +119,14 @@
                         </div>
 
                         <div class="info-group">
-                            <label>Perkiraan Pengiriman</label>
+                            <label>Expected Delivery</label>
                             <div class="info-value">
                                 {{ formatDate(order.expected_delivery) || "-" }}
                             </div>
                         </div>
 
                         <div class="info-group">
-                            <label>Syarat Pembayaran</label>
+                            <label>Payment Terms</label>
                             <div class="info-value">
                                 {{ order.payment_terms || "-" }}
                             </div>
@@ -138,26 +138,26 @@
             <!-- Customer Information -->
             <div class="detail-card">
                 <div class="card-header">
-                    <h2>Informasi Pelanggan</h2>
+                    <h2>Customer Information</h2>
                 </div>
                 <div class="card-body">
                     <div class="customer-info">
                         <div class="info-group">
-                            <label>Nama Pelanggan</label>
+                            <label>Customer Name</label>
                             <div class="info-value">
                                 {{ order.customer.name }}
                             </div>
                         </div>
 
                         <div class="info-group">
-                            <label>Kode Pelanggan</label>
+                            <label>Customer Code</label>
                             <div class="info-value">
                                 {{ order.customer.customerCode }}
                             </div>
                         </div>
 
                         <div class="info-group">
-                            <label>Alamat</label>
+                            <label>Address</label>
                             <div class="info-value">
                                 {{ order.customer.address || "-" }}
                             </div>
@@ -178,7 +178,7 @@
                         </div>
 
                         <div class="info-group">
-                            <label>Telepon</label>
+                            <label>Phone</label>
                             <div class="info-value">
                                 {{ order.customer.phone || "-" }}
                             </div>
@@ -205,9 +205,9 @@
                             <thead>
                                 <tr>
                                     <th>Item</th>
-                                    <th>Harga Unit</th>
-                                    <th>Jumlah Order</th>
-                                    <th>Jumlah Terkirim</th>
+                                    <th>Unit Price</th>
+                                    <th>Order Quantity</th>
+                                    <th>Delivered Quantity</th>
                                     <th>Outstanding</th>
                                     <th>UOM</th>
                                     <th>Status</th>
@@ -307,16 +307,16 @@
             <!-- Order Fulfillment Summary -->
             <div class="detail-card" v-if="showFulfillmentSummary">
                 <div class="card-header">
-                    <h2>Ringkasan Pengiriman</h2>
+                    <h2>Delivery Summary</h2>
                 </div>
                 <div class="card-body">
                     <div class="fulfillment-summary">
                         <div class="summary-card">
-                            <div class="summary-title">Total Item Order</div>
+                            <div class="summary-title">Total Order Items</div>
                             <div class="summary-value">{{ getTotalOrderedItems() }}</div>
                         </div>
                         <div class="summary-card">
-                            <div class="summary-title">Total Jumlah Terkirim</div>
+                            <div class="summary-title">Total Order Items</div>
                             <div class="summary-value">{{ getTotalDeliveredQuantity() }}</div>
                         </div>
                         <div class="summary-card">
@@ -326,7 +326,7 @@
                             </div>
                         </div>
                         <div class="summary-card">
-                            <div class="summary-title">Persentase Pengiriman</div>
+                            <div class="summary-title">Delivery Percentage</div>
                             <div class="summary-value">{{ getDeliveryPercentage() }}%</div>
                             <div class="progress-bar">
                                 <div class="progress" :style="{ width: getDeliveryPercentage() + '%' }"></div>
@@ -335,7 +335,7 @@
                     </div>
                     <div class="delivery-actions" v-if="getTotalOutstandingQuantity() > 0 && (order.status === 'Confirmed' || order.status === 'Processing')">
                         <button class="btn btn-primary" @click="createDelivery">
-                            <i class="fas fa-truck"></i> Proses Pengiriman untuk Outstanding Item
+                            <i class="fas fa-truck"></i> Process Delivery for Outstanding Items
                         </button>
                     </div>
                 </div>
@@ -344,18 +344,18 @@
             <!-- Related Deliveries (if any) -->
             <div v-if="hasDeliveries" class="detail-card">
                 <div class="card-header">
-                    <h2>Pengiriman Terkait</h2>
+                    <h2>Related Deliveries</h2>
                 </div>
                 <div class="card-body">
                     <div class="related-items">
                         <table class="related-table">
                             <thead>
                                 <tr>
-                                    <th>No. Pengiriman</th>
-                                    <th>Tanggal</th>
+                                    <th>Delivery No.</th>
+                                    <th>Date</th>
                                     <th>Status</th>
-                                    <th>Pengiriman</th>
-                                    <th>Aksi</th>
+                                    <th>Shipping</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -386,7 +386,7 @@
                                             class="btn btn-sm btn-secondary"
                                             @click="viewDelivery(delivery)"
                                         >
-                                            <i class="fas fa-eye"></i> Lihat
+                                            <i class="fas fa-eye"></i> View
                                         </button>
                                     </td>
                                 </tr>

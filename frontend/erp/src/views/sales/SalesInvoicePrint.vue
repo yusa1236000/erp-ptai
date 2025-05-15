@@ -6,9 +6,14 @@
       <button @click="goBack" class="btn btn-secondary">
         <i class="fas fa-arrow-left"></i> Back
       </button>
-      <button @click="printInvoice" class="btn btn-primary">
-        <i class="fas fa-print"></i> Print Invoice
-      </button>
+      <div class="print-actions">
+        <button @click="printInvoice" class="btn btn-primary">
+          <i class="fas fa-print"></i> Print Invoice
+        </button>
+        <button @click="downloadPDF" class="btn btn-info">
+          <i class="fas fa-file-pdf"></i> Save as PDF
+        </button>
+      </div>
     </div>
 
     <!-- Loading Indicator -->
@@ -17,13 +22,14 @@
     </div>
 
     <!-- Invoice Content (for printing) -->
-    <div v-else class="invoice-document">
+    <div v-else ref="invoiceDoc" class="invoice-document">
       <!-- Invoice Header -->
       <div class="header">
         <div class="company-info">
           <h1 class="company-name">PT. ARMSTRONG INDUSTRI INDONESIA</h1>
           <p>EJIP INDUSTRIAL PARK PLOT 1 A-3 LIPPO CIKARANG</p>
           <p>SUKARESMI, CIKARANG SELATAN, BEKASI 17857</p>
+          <p>Phone: (021) 8974-7566</p>
         </div>
         <div class="invoice-info">
           <div class="info-row">
@@ -43,12 +49,12 @@
         <div class="customer-block">
           <div class="customer-title">SOLD TO :</div>
           <div v-if="invoice.customer" class="customer-details">
-            {{ invoice.customer.name }}<br>
+            <strong>{{ invoice.customer.name }}</strong><br>
             {{ invoice.customer.address }}<br>
             {{ invoice.customer.city }} {{ invoice.customer.country }} {{ invoice.customer.postal_code }}
           </div>
           <div v-else class="customer-details">
-            PT. INDONESIA EPSON INDUSTRY<br>
+            <strong>PT. INDONESIA EPSON INDUSTRY</strong><br>
             EJIP INDUSTRIAL PARK PLOT 4E<br>
             CIKARANG SELATAN<br>
             BEKASI INDONESIA 17550
@@ -57,12 +63,12 @@
         <div class="customer-block">
           <div class="customer-title">GOOD DELIVERY TO :</div>
           <div v-if="invoice.customer" class="customer-details">
-            {{ invoice.customer.name }}<br>
+            <strong>{{ invoice.customer.name }}</strong><br>
             {{ invoice.customer.address }}<br>
             {{ invoice.customer.city }} {{ invoice.customer.country }} {{ invoice.customer.postal_code }}
           </div>
           <div v-else class="customer-details">
-            PT. INDONESIA EPSON INDUSTRY<br>
+            <strong>PT. INDONESIA EPSON INDUSTRY</strong><br>
             EJIP INDUSTRIAL PARK PLOT 4E<br>
             CIKARANG SELATAN<br>
             BEKASI INDONESIA 17550
@@ -83,12 +89,12 @@
               <th>TERMS</th>
             </tr>
             <tr>
-              <td>{{ invoice.reference || '52042-INLAND' }}</td>
+              <td>{{ invoice.reference || 'N/A' }}</td>
               <td>{{ formatDateSimple(invoice.invoice_date) }}</td>
-              <td>DELLA</td>
-              <td>{{ invoice.delivery ? invoice.delivery.delivery_number : 'B24-038844' }}</td>
-              <td></td>
-              <td>{{ invoice.payment_terms || 'Net 60 days' }}</td>
+              <td>SALES</td>
+              <td>{{ invoice.delivery ? invoice.delivery.delivery_number : 'N/A' }}</td>
+              <td>{{ invoice.delivery ? invoice.delivery.shipping_method : '' }}</td>
+              <td>{{ invoice.payment_terms || 'Net 30 days' }}</td>
             </tr>
           </tbody>
         </table>
@@ -96,7 +102,7 @@
 
       <!-- CO Number -->
       <div class="co-number">
-        <span>CO-NUM : {{ invoice.delivery ? invoice.delivery.delivery_number : 'SO3-24-010837' }}</span>
+        <span>CO-NUM : {{ invoice.delivery ? invoice.delivery.sales_order_id : 'N/A' }}</span>
       </div>
 
       <!-- Part Info -->
@@ -122,11 +128,11 @@
         <tbody>
           <tr v-for="(line, index) in invoiceLines" :key="line.line_id || index">
             <td class="no-col center">{{ index + 1 }}</td>
-            <td class="part-col">{{ line.item ? line.item.item_code : '5168816' }}</td>
-            <td class="do-col">{{ invoice.delivery ? invoice.delivery.delivery_number : 'B24-038844' }}</td>
-            <td class="qty-col right">{{ formatNumberWithCommas(line.quantity) }}</td>
-            <td class="uom-col">{{ line.uom_id || 'UNIT' }}</td>
-            <td class="desc-col">{{ line.item ? line.item.name : 'PAD SET PRINTER' }}</td>
+            <td class="part-col">{{ line.item ? line.item.item_code : 'N/A' }}</td>
+            <td class="do-col">{{ invoice.delivery ? invoice.delivery.delivery_number : 'N/A' }}</td>
+            <td class="qty-col right">{{ line.quantity }}</td>
+            <td class="uom-col">{{ getUomSymbol(line) }}</td>
+            <td class="desc-col">{{ line.item ? line.item.name : 'Unknown Item' }}</td>
             <td class="unit-price-col right">{{ formatNumberWithCommas(line.unit_price) }}</td>
             <td class="amount-col right">{{ formatNumberTwoDecimals(line.total) }}</td>
           </tr>
@@ -139,6 +145,11 @@
           <div class="summary-label">Harga jual</div>
           <div class="summary-colon">:</div>
           <div class="summary-value">{{ formatNumberTwoDecimals(calculateSubtotal()) }}</div>
+        </div>
+        <div v-if="calculateTotalDiscount() > 0" class="summary-row">
+          <div class="summary-label">Diskon</div>
+          <div class="summary-colon">:</div>
+          <div class="summary-value">{{ formatNumberTwoDecimals(calculateTotalDiscount()) }}</div>
         </div>
         <div class="summary-row">
           <div class="summary-label">Tax</div>
@@ -168,6 +179,25 @@
           </li>
         </ol>
       </div>
+
+      <!-- Signature Area -->
+      <div class="signature-area">
+        <div class="signature-box">
+          <p>Issued By</p>
+          <div class="signature-line"></div>
+          <p>PT. ARMSTRONG INDUSTRI INDONESIA</p>
+        </div>
+        <div class="signature-box">
+          <p>Received By</p>
+          <div class="signature-line"></div>
+          <p>{{ invoice.customer ? invoice.customer.name : 'Customer' }}</p>
+        </div>
+      </div>
+
+      <!-- Invoice Footer -->
+      <div class="invoice-footer">
+        <p>Thank you for your business!</p>
+      </div>
     </div>
   </div>
 </template>
@@ -186,8 +216,7 @@ export default {
   data() {
     return {
       invoice: {},
-      receivable: null,
-      loading: true,
+      loading: true
     };
   },
   computed: {
@@ -204,11 +233,6 @@ export default {
       try {
         const response = await axios.get(`/invoices/${this.id}`);
         this.invoice = response.data.data;
-
-        // Get receivable information
-        if (this.invoice.customerReceivables && this.invoice.customerReceivables.length > 0) {
-          this.receivable = this.invoice.customerReceivables[0];
-        }
       } catch (error) {
         console.error('Error fetching invoice:', error);
         this.$toast.error('Failed to load invoice details');
@@ -217,7 +241,7 @@ export default {
       }
     },
     formatDateSimple(dateString) {
-      if (!dateString) return '26/12/2024';
+      if (!dateString) return 'DD/MM/YYYY';
       const date = new Date(dateString);
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -225,22 +249,20 @@ export default {
       return `${day}/${month}/${year}`;
     },
     formatNumberWithCommas(value) {
-      if (value === undefined || value === null) return '$0.00000';
+      if (value === undefined || value === null) return '0';
       const number = parseFloat(value);
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 5,
-        maximumFractionDigits: 5
-      }).format(number);
+      return number.toLocaleString('en-US', { minimumFractionDigits: 5, maximumFractionDigits: 5 });
     },
     formatNumberTwoDecimals(value) {
       if (value === undefined || value === null) return '0.00';
       const number = parseFloat(value);
-      return number.toFixed(2);
+      return number.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     },
     calculateSubtotal() {
       return this.invoiceLines.reduce((total, line) => total + (line.subtotal || 0), 0);
+    },
+    calculateTotalDiscount() {
+      return this.invoiceLines.reduce((total, line) => total + (line.discount || 0), 0);
     },
     getTaxRate() {
       // Calculate the tax rate as a percentage of the subtotal
@@ -248,8 +270,29 @@ export default {
       if (subtotal === 0 || !this.invoice.tax_amount) return 0;
       return Math.round((this.invoice.tax_amount / subtotal) * 100);
     },
+    getUomSymbol(line) {
+      if (line.item && line.item.unitOfMeasure) {
+        return line.item.unitOfMeasure.symbol || 'PCS';
+      }
+      return line.uom_id || 'PCS';
+    },
     printInvoice() {
       window.print();
+    },
+    downloadPDF() {
+      if (window.html2pdf) {
+        const element = this.$refs.invoiceDoc;
+        const opt = {
+          margin: 10,
+          filename: `Invoice-${this.invoice.invoice_number}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        window.html2pdf().from(element).set(opt).save();
+      } else {
+        this.$toast.error('PDF generation library not available. Please include html2pdf.js');
+      }
     },
     goBack() {
       this.$router.go(-1);
@@ -270,6 +313,7 @@ body {
   font-family: Arial, sans-serif;
   font-size: 12px;
   line-height: 1.4;
+  background: #f5f5f5;
 }
 
 .print-container {
@@ -277,13 +321,20 @@ body {
   margin: 0 auto;
   padding: 1rem;
   background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Print controls */
 .print-controls {
   display: flex;
-  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2rem;
+}
+
+.print-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .btn {
@@ -293,6 +344,8 @@ body {
   display: inline-flex;
   align-items: center;
   font-weight: bold;
+  border: none;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .btn i {
@@ -302,13 +355,28 @@ body {
 .btn-primary {
   background: #2563eb;
   color: white;
-  border: none;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
 }
 
 .btn-secondary {
   background: #e5e7eb;
   color: #1f2937;
-  border: none;
+}
+
+.btn-secondary:hover {
+  background: #d1d5db;
+}
+
+.btn-info {
+  background: #0ea5e9;
+  color: white;
+}
+
+.btn-info:hover {
+  background: #0284c7;
 }
 
 .loading-indicator {
@@ -324,25 +392,32 @@ body {
 
 /* Invoice document */
 .invoice-document {
-  line-height: 1.3;
+  background-color: white;
+  padding: 2rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
 }
 
 /* Header section */
 .header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 1rem;
 }
 
 .company-name {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: bold;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+  color: #1e40af;
 }
 
 .company-info p {
   font-size: 11px;
   margin: 0;
+  line-height: 1.3;
 }
 
 .invoice-info {
@@ -351,76 +426,81 @@ body {
 }
 
 .info-row {
-  margin-bottom: 0.125rem;
+  margin-bottom: 0.25rem;
 }
 
 /* Customer section */
 .customer-section {
   display: flex;
-  border: 1px solid black;
+  border: 1px solid #94a3b8;
+  margin-bottom: 1rem;
+  flex-wrap: nowrap;
 }
 
 .customer-block {
-  flex: 1;
-  padding: 0.5rem;
+  flex: 0 0 48%;
+  padding: 0.5rem 0.75rem;
+  font-size: 11px;
 }
 
 .customer-block:first-child {
-  border-right: 1px solid black;
+  border-right: 1px solid #94a3b8;
 }
 
 .customer-title {
   font-weight: bold;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 12px;
 }
 
 .customer-details {
   font-size: 11px;
+  line-height: 1.4;
 }
 
 /* Order info section */
 .order-info {
-  margin-top: -1px;
+  margin-bottom: 0.5rem;
 }
 
 .order-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid black;
+  border: 1px solid #94a3b8;
 }
 
 .order-table th, .order-table td {
-  border: 1px solid black;
-  padding: 0.25rem 0.5rem;
+  border: 1px solid #94a3b8;
+  padding: 0.5rem;
   font-size: 11px;
+  text-align: center;
 }
 
 .order-table th {
   font-weight: bold;
+  background-color: #f1f5f9;
 }
 
 /* CO Number */
 .co-number {
-  border-left: 1px solid black;
-  border-right: 1px solid black;
-  padding: 0.25rem 0.5rem;
+  border-left: 1px solid #94a3b8;
+  border-right: 1px solid #94a3b8;
+  padding: 0.5rem;
   font-weight: bold;
   font-size: 11px;
-  margin-top: -1px;
 }
 
 /* Part info */
 .part-info {
   display: flex;
-  border-left: 1px solid black;
-  border-right: 1px solid black;
-  border-bottom: 1px solid black;
-  margin-top: -1px;
+  border-left: 1px solid #94a3b8;
+  border-right: 1px solid #94a3b8;
+  border-bottom: 1px solid #94a3b8;
 }
 
 .part-number-col, .do-remarks-col {
   flex: 1;
-  padding: 0.25rem 0.5rem;
+  padding: 0.5rem;
   font-weight: bold;
   font-size: 11px;
 }
@@ -429,14 +509,19 @@ body {
 .items-table {
   width: 100%;
   border-collapse: collapse;
-  border: 1px solid black;
+  border: 1px solid #94a3b8;
   margin-top: 1rem;
 }
 
 .items-table th, .items-table td {
-  border: 1px solid black;
-  padding: 0.25rem 0.5rem;
+  border: 1px solid #94a3b8;
+  padding: 0.5rem;
   font-size: 11px;
+}
+
+.items-table th {
+  background-color: #f1f5f9;
+  font-weight: bold;
 }
 
 .no-col { width: 5%; }
@@ -456,38 +541,46 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
   width: 100%;
 }
 
 .summary-row {
   display: flex;
-  margin-bottom: 0.25rem;
-  width: 260px;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  width: 300px;
 }
 
 .summary-label {
-  width: 80px;
+  width: 100px;
+  font-weight: bold;
+  font-size: 12px;
 }
 
 .summary-colon {
-  width: 10px;
+  width: 20px;
+  text-align: center;
 }
 
 .summary-value {
   flex: 1;
   text-align: right;
+  font-size: 12px;
 }
+
+/* Amount in words */
+/* Removed as per user request */
 
 /* Payment terms */
 .payment-terms {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
 }
 
 .payment-terms h3 {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: bold;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .payment-terms ol {
@@ -495,8 +588,39 @@ body {
 }
 
 .payment-terms li {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
   font-size: 11px;
+}
+
+/* Signature area */
+.signature-area {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3rem;
+}
+
+.signature-box {
+  width: 200px;
+  text-align: center;
+}
+
+.signature-line {
+  height: 50px;
+  border-bottom: 1px solid #94a3b8;
+  margin-bottom: 0.5rem;
+}
+
+.signature-box p {
+  font-size: 11px;
+}
+
+/* Invoice footer */
+.invoice-footer {
+  margin-top: 3rem;
+  text-align: center;
+  font-size: 11px;
+  font-style: italic;
+  color: #64748b;
 }
 
 /* Print specific styles */
@@ -506,11 +630,28 @@ body {
   }
 
   .print-container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
     padding: 0;
+    box-shadow: none;
+    background: white;
+  }
+
+  .invoice-document {
+    border: none;
+    padding: 10mm;
+  }
+
+  body {
+    background: white;
   }
 
   @page {
-    margin: 0.5cm;
+    size: A4;
+    margin: 0;
   }
 }
 </style>
+
+

@@ -2,10 +2,10 @@
 <template>
     <div class="order-form">
         <div class="page-header">
-            <h1>{{ isEditMode ? "Edit Order" : "Buat Order Baru" }}</h1>
+            <h1>{{ isEditMode ? "Edit Order" : "Create New Order" }}</h1>
             <div class="page-actions">
                 <button class="btn btn-secondary" @click="goBack">
-                    <i class="fas fa-arrow-left"></i> Kembali
+                    <i class="fas fa-arrow-left"></i> Back
                 </button>
                 <button
                     class="btn btn-primary"
@@ -13,7 +13,7 @@
                     :disabled="isSubmitting"
                 >
                     <i class="fas fa-save"></i>
-                    {{ isSubmitting ? "Menyimpan..." : "Simpan" }}
+                    {{ isSubmitting ? "saving..." : "Save" }}
                 </button>
             </div>
         </div>
@@ -25,12 +25,12 @@
         <div class="form-container">
             <div class="form-card">
                 <div class="card-header">
-                    <h2>Informasi Order</h2>
+                    <h2>Order Information</h2>
                 </div>
                 <div class="card-body">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="so_number">Nomor Order*</label>
+                            <label for="so_number">Order Number*</label>
                             <input
                                 type="text"
                                 id="so_number"
@@ -40,12 +40,12 @@
                                 :class="{ readonly: isEditMode }"
                             />
                             <small v-if="isEditMode" class="text-muted"
-                                >Nomor order tidak dapat diubah</small
+                                >Order number cannot be changed</small
                             >
                         </div>
 
                         <div class="form-group">
-                            <label for="so_date">Tanggal Order*</label>
+                            <label for="so_date">Order Date*</label>
                             <input
                                 type="date"
                                 id="so_date"
@@ -57,14 +57,14 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="customer_id">Pelanggan*</label>
+                            <label for="customer_id">Customer*</label>
                             <select
                                 id="customer_id"
                                 v-model="form.customer_id"
                                 required
                                 @change="handleCustomerChange"
                             >
-                                <option value="">-- Pilih Pelanggan --</option>
+                                <option value="">-- Customer Change --</option>
                                 <option
                                     v-for="customer in customers"
                                     :key="customer.customer_id"
@@ -77,7 +77,7 @@
 
                         <div class="form-group">
                             <label for="expected_delivery"
-                                >Perkiraan Pengiriman</label
+                                >Expected Delivery</label
                             >
                             <input
                                 type="date"
@@ -89,31 +89,31 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="payment_terms">Syarat Pembayaran</label>
+                            <label for="payment_terms">Payment Terms</label>
                             <input
                                 type="text"
                                 id="payment_terms"
                                 v-model="form.payment_terms"
-                                placeholder="Contoh: 30 hari setelah pengiriman"
+                                placeholder="Example: 30 days after delivery"
                             />
                         </div>
 
                         <div class="form-group">
                             <label for="delivery_terms"
-                                >Syarat Pengiriman</label
+                                >Delivery Terms</label
                             >
                             <input
                                 type="text"
                                 id="delivery_terms"
                                 v-model="form.delivery_terms"
-                                placeholder="Contoh: Franco gudang pembeli"
+                                placeholder="Example: Free to buyer's warehouse"
                             />
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="currency_code">Mata Uang*</label>
+                            <label for="currency_code">Currency Code*</label>
                             <select
                                 id="currency_code"
                                 v-model="form.currency_code"
@@ -126,7 +126,7 @@
                                 <option value="JPY">JPY - Japanese Yen</option>
                             </select>
                             <small class="text-muted">
-                                Mata uang yang digunakan untuk transaksi
+                                Currency used for the transaction
                             </small>
                         </div>
 
@@ -134,14 +134,14 @@
                             <label for="status">Status*</label>
                             <select id="status" v-model="form.status" required>
                                 <option value="Draft">Draft</option>
-                                <option value="Confirmed">Dikonfirmasi</option>
-                                <option value="Processing">Diproses</option>
-                                <option value="Shipped">Dikirim</option>
-                                <option value="Delivered">Terkirim</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Processing">Processing</option>
+                                <option value="Shipped">Shipped</option>
+                                <option value="Delivered">Delivered</option>
                                 <option value="Invoiced" disabled>
-                                    Difakturkan
+                                    Invoiced
                                 </option>
-                                <option value="Closed" disabled>Selesai</option>
+                                <option value="Closed" disabled>Closed</option>
                             </select>
                             <small
                                 v-if="
@@ -150,7 +150,7 @@
                                 "
                                 class="text-muted"
                             >
-                                Status tidak dapat diubah karena sudah
+                               Status cannot be changed because it is already
                                 {{
                                     form.status === "Invoiced"
                                         ? "difakturkan"
@@ -170,14 +170,13 @@
                         class="btn btn-sm btn-primary"
                         @click="addLine"
                     >
-                        <i class="fas fa-plus"></i> Tambah Item
+                        <i class="fas fa-plus"></i> Add Item
                     </button>
                 </div>
                 <div class="card-body">
                     <div v-if="form.lines.length === 0" class="empty-lines">
                         <p>
-                            Belum ada item yang ditambahkan. Klik "Tambah Item"
-                            untuk menambahkan item.
+                            No items added yet. Click "Add Item" to add an item.
                         </p>
                     </div>
 
@@ -189,11 +188,11 @@
 
                         <div class="line-headers">
                             <div class="line-header">Item</div>
-                            <div class="line-header">Harga Unit</div>
-                            <div class="line-header">Jumlah</div>
+                            <div class="line-header">Unit Price</div>
+                            <div class="line-header">Quantity</div>
                             <div class="line-header">UOM</div>
-                            <div class="line-header">Diskon</div>
-                            <div class="line-header">Pajak</div>
+                            <div class="line-header">Dicount</div>
+                            <div class="line-header">Tax</div>
                             <div class="line-header">Subtotal</div>
                             <div class="line-header">Total</div>
                             <div class="line-header"></div>
@@ -213,7 +212,7 @@
                                 required
                                 @change="(e) => handleItemChange(e, index)"
                             >
-                                <option value="">-- Pilih Item --</option>
+                                <option value="">-- Item Change --</option>
                                 <option
                                     v-for="item in sellableItems"
                                     :key="item.item_id"
@@ -310,7 +309,7 @@
                                 </div>
                             </div>
                             <div class="total-row">
-                                <div class="total-label">Total Diskon:</div>
+                                <div class="total-label">Total Discount:</div>
                                 <div class="total-value">
                                     {{
                                         formatCurrency(calculateTotalDiscount())
@@ -318,7 +317,7 @@
                                 </div>
                             </div>
                             <div class="total-row">
-                                <div class="total-label">Total Pajak:</div>
+                                <div class="total-label">Total Tax:</div>
                                 <div class="total-value">
                                     {{ formatCurrency(calculateTotalTax()) }}
                                 </div>
@@ -335,7 +334,7 @@
             </div>
 
             <div class="form-actions">
-                <button type="button" class="btn btn-secondary" @click="goBack">
+                <!-- <button type="button" class="btn btn-secondary" @click="goBack">
                     Batal
                 </button>
                 <button
@@ -345,7 +344,7 @@
                     :disabled="isSubmitting"
                 >
                     {{ isSubmitting ? "Menyimpan..." : "Simpan Order" }}
-                </button>
+                </button> -->
             </div>
         </div>
     </div>
@@ -647,13 +646,13 @@ export default {
                 !form.value.customer_id ||
                 !form.value.currency_code
             ) {
-                error.value = "Harap isi semua field yang wajib diisi.";
+                error.value = "Please fill in all required fields.";
                 return;
             }
 
             // Validate line items
             if (form.value.lines.length === 0) {
-                error.value = "Order harus memiliki minimal 1 item.";
+                error.value = "Order must have at least 1 item.";
                 return;
             }
 
@@ -665,9 +664,9 @@ export default {
                     !line.quantity ||
                     !line.uom_id
                 ) {
-                    error.value = `Item ke-${
+                    error.value = `Item ${
                         i + 1
-                    } memiliki data yang tidak lengkap.`;
+                    }  has incomplete data.`;
                     return;
                 }
             }
@@ -687,11 +686,11 @@ export default {
                 if (isEditMode.value) {
                     // Update existing order
                     await axios.put(`/orders/${form.value.so_id}`, orderData);
-                    alert("Order berhasil diperbarui!");
+                    alert("Order successfully updated!");
                 } else {
                     // Create new order
                     await axios.post("/orders", orderData);
-                    alert("Order berhasil dibuat!");
+                    alert("Order successfully created!");
                 }
 
                 // Redirect to orders list
@@ -706,7 +705,7 @@ export default {
                 } else if (err.response?.data?.message) {
                     error.value = err.response.data.message;
                 } else {
-                    error.value = "Terjadi kesalahan saat menyimpan order.";
+                    error.value = "An error occurred while saving the order.";
                 }
             } finally {
                 isSubmitting.value = false;

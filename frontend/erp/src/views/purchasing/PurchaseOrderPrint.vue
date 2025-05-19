@@ -6,7 +6,7 @@
         <i class="fas fa-print"></i> Print
       </button>
       <button class="btn btn-primary ml-2" @click="printPdf">
-        <i class="fas fa-file-pdf"></i> Print PDF
+        <i class="fas fa-file-pdf"></i> Export PDF
       </button>
       <router-link :to="`/purchasing/orders/${purchaseOrder.po_id}`" class="btn btn-secondary ml-2">
         <i class="fas fa-arrow-left"></i> Back to Details
@@ -47,6 +47,7 @@
             <p v-if="purchaseOrder.vendor.city">
               {{ purchaseOrder.vendor.city }} {{ purchaseOrder.vendor.zip_code }}
             </p>
+            <p v-if="purchaseOrder.vendor.country">{{ purchaseOrder.vendor.country }}</p>
           </div>
           <div v-else>
             <p class="company-name">[Vendor Name]</p>
@@ -90,9 +91,9 @@
           </tr>
           <tr>
             <td>{{ formatDate(purchaseOrder.po_date, 'DD/MM/YYYY') }}</td>
-            <td>{{ purchaseOrder.requisitioner || '[Requisitioner]' }}</td>
-            <td>{{ purchaseOrder.shipping_method || '[Shipping Method]' }}</td>
-            <td>{{ purchaseOrder.fob_point || '' }}</td>
+            <td>{{ purchaseOrder.requisitioner || 'PURCHASING DEPT' }}</td>
+            <td>{{ purchaseOrder.shipping_method || 'BY SEA' }}</td>
+            <td>{{ purchaseOrder.fob_point || 'EXWORK' }}</td>
             <td>{{ purchaseOrder.payment_terms || 'TT' }}</td>
           </tr>
         </table>
@@ -160,7 +161,7 @@
             <tr>
               <td>Currency</td>
               <td>:</td>
-              <td>{{ purchaseOrder.currency_code || 'IDR' }}</td>
+              <td>{{ purchaseOrder.currency_code || 'USD' }}</td>
             </tr>
           </table>
         </div>
@@ -276,8 +277,8 @@ export default {
           maximumFractionDigits: 2
         }).format(amount);
 
-        // Replace the comma with a period for the decimal part
-        return formatted.replace(/,/g, '.').replace(/\./g, ',').replace(/,/g, '.');
+        // Format to match the PDF example (e.g., 29.756,00)
+        return formatted.replace(',', '.').replace(/\./g, ',').replace(/,/g, '.');
       }
 
       return new Intl.NumberFormat('id-ID', {
@@ -292,11 +293,16 @@ export default {
     printDocument() {
       const printContents = this.$el.querySelector('.purchase-order-document').innerHTML;
       const printWindow = window.open('', '', 'width=800,height=600');
-      printWindow.document.write(`
+
+    printWindow.document.write(`
         <html>
           <head>
             <title>Print Purchase Order</title>
             <style>
+              @page {
+                size: A4;
+                margin: 1cm;
+              }
               body {
                 font-family: Arial, sans-serif;
                 font-size: 12px;
@@ -333,7 +339,97 @@ export default {
                 font-weight: bold;
                 margin: 0;
               }
-              /* Add any other necessary styles from the component */
+              .po-number-box {
+                display: flex;
+                margin-bottom: 15px;
+              }
+              .po-label {
+                font-weight: bold;
+                padding-right: 10px;
+              }
+              .po-value {
+                font-weight: bold;
+              }
+              .address-section {
+                display: flex;
+                margin-bottom: 15px;
+              }
+              .vendor-address {
+                width: 50%;
+              }
+              .section-label {
+                font-weight: bold;
+                margin-bottom: 5px;
+              }
+              .company-name {
+                font-weight: bold;
+                margin: 0 0 2px 0;
+              }
+              .contact-info {
+                width: 50%;
+              }
+              .contact-table td:first-child {
+                width: 60px;
+                font-weight: bold;
+              }
+              .contact-table td:nth-child(2) {
+                width: 20px;
+                text-align: center;
+              }
+              .items-table th, .items-table td {
+                border: 1px solid #000;
+                padding: 5px;
+              }
+              .items-table td:nth-child(1), .items-table td:nth-child(4), .items-table td:nth-child(5) {
+                text-align: center;
+              }
+              .items-table td:nth-child(6), .items-table td:nth-child(7) {
+                text-align: right;
+              }
+              .footer-section {
+                display: flex;
+                margin-top: 15px;
+              }
+              .delivery-notes {
+                width: 50%;
+              }
+              .totals {
+                width: 50%;
+              }
+              .totals-table td:first-child {
+                text-align: right;
+                font-weight: bold;
+              }
+              .totals-table td:nth-child(2) {
+                text-align: center;
+                width: 20px;
+              }
+              .totals-table td:nth-child(3) {
+                text-align: right;
+              }
+              .acceptance {
+                margin: 15px 0;
+              }
+              .terms-and-signatures {
+                display: flex;
+              }
+              .terms {
+                width: 60%;
+              }
+              .signatures {
+                width: 40%;
+                display: flex;
+                justify-content: space-between;
+              }
+              .signature-box {
+                text-align: center;
+                width: 48%;
+              }
+              .signature-space {
+                height: 60px;
+                border-bottom: 1px solid #000;
+                margin: 10px 0;
+              }
             </style>
           </head>
           <body>
@@ -341,6 +437,7 @@ export default {
           </body>
         </html>
       `);
+
       printWindow.document.close();
       printWindow.focus();
       printWindow.print();
@@ -352,98 +449,20 @@ export default {
         return;
       }
 
-      const container = document.createElement('div');
-      container.style.position = 'static';
-      container.style.top = '0';
-      container.style.left = '0';
-      container.style.width = '210mm'; // A4 width
-      container.style.backgroundColor = 'white';
-      container.style.padding = '0';
-      container.style.margin = '0';
-      container.style.zIndex = 'auto';
-
-      const lines = this.purchaseOrder.lines || [];
-      const linesPerPage = 20; // Adjust as needed for pagination
-      const totalPages = Math.ceil(lines.length / linesPerPage);
-
-      for (let page = 1; page <= totalPages; page++) {
-        const element = this.$el.querySelector('.purchase-order-document');
-        const clonedElement = element.cloneNode(true);
-
-        // Remove print actions from cloned element if present
-        const printActions = clonedElement.querySelector('.print-actions');
-        if (printActions) {
-          printActions.remove();
-        }
-
-        // Replace the tbody content with the purchase order lines for the current page
-        const tbody = clonedElement.querySelector('table.items-table tbody');
-        if (tbody) {
-          while (tbody.firstChild) {
-            tbody.removeChild(tbody.firstChild);
-          }
-
-          const startIndex = (page - 1) * linesPerPage;
-          const pageLines = lines.slice(startIndex, startIndex + linesPerPage);
-
-          pageLines.forEach((line, index) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-              <td>${startIndex + index + 1}</td>
-              <td>${line.item ? line.item.item_code : ''}</td>
-              <td>${line.item ? line.item.name : 'Unknown Item'}</td>
-              <td>${this.formatNumber(line.quantity)}</td>
-              <td>${line.unitOfMeasure ? line.unitOfMeasure.name : 'LOT'}</td>
-              <td>${this.formatCurrency(line.unit_price, true)}</td>
-              <td>${this.formatCurrency(line.subtotal, true)}</td>
-            `;
-            tbody.appendChild(tr);
-          });
-
-          // Add empty rows to maintain consistent spacing if needed
-          const emptyRowsCount = linesPerPage - pageLines.length;
-          for (let n = 0; n < emptyRowsCount; n++) {
-            const emptyTr = document.createElement('tr');
-            emptyTr.classList.add('empty-row');
-            emptyTr.innerHTML = `
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-            `;
-            tbody.appendChild(emptyTr);
-          }
-        }
-
-        // Append a page break div after each page except the last
-        if (page < totalPages) {
-          const pageBreak = document.createElement('div');
-          pageBreak.style.pageBreakAfter = 'always';
-          clonedElement.appendChild(pageBreak);
-        }
-
-        container.appendChild(clonedElement);
-      }
-
-      document.body.appendChild(container);
+      const element = this.$el.querySelector('.purchase-order-document');
 
       const opt = {
-        margin: 0,
+        margin: 10,
         filename: `PurchaseOrder_${this.purchaseOrder.po_number || 'document'}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
       try {
-        await html2pdf().set(opt).from(container).save();
+        await html2pdf().set(opt).from(element).save();
       } catch (error) {
         console.error("Error generating PDF:", error);
-      } finally {
-        document.body.removeChild(container);
       }
     }
   }
@@ -462,18 +481,6 @@ export default {
 .print-actions {
   margin-bottom: 20px;
   text-align: right;
-}
-
-.print-actions button.btn-primary.ml-2 {
-  background-color: #ff0000; /* red */
-  border-color: #ff0000;
-  color: #ffffff;
-}
-
-.print-actions button.btn-primary.ml-2:hover {
-  background-color: #cc0000; /* darker red on hover */
-  border-color: #cc0000;
-  color: #ffffff;
 }
 
 .purchase-order-document {
@@ -740,24 +747,44 @@ export default {
 }
 
 /* Print-specific styles */
-@media print {
-  .print-actions {
-    display: none;
-  }
+  @media print {
+    .print-actions {
+      display: none;
+    }
 
-  .purchase-order-document {
-    box-shadow: none;
-    padding: 0;
-  }
+    .purchase-order-document {
+      box-shadow: none;
+      padding: 0;
+      /* Ensure page breaks inside the document */
+      page-break-after: auto;
+      page-break-before: auto;
+      page-break-inside: avoid;
+    }
 
-  body {
-    margin: 0;
-    padding: 0;
-  }
+    /* Avoid breaking inside header and footer sections */
+    .header, .footer-section, .acceptance, .terms-and-signatures {
+      page-break-inside: avoid;
+    }
 
-  @page {
-    size: A4;
-    margin: 1cm;
+    /* Avoid breaking inside table rows */
+    .items-table tr, .po-details-table tr, .totals-table tr {
+      page-break-inside: avoid;
+      page-break-after: auto;
+    }
+
+    /* Add page break after the items section if needed */
+    .items-section {
+      page-break-after: auto;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    @page {
+      size: A4;
+      margin: 1cm;
+    }
   }
-}
 </style>

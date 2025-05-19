@@ -8,51 +8,51 @@
           <i class="fas fa-arrow-left"></i> Back to List
         </router-link>
         <div class="btn-group ml-2">
-          <button
+          <button 
             v-if="purchaseOrder.status === 'draft'"
-            @click="updateStatus('submitted')"
+            @click="updateStatus('submitted')" 
             class="btn btn-primary"
           >
             <i class="fas fa-paper-plane"></i> Submit
           </button>
-          <button
+          <button 
             v-if="purchaseOrder.status === 'submitted'"
-            @click="updateStatus('approved')"
+            @click="updateStatus('approved')" 
             class="btn btn-success"
           >
             <i class="fas fa-check"></i> Approve
           </button>
-          <button
+          <button 
             v-if="purchaseOrder.status === 'approved'"
-            @click="updateStatus('sent')"
+            @click="updateStatus('sent')" 
             class="btn btn-info"
           >
             <i class="fas fa-envelope"></i> Mark as Sent
           </button>
-          <button
+          <button 
             v-if="['sent', 'partial'].includes(purchaseOrder.status)"
-            @click="createGoodsReceipt()"
+            @click="createGoodsReceipt()" 
             class="btn btn-primary"
           >
             <i class="fas fa-truck-loading"></i> Create Receipt
           </button>
         </div>
         <div class="btn-group ml-2">
-          <router-link
+          <router-link 
             v-if="purchaseOrder.status === 'draft'"
-            :to="`/purchasing/orders/${purchaseOrder.po_id}/edit`"
+            :to="`/purchasing/orders/${purchaseOrder.po_id}/edit`" 
             class="btn btn-warning"
           >
             <i class="fas fa-edit"></i> Edit
           </router-link>
-          <button
-            @click="printPurchaseOrder()"
+          <button 
+            @click="printPurchaseOrder()" 
             class="btn btn-secondary"
           >
             <i class="fas fa-print"></i> Print
           </button>
-          <button
-            @click="openCurrencyModal"
+          <button 
+            @click="openCurrencyModal" 
             v-if="purchaseOrder.status === 'draft'"
             class="btn btn-info"
           >
@@ -189,7 +189,7 @@
             </div>
           </div>
         </div>
-
+        
         <div class="col-md-4">
           <div class="card">
             <div class="card-header">
@@ -197,8 +197,8 @@
             </div>
             <div class="card-body">
               <div class="status-timeline">
-                <div
-                  v-for="status in statusTimeline"
+                <div 
+                  v-for="status in statusTimeline" 
                   :key="status.name"
                   class="timeline-item"
                   :class="{ 'active': isStatusActive(status.name), 'completed': isStatusCompleted(status.name) }"
@@ -395,13 +395,13 @@ export default {
       this.isLoading = true;
       try {
         const response = await axios.get(`/purchase-orders/${poId}`);
-
+        
         if (response.data.status === 'success') {
           this.purchaseOrder = response.data.data;
-
+          
           // Set default currency for conversion
           this.newCurrency = this.purchaseOrder.currency_code || 'USD';
-
+          
           // Load outstanding items
           this.loadOutstandingItems(poId);
         }
@@ -415,7 +415,7 @@ export default {
     async loadOutstandingItems(poId) {
       try {
         const response = await axios.get(`/purchase-orders/${poId}/outstanding`);
-
+        
         if (response.data.status === 'success') {
           this.outstandingItems = response.data.data.outstanding_lines || [];
         }
@@ -462,7 +462,7 @@ export default {
         'completed': 'badge-success',
         'canceled': 'badge-danger'
       };
-
+      
       return `badge ${statusClasses[status] || 'badge-secondary'}`;
     },
     isStatusActive(status) {
@@ -472,7 +472,7 @@ export default {
       const statusOrder = ['draft', 'submitted', 'approved', 'sent', 'partial', 'received', 'completed'];
       const currentIndex = statusOrder.indexOf(this.purchaseOrder.status);
       const statusIndex = statusOrder.indexOf(status);
-
+      
       return statusIndex <= currentIndex;
     },
     updateStatus(status) {
@@ -487,14 +487,14 @@ export default {
           `/purchase-orders/${this.purchaseOrder.po_id}/status`,
           { status: this.newStatus }
         );
-
+        
         if (response.data.status === 'success') {
           // Update local data
           this.purchaseOrder.status = this.newStatus;
-
+          
           // Show success message
           alert(`Purchase order status updated to ${this.newStatus}`);
-
+          
           // Reload the purchase order to get the latest data
           this.loadPurchaseOrder(this.purchaseOrder.po_id);
         } else {
@@ -502,7 +502,7 @@ export default {
         }
       } catch (error) {
         console.error('Error updating status:', error);
-
+        
         // Show error message
         if (error.response && error.response.data && error.response.data.message) {
           alert(`Error: ${error.response.data.message}`);
@@ -525,7 +525,7 @@ export default {
         this.showCurrencyModal = false;
         return;
       }
-
+      
       try {
         const response = await axios.post(
           `/purchase-orders/${this.purchaseOrder.po_id}/convert-currency`,
@@ -534,17 +534,17 @@ export default {
             use_exchange_rate_date: this.useExchangeRateDate
           }
         );
-
+        
         if (response.data.status === 'success') {
           // Update local data
           this.purchaseOrder = response.data.data;
-
+          
           // Show success message
           alert(`Purchase order currency converted to ${this.newCurrency}`);
         }
       } catch (error) {
         console.error('Error converting currency:', error);
-
+        
         // Show error message
         if (error.response && error.response.data && error.response.data.message) {
           alert(`Error: ${error.response.data.message}`);
@@ -660,17 +660,17 @@ export default {
 
 /* Print styles */
 @media print {
-  .action-buttons,
-  .btn,
+  .action-buttons, 
+  .btn, 
   .page-header {
     display: none !important;
   }
-
+  
   .card {
     border: none !important;
     box-shadow: none !important;
   }
-
+  
   .card-header {
     background-color: transparent !important;
     border-bottom: 1px solid #000 !important;

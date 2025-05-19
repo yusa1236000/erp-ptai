@@ -23,67 +23,10 @@ class SalesOrderController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request)
+    public function index()
     {
-        $query = SalesOrder::with(['customer', 'salesQuotation']);
-
-        // Search filter
-        if ($request->has('search') && !empty($request->search)) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('so_number', 'like', '%' . $search . '%')
-                    ->orWhereHas('customer', function ($q2) use ($search) {
-                        $q2->where('name', 'like', '%' . $search . '%');
-                    });
-            });
-        }
-
-        // Status filter
-        if ($request->has('status') && !empty($request->status)) {
-            $query->where('status', $request->status);
-        }
-
-        // Date range filter
-        if ($request->has('date_range') && $request->date_range !== 'all') {
-            $dateRange = $request->date_range;
-            $today = now()->startOfDay();
-
-            if ($dateRange === 'today') {
-                $query->whereDate('so_date', $today);
-            } elseif ($dateRange === 'week') {
-                $query->whereBetween('so_date', [$today->copy()->startOfWeek(), $today->copy()->endOfWeek()]);
-            } elseif ($dateRange === 'month') {
-                $query->whereBetween('so_date', [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()]);
-            }
-        }
-
-        // Custom date range filter
-        if ($request->has('start_date') && $request->has('end_date') && $request->date_range === 'custom') {
-            $startDate = $request->start_date;
-            $endDate = $request->end_date;
-            $query->whereBetween('so_date', [$startDate, $endDate]);
-        }
-
-        // Sorting
-        $sortField = $request->get('sort_field', 'so_id');
-        $sortDirection = $request->get('sort_direction', 'desc');
-        $query->orderBy($sortField, $sortDirection);
-
-        // Pagination
-        $perPage = $request->get('per_page', 10);
-        $page = $request->get('page', 1);
-
-        $orders = $query->paginate($perPage, ['*'], 'page', $page);
-
-        return response()->json([
-            'data' => $orders->items(),
-            'meta' => [
-                'total' => $orders->total(),
-                'per_page' => $orders->perPage(),
-                'current_page' => $orders->currentPage(),
-                'last_page' => $orders->lastPage(),
-            ]
-        ], 200);
+        $orders = SalesOrder::with(['customer', 'salesQuotation'])->get();
+        return response()->json(['data' => $orders], 200);
     }
 
     /**
@@ -121,39 +64,39 @@ class SalesOrderController extends Controller
 
             // Get the customer to check for preferred currency
             $customer = Customer::find($request->customer_id);
-
+            
             // Determine currency to use (from request, customer preference, or system default)
             $currencyCode = $request->currency_code ?? $customer->preferred_currency ?? config('app.base_currency', 'USD');
             $baseCurrency = config('app.base_currency', 'USD');
-
+            
             // Get exchange rate
             $exchangeRate = 1.0; // Default for base currency
-
+            
             if ($currencyCode !== $baseCurrency) {
                 $rate = CurrencyRate::where('from_currency', $currencyCode)
                     ->where('to_currency', $baseCurrency)
                     ->where('is_active', true)
                     ->where('effective_date', '<=', $request->so_date)
-                    ->where(function ($query) use ($request) {
+                    ->where(function($query) use ($request) {
                         $query->where('end_date', '>=', $request->so_date)
-                            ->orWhereNull('end_date');
+                              ->orWhereNull('end_date');
                     })
                     ->orderBy('effective_date', 'desc')
                     ->first();
-
+                    
                 if (!$rate) {
                     // Try to find a reverse rate
                     $reverseRate = CurrencyRate::where('from_currency', $baseCurrency)
                         ->where('to_currency', $currencyCode)
                         ->where('is_active', true)
                         ->where('effective_date', '<=', $request->so_date)
-                        ->where(function ($query) use ($request) {
+                        ->where(function($query) use ($request) {
                             $query->where('end_date', '>=', $request->so_date)
-                                ->orWhereNull('end_date');
+                                  ->orWhereNull('end_date');
                         })
                         ->orderBy('effective_date', 'desc')
                         ->first();
-
+                        
                     if ($reverseRate) {
                         $exchangeRate = 1 / $reverseRate->rate;
                     } else {
@@ -193,7 +136,7 @@ class SalesOrderController extends Controller
             foreach ($request->lines as $line) {
                 // Get the item
                 $item = Item::find($line['item_id']);
-
+                
                 // Check if the item is sellable
                 if (!$item->is_sellable) {
                     DB::rollBack();
@@ -201,10 +144,10 @@ class SalesOrderController extends Controller
                         'message' => 'Item ' . $item->name . ' is not sellable'
                     ], 422);
                 }
-
+                
                 // If unit_price is not provided, get the best sale price for this customer and quantity in order currency
                 $unitPrice = $line['unit_price'] ?? $item->getBestSalePriceInCurrency($request->customer_id, $line['quantity'], $currencyCode);
-
+                
                 $subtotal = $unitPrice * $line['quantity'];
                 $discount = isset($line['discount']) ? $line['discount'] : 0;
                 $tax = isset($line['tax']) ? $line['tax'] : 0;
@@ -242,7 +185,7 @@ class SalesOrderController extends Controller
             // Update totals
             $baseCurrencyTotal = $totalAmount * $exchangeRate;
             $baseCurrencyTax = $taxAmount * $exchangeRate;
-
+            
             $salesOrder->update([
                 'total_amount' => $totalAmount,
                 'tax_amount' => $taxAmount,
@@ -325,7 +268,7 @@ class SalesOrderController extends Controller
                         'message' => 'Item ' . $item->name . ' is no longer sellable'
                     ], 422);
                 }
-
+                
                 SOLine::create([
                     'so_id' => $salesOrder->so_id,
                     'item_id' => $quotationLine->item_id,
@@ -442,7 +385,7 @@ class SalesOrderController extends Controller
             $baseCurrency = config('app.base_currency', 'USD');
             $exchangeRate = $order->exchange_rate;
             $currencyChanged = $currencyCode !== $order->currency_code;
-
+            
             if ($currencyChanged) {
                 // Currency is changing, get new exchange rate
                 if ($currencyCode !== $baseCurrency) {
@@ -450,26 +393,26 @@ class SalesOrderController extends Controller
                         ->where('to_currency', $baseCurrency)
                         ->where('is_active', true)
                         ->where('effective_date', '<=', $request->so_date)
-                        ->where(function ($query) use ($request) {
+                        ->where(function($query) use ($request) {
                             $query->where('end_date', '>=', $request->so_date)
                                 ->orWhereNull('end_date');
                         })
                         ->orderBy('effective_date', 'desc')
                         ->first();
-
+                        
                     if (!$rate) {
                         // Try to find a reverse rate
                         $reverseRate = CurrencyRate::where('from_currency', $baseCurrency)
                             ->where('to_currency', $currencyCode)
                             ->where('is_active', true)
                             ->where('effective_date', '<=', $request->so_date)
-                            ->where(function ($query) use ($request) {
+                            ->where(function($query) use ($request) {
                                 $query->where('end_date', '>=', $request->so_date)
                                     ->orWhereNull('end_date');
                             })
                             ->orderBy('effective_date', 'desc')
                             ->first();
-
+                            
                         if ($reverseRate) {
                             $exchangeRate = 1 / $reverseRate->rate;
                         } else {
@@ -509,7 +452,7 @@ class SalesOrderController extends Controller
             foreach ($request->lines as $line) {
                 // Get the item
                 $item = Item::find($line['item_id']);
-
+                
                 // Check if the item is sellable
                 if (!$item->is_sellable) {
                     DB::rollBack();
@@ -517,10 +460,10 @@ class SalesOrderController extends Controller
                         'message' => 'Item ' . $item->name . ' is not sellable'
                     ], 422);
                 }
-
+                
                 // If unit_price is not provided, get the best sale price for this customer and quantity
                 $unitPrice = isset($line['unit_price']) ? $line['unit_price'] : $item->getBestSalePrice($order->customer_id, $line['quantity']);
-
+                
                 // If currency changed, convert the unit price
                 if ($currencyChanged && isset($line['line_id'])) {
                     $orderLine = SOLine::find($line['line_id']);
@@ -529,7 +472,7 @@ class SalesOrderController extends Controller
                         $unitPrice = $orderLine->base_currency_unit_price / $exchangeRate;
                     }
                 }
-
+                
                 $subtotal = $unitPrice * $line['quantity'];
                 $discount = $line['discount'] ?? 0;
                 $tax = $line['tax'] ?? 0;
@@ -695,10 +638,10 @@ class SalesOrderController extends Controller
 
         try {
             DB::beginTransaction();
-
+            
             // Get the item
             $item = Item::find($request->item_id);
-
+            
             // Check if the item is sellable
             if (!$item->is_sellable) {
                 DB::rollBack();
@@ -706,7 +649,7 @@ class SalesOrderController extends Controller
                     'message' => 'Item ' . $item->name . ' is not sellable'
                 ], 422);
             }
-
+            
             // If unit_price is not provided, get the best sale price for this customer and quantity
             $unitPrice = $request->unit_price ?? $item->getBestSalePrice($order->customer_id, $request->quantity);
 
@@ -783,10 +726,10 @@ class SalesOrderController extends Controller
 
         try {
             DB::beginTransaction();
-
+            
             // Get the item
             $item = Item::find($request->item_id);
-
+            
             // Check if the item is sellable
             if (!$item->is_sellable) {
                 DB::rollBack();
@@ -794,7 +737,7 @@ class SalesOrderController extends Controller
                     'message' => 'Item ' . $item->name . ' is not sellable'
                 ], 422);
             }
-
+            
             // If unit_price is not provided, get the best sale price for this customer and quantity
             $unitPrice = $request->unit_price ?? $item->getBestSalePrice($order->customer_id, $request->quantity);
 
@@ -875,7 +818,7 @@ class SalesOrderController extends Controller
             return response()->json(['message' => 'Failed to remove order line', 'error' => $e->getMessage()], 500);
         }
     }
-
+    
     /**
      * Convert sales order currency.
      *
@@ -886,18 +829,18 @@ class SalesOrderController extends Controller
     public function convertCurrency(Request $request, $id)
     {
         $salesOrder = SalesOrder::find($id);
-
+        
         if (!$salesOrder) {
             return response()->json(['message' => 'Sales order not found'], 404);
         }
-
+        
         // Only allow currency conversion for draft and confirmed orders
         if (!in_array($salesOrder->status, ['Draft', 'Confirmed'])) {
             return response()->json([
                 'message' => 'Only Draft or Confirmed sales orders can have their currency converted'
             ], 400);
         }
-
+        
         $validator = Validator::make($request->all(), [
             'currency_code' => 'required|string|size:3',
             'use_exchange_rate_date' => 'nullable|boolean'
@@ -906,7 +849,7 @@ class SalesOrderController extends Controller
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-
+        
         // Don't convert if already in the target currency
         if ($salesOrder->currency_code === $request->currency_code) {
             return response()->json([
@@ -914,42 +857,42 @@ class SalesOrderController extends Controller
                 'data' => $salesOrder
             ]);
         }
-
+        
         $baseCurrency = config('app.base_currency', 'USD');
-
+        
         try {
             DB::beginTransaction();
-
+            
             // Determine which exchange rate to use
             $useExchangeRateDate = $request->use_exchange_rate_date ?? true;
             $exchangeRateDate = $useExchangeRateDate ? $salesOrder->so_date : now()->format('Y-m-d');
-
+            
             // Get exchange rate from base currency to target currency
             if ($request->currency_code !== $baseCurrency) {
                 $rate = CurrencyRate::where('from_currency', $baseCurrency)
                     ->where('to_currency', $request->currency_code)
                     ->where('is_active', true)
                     ->where('effective_date', '<=', $exchangeRateDate)
-                    ->where(function ($query) use ($exchangeRateDate) {
+                    ->where(function($query) use ($exchangeRateDate) {
                         $query->where('end_date', '>=', $exchangeRateDate)
                             ->orWhereNull('end_date');
                     })
                     ->orderBy('effective_date', 'desc')
                     ->first();
-
+                    
                 if (!$rate) {
                     // Try to find a reverse rate
                     $reverseRate = CurrencyRate::where('from_currency', $request->currency_code)
                         ->where('to_currency', $baseCurrency)
                         ->where('is_active', true)
                         ->where('effective_date', '<=', $exchangeRateDate)
-                        ->where(function ($query) use ($exchangeRateDate) {
+                        ->where(function($query) use ($exchangeRateDate) {
                             $query->where('end_date', '>=', $exchangeRateDate)
                                 ->orWhereNull('end_date');
                         })
                         ->orderBy('effective_date', 'desc')
                         ->first();
-
+                        
                     if ($reverseRate) {
                         $newExchangeRate = 1 / $reverseRate->rate;
                     } else {
@@ -965,11 +908,11 @@ class SalesOrderController extends Controller
                 // Converting to base currency
                 $newExchangeRate = 1.0;
             }
-
+            
             // Update order totals
             $newTotalAmount = $salesOrder->base_currency_total / $newExchangeRate;
             $newTaxAmount = $salesOrder->base_currency_tax / $newExchangeRate;
-
+            
             // Update sales order
             $salesOrder->update([
                 'currency_code' => $request->currency_code,
@@ -977,7 +920,7 @@ class SalesOrderController extends Controller
                 'total_amount' => $newTotalAmount,
                 'tax_amount' => $newTaxAmount
             ]);
-
+            
             // Update all line items
             foreach ($salesOrder->salesOrderLines as $line) {
                 $newUnitPrice = $line->base_currency_unit_price / $newExchangeRate;
@@ -985,7 +928,7 @@ class SalesOrderController extends Controller
                 $newDiscount = $line->base_currency_discount / $newExchangeRate;
                 $newTax = $line->base_currency_tax / $newExchangeRate;
                 $newTotal = $line->base_currency_total / $newExchangeRate;
-
+                
                 $line->update([
                     'unit_price' => $newUnitPrice,
                     'subtotal' => $newSubtotal,
@@ -994,13 +937,14 @@ class SalesOrderController extends Controller
                     'total' => $newTotal
                 ]);
             }
-
+            
             DB::commit();
-
+            
             return response()->json([
                 'message' => 'Sales order currency converted successfully',
                 'data' => $salesOrder->fresh()->load('salesOrderLines')
             ]);
+            
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Failed to convert sales order currency', 'error' => $e->getMessage()], 500);
@@ -1016,33 +960,33 @@ class SalesOrderController extends Controller
     public function getOutstandingItems($id)
     {
         $order = SalesOrder::with(['salesOrderLines.item', 'customer'])->find($id);
-
+        
         if (!$order) {
             return response()->json(['message' => 'Sales order tidak ditemukan'], 404);
         }
-
+        
         $outstandingItems = [];
         $allDelivered = true;
-
+        
         foreach ($order->salesOrderLines as $line) {
             $orderedQty = $line->quantity;
             $deliveredQty = DeliveryLine::join('Delivery', 'DeliveryLine.delivery_id', '=', 'Delivery.delivery_id')
                 ->where('DeliveryLine.so_line_id', $line->line_id)
                 ->where('Delivery.status', 'Completed')
                 ->sum('DeliveryLine.delivered_quantity');
-
+            
             $outstandingQty = $orderedQty - $deliveredQty;
-
+            
             // Hanya masukkan item yang masih memiliki outstanding quantity
             if ($outstandingQty > 0) {
                 $allDelivered = false;
-
+                
                 // Get available stock in warehouses
                 $warehouseStocks = ItemStock::where('item_id', $line->item_id)
                     ->where('quantity', '>', 0)
                     ->with('warehouse')
                     ->get()
-                    ->map(function ($stock) {
+                    ->map(function($stock) {
                         return [
                             'warehouse_id' => $stock->warehouse_id,
                             'warehouse_name' => $stock->warehouse->name,
@@ -1050,7 +994,7 @@ class SalesOrderController extends Controller
                             'total_quantity' => $stock->quantity
                         ];
                     });
-
+                
                 $outstandingItems[] = [
                     'so_id' => $order->so_id,
                     'so_number' => $order->so_number,
@@ -1066,7 +1010,7 @@ class SalesOrderController extends Controller
                 ];
             }
         }
-
+        
         return response()->json([
             'data' => [
                 'so_id' => $order->so_id,
@@ -1089,16 +1033,16 @@ class SalesOrderController extends Controller
     {
         // Ambil semua sales order yang belum fully delivered
         $orders = SalesOrder::whereNotIn('status', ['Delivered', 'Closed', 'Cancelled'])
-            ->with(['customer'])
-            ->get();
-
+                    ->with(['customer'])
+                    ->get();
+        
         $outstandingSalesOrders = [];
-
+        
         foreach ($orders as $order) {
             $hasOutstanding = false;
             $outstandingItems = [];
             $totalOutstandingQty = 0;
-
+            
             // Hitung outstanding quantity untuk setiap line item
             foreach ($order->salesOrderLines as $line) {
                 $orderedQty = $line->quantity;
@@ -1106,9 +1050,9 @@ class SalesOrderController extends Controller
                     ->where('DeliveryLine.so_line_id', $line->line_id)
                     ->where('Delivery.status', 'Completed')
                     ->sum('DeliveryLine.delivered_quantity');
-
+                
                 $outstandingQty = $orderedQty - $deliveredQty;
-
+                
                 if ($outstandingQty > 0) {
                     $hasOutstanding = true;
                     $totalOutstandingQty += $outstandingQty;
@@ -1123,7 +1067,7 @@ class SalesOrderController extends Controller
                     ];
                 }
             }
-
+            
             // Hanya tambahkan sales order yang memiliki outstanding items
             if ($hasOutstanding) {
                 $outstandingSalesOrders[] = [
@@ -1138,7 +1082,7 @@ class SalesOrderController extends Controller
                 ];
             }
         }
-
+        
         return response()->json([
             'data' => $outstandingSalesOrders
         ], 200);

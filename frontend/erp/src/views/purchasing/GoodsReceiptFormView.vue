@@ -10,19 +10,19 @@
             </router-link>
           </div>
         </div>
-  
+
         <div class="card-body">
           <!-- Loading indicator -->
           <div v-if="loading" class="loading-container">
             <i class="fas fa-spinner fa-spin"></i> Loading...
           </div>
-  
+
           <div v-else>
             <form @submit.prevent="saveReceipt" class="receipt-form">
               <!-- Receipt Information -->
               <div class="form-section">
                 <h3>Receipt Information</h3>
-                
+
                 <div class="form-grid">
                   <div class="form-group">
                     <label for="receipt_date">Receipt Date <span class="required">*</span></label>
@@ -37,7 +37,7 @@
                       {{ validationErrors.receipt_date[0] }}
                     </div>
                   </div>
-                  
+
                   <div class="form-group">
                     <label for="vendor_id">Vendor <span class="required">*</span></label>
                     <select
@@ -58,21 +58,21 @@
                   </div>
                 </div>
               </div>
-  
+
               <!-- PO Selection -->
               <div v-if="receipt.vendor_id && !itemsLoaded" class="form-section">
                 <h3>Select Purchase Orders</h3>
                 <p class="info-text">Select purchase orders to receive items from:</p>
-                
+
                 <div v-if="loadingPOs" class="loading-container">
                   <i class="fas fa-spinner fa-spin"></i> Loading purchase orders...
                 </div>
-                
+
                 <div v-else-if="purchaseOrders.length === 0" class="empty-state">
                   <i class="fas fa-file-invoice"></i>
                   <p>No outstanding purchase orders found for this vendor.</p>
                 </div>
-                
+
                 <div v-else class="po-selection">
                   <div v-for="po in purchaseOrders.filter(po => po)" :key="po.po_id" class="po-card">
                     <div class="checkbox-wrapper">
@@ -90,7 +90,7 @@
                       </label>
                     </div>
                   </div>
-                  
+
                   <div class="actions-wrapper">
                     <button type="button" class="btn btn-primary" @click="loadItemsFromPOs" :disabled="selectedPOs.length === 0">
                       <i class="fas fa-check"></i> Select Items from POs
@@ -98,16 +98,16 @@
                   </div>
                 </div>
               </div>
-  
+
               <!-- Item Selection -->
               <div v-if="itemsLoaded" class="form-section">
                 <h3>Receipt Items</h3>
-                
+
                 <div v-if="availableItems.length === 0" class="empty-state">
                   <i class="fas fa-boxes"></i>
                   <p>No outstanding items to receive.</p>
                 </div>
-                
+
                 <div v-else>
                   <div class="table-responsive">
                     <table class="items-table">
@@ -173,7 +173,7 @@
                       </tbody>
                     </table>
                   </div>
-                  
+
                   <div v-if="hasMoreItems" class="add-items-row">
                     <button type="button" class="btn btn-secondary" @click="showAvailableItemsModal = true">
                       <i class="fas fa-plus"></i> Add More Items
@@ -181,7 +181,7 @@
                   </div>
                 </div>
               </div>
-  
+
               <!-- Submit Buttons -->
               <div v-if="itemsLoaded" class="form-actions">
                 <button type="button" class="btn btn-secondary" @click="cancel">
@@ -196,7 +196,7 @@
           </div>
         </div>
       </div>
-  
+
       <!-- Available Items Modal -->
       <div v-if="showAvailableItemsModal" class="modal">
         <div class="modal-backdrop" @click="showAvailableItemsModal = false"></div>
@@ -212,7 +212,7 @@
               <i class="fas fa-box-open"></i>
               <p>All available items have been added to the receipt.</p>
             </div>
-            
+
             <div v-else>
               <div class="search-box">
                 <input
@@ -222,7 +222,7 @@
                 />
                 <i class="fas fa-search"></i>
               </div>
-              
+
               <div class="table-responsive">
                 <table class="items-table">
                   <thead>
@@ -250,7 +250,7 @@
                 </table>
               </div>
             </div>
-            
+
             <div class="form-actions">
               <button type="button" class="btn btn-primary" @click="showAvailableItemsModal = false">
                 Done
@@ -261,10 +261,10 @@
       </div>
     </div>
   </template>
-  
+
   <script>
   import axios from 'axios';
-  
+
   export default {
     name: 'GoodsReceiptFormView',
     props: {
@@ -302,20 +302,20 @@
         return new Date().toISOString().split('T')[0];
       },
       hasMoreItems() {
-        return this.availableItems.some(item => 
+        return this.availableItems.some(item =>
           !this.receipt.lines.some(line => line.po_line_id === item.po_line_id)
         );
       },
       unusedItems() {
-        return this.availableItems.filter(item => 
+        return this.availableItems.filter(item =>
           !this.receipt.lines.some(line => line.po_line_id === item.po_line_id)
         );
       },
       filteredUnusedItems() {
         if (!this.itemSearch) return this.unusedItems;
-        
+
         const search = this.itemSearch.toLowerCase();
-        return this.unusedItems.filter(item => 
+        return this.unusedItems.filter(item =>
           item.item_code.toLowerCase().includes(search) ||
           item.item_name.toLowerCase().includes(search) ||
           item.po_number.toLowerCase().includes(search)
@@ -325,7 +325,7 @@
     created() {
       this.fetchVendors();
       this.fetchWarehouses();
-      
+
       if (this.isEdit) {
         this.fetchReceipt();
       } else {
@@ -364,7 +364,7 @@
         axios.get(`/goods-receipts/${this.id}`)
           .then(response => {
             const data = response.data.data;
-            
+
             // Update receipt properties individually to maintain reactivity
             this.receipt.receipt_date = data.receipt.receipt_date;
             this.receipt.vendor_id = data.receipt.vendor_id;
@@ -381,7 +381,7 @@
               warehouse_id: line.warehouse_id,
               batch_number: line.batch_number
             }));
-            
+
             // Mark as loaded
             this.itemsLoaded = true;
             this.loading = false;
@@ -394,11 +394,11 @@
       },
       vendorSelected() {
         if (!this.receipt.vendor_id) return;
-        
+
         this.loadingPOs = true;
         this.purchaseOrders = [];
         this.selectedPOs = [];
-        
+
         // Fetch outstanding POs for this vendor
         axios.get('/purchase-orders', {
           params: {
@@ -409,11 +409,11 @@
         })
           .then(response => {
             const poData = response.data.data;
-            if (Array.isArray(poData)) {
-              this.purchaseOrders = poData;
+            if (poData && poData.data && Array.isArray(poData.data)) {
+              this.purchaseOrders = poData.data;
             } else {
               this.purchaseOrders = [];
-              console.warn('Purchase Orders API response data.data is not an array:', poData);
+              console.warn('Purchase Orders API response data.data.data is not an array:', poData);
             }
           })
           .catch(error => {
@@ -424,45 +424,43 @@
             this.loadingPOs = false;
           });
       },
-      loadItemsFromPOs() {
+async loadItemsFromPOs() {
         if (this.selectedPOs.length === 0) return;
-        
+
         this.loading = true;
-        
-        // Fetch available items from selected POs
-        axios.get('/goods-receipts/available-items', {
-          params: {
-            po_ids: this.selectedPOs
-          }
-        })
-          .then(response => {
-            const data = response.data.data;
-            this.availableItems = data.po_lines;
-            
-            // Add all items to receipt by default
-            this.receipt.lines = this.availableItems.map(item => ({
-              po_id: item.po_id,
-              po_number: item.po_number,
-              po_line_id: item.po_line_id,
-              item_id: item.item_id,
-              item_code: item.item_code,
-              item_name: item.item_name,
-              ordered_quantity: item.ordered_quantity,
-              received_quantity: item.outstanding_quantity,
-              outstanding_quantity: item.outstanding_quantity,
-              warehouse_id: this.warehouses.length > 0 ? this.warehouses[0].warehouse_id : '',
-              batch_number: ''
-            }));
-            
-            this.itemsLoaded = true;
-          })
-          .catch(error => {
-            console.error('Error fetching available items:', error);
-            this.$toast.error('Failed to load available items');
-          })
-          .finally(() => {
-            this.loading = false;
+
+        try {
+          const response = await axios.get('/goods-receipts/available-items', {
+            params: {
+              po_ids: this.selectedPOs
+            }
           });
+
+          const data = response.data.data;
+          this.availableItems = data.po_lines || [];
+
+          // Add all items to receipt by default
+          this.receipt.lines = this.availableItems.map(item => ({
+            po_id: item.po_id,
+            po_number: item.po_number,
+            po_line_id: item.po_line_id,
+            item_id: item.item_id,
+            item_code: item.item_code,
+            item_name: item.item_name,
+            ordered_quantity: item.ordered_quantity,
+            received_quantity: item.outstanding_quantity,
+            outstanding_quantity: item.outstanding_quantity,
+            warehouse_id: this.warehouses.length > 0 ? this.warehouses[0].warehouse_id : '',
+            batch_number: ''
+          }));
+
+          this.itemsLoaded = true;
+        } catch (error) {
+          console.error('Error fetching available items:', error);
+          this.$toast.error('Failed to load available items');
+        } finally {
+          this.loading = false;
+        }
       },
       addItemToReceipt(item) {
         this.receipt.lines.push({
@@ -478,7 +476,7 @@
           warehouse_id: this.warehouses.length > 0 ? this.warehouses[0].warehouse_id : '',
           batch_number: ''
         });
-        
+
         this.showAvailableItemsModal = false;
       },
       removeLine(index) {
@@ -487,13 +485,13 @@
       saveReceipt() {
         // Reset validation errors
         this.validationErrors = {};
-        
+
         // Check if at least one line is added
         if (this.receipt.lines.length === 0) {
           this.$toast.error('Please add at least one item to the receipt');
           return;
         }
-        
+
         // Prepare data for submission
         const formData = {
           receipt_date: this.receipt.receipt_date,
@@ -506,26 +504,40 @@
             batch_number: line.batch_number || null
           }))
         };
-        
+
         this.saving = true;
-        
+
         const request = this.isEdit
           ? axios.put(`/goods-receipts/${this.id}`, formData)
           : axios.post('/goods-receipts', formData);
-        
+
         request
           .then(response => {
-            this.$toast.success(`Goods receipt ${this.isEdit ? 'updated' : 'created'} successfully`);
-            this.$router.push(`/purchasing/goods-receipts/${response.data.data.receipt_id}`);
+            console.log('Save receipt response:', response);
+            if (response && response.data && response.data.data && response.data.data.receipt_id) {
+              if (this.$toast && typeof this.$toast.success === 'function') {
+                this.$toast.success(`Goods receipt ${this.isEdit ? 'updated' : 'created'} successfully`);
+              }
+              this.$router.push(`/purchasing/goods-receipts/${response.data.data.receipt_id}`);
+            } else {
+              if (this.$toast && typeof this.$toast.error === 'function') {
+                this.$toast.error('Unexpected response from server when saving receipt');
+              }
+              console.error('Unexpected response structure:', response);
+            }
           })
           .catch(error => {
             console.error('Error saving receipt:', error);
-            
+
             if (error.response && error.response.status === 422) {
               this.validationErrors = error.response.data.errors || {};
-              this.$toast.error('Please correct the errors in the form');
+              if (this.$toast && typeof this.$toast.error === 'function') {
+                this.$toast.error('Please correct the errors in the form');
+              }
             } else {
-              this.$toast.error(`Failed to ${this.isEdit ? 'update' : 'create'} goods receipt: ${error.response?.data?.message || 'Unknown error'}`);
+              if (this.$toast && typeof this.$toast.error === 'function') {
+                this.$toast.error(`Failed to ${this.isEdit ? 'update' : 'create'} goods receipt: ${error.response?.data?.message || 'Unknown error'}`);
+              }
             }
           })
           .finally(() => {
@@ -542,28 +554,28 @@
       formatDate(dateString) {
         if (!dateString) return '';
         const date = new Date(dateString);
-        return date.toLocaleDateString('id-ID', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
+        return date.toLocaleDateString('id-ID', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
         });
       }
     }
   };
   </script>
-  
+
   <style scoped>
   .goods-receipt-form {
     max-width: 100%;
   }
-  
+
   .card {
     background-color: white;
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     margin-bottom: 2rem;
   }
-  
+
   .card-header {
     padding: 1.5rem;
     border-bottom: 1px solid var(--gray-200);
@@ -571,17 +583,17 @@
     justify-content: space-between;
     align-items: center;
   }
-  
+
   .card-header h2 {
     margin: 0;
     font-size: 1.5rem;
   }
-  
+
   .actions {
     display: flex;
     gap: 0.5rem;
   }
-  
+
   .btn {
     display: inline-flex;
     align-items: center;
@@ -595,36 +607,36 @@
     text-decoration: none;
     border: 1px solid transparent;
   }
-  
+
   .btn-primary {
     background-color: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
   }
-  
+
   .btn-primary:hover:not(:disabled) {
     background-color: var(--primary-dark);
   }
-  
+
   .btn-primary:disabled {
     opacity: 0.7;
     cursor: not-allowed;
   }
-  
+
   .btn-secondary {
     background-color: var(--gray-200);
     color: var(--gray-700);
     border-color: var(--gray-300);
   }
-  
+
   .btn-secondary:hover {
     background-color: var(--gray-300);
   }
-  
+
   .card-body {
     padding: 1.5rem;
   }
-  
+
   .loading-container {
     display: flex;
     justify-content: center;
@@ -633,34 +645,34 @@
     font-size: 1rem;
     color: var(--gray-500);
   }
-  
+
   .loading-container i {
     margin-right: 0.5rem;
   }
-  
+
   .form-section {
     margin-bottom: 2rem;
     padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--gray-200);
   }
-  
+
   .form-section h3 {
     margin-top: 0;
     margin-bottom: 1rem;
     font-size: 1.25rem;
     color: var(--gray-800);
   }
-  
+
   .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1rem;
   }
-  
+
   .form-group {
     margin-bottom: 1rem;
   }
-  
+
   .form-group label {
     display: block;
     font-size: 0.875rem;
@@ -668,7 +680,7 @@
     color: var(--gray-700);
     margin-bottom: 0.5rem;
   }
-  
+
   .form-group input,
   .form-group select {
     width: 100%;
@@ -677,67 +689,67 @@
     border-radius: 0.375rem;
     font-size: 0.875rem;
   }
-  
+
   .required {
     color: #dc2626;
   }
-  
+
   .info-text {
     font-size: 0.875rem;
     color: var(--gray-600);
     margin-bottom: 1rem;
   }
-  
+
   .empty-state {
     text-align: center;
     padding: 2rem 0;
     color: var(--gray-500);
   }
-  
+
   .empty-state i {
     font-size: 2rem;
     margin-bottom: 0.5rem;
   }
-  
+
   .po-selection {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 1rem;
     margin-bottom: 1.5rem;
   }
-  
+
   .po-card {
     border: 1px solid var(--gray-300);
     border-radius: 0.5rem;
     overflow: hidden;
   }
-  
+
   .checkbox-wrapper {
     display: flex;
   }
-  
+
   .checkbox-wrapper input[type="checkbox"] {
     margin: 1rem;
   }
-  
+
   .checkbox-wrapper label {
     flex: 1;
     padding: 1rem 1rem 1rem 0;
     cursor: pointer;
   }
-  
+
   .po-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.5rem;
   }
-  
+
   .po-header h4 {
     margin: 0;
     font-size: 1rem;
   }
-  
+
   .status-badge {
     display: inline-block;
     padding: 0.25rem 0.5rem;
@@ -746,52 +758,52 @@
     font-weight: 500;
     text-transform: capitalize;
   }
-  
+
   .status-badge.sent {
     background-color: #dbeafe;
     color: #1e40af;
   }
-  
+
   .status-badge.partial {
     background-color: #fef3c7;
     color: #92400e;
   }
-  
+
   .status-badge.pending {
     background-color: #fef3c7;
     color: #92400e;
   }
-  
+
   .status-badge.confirmed {
     background-color: #d1fae5;
     color: #065f46;
   }
-  
+
   .po-details {
     font-size: 0.875rem;
     color: var(--gray-600);
   }
-  
+
   .po-details div {
     margin-bottom: 0.25rem;
   }
-  
+
   .actions-wrapper {
     display: flex;
     justify-content: flex-end;
     margin-top: 1rem;
   }
-  
+
   .table-responsive {
     overflow-x: auto;
     margin-bottom: 1rem;
   }
-  
+
   .items-table {
     width: 100%;
     border-collapse: collapse;
   }
-  
+
   .items-table th {
     background-color: var(--gray-50);
     padding: 0.75rem 1rem;
@@ -801,13 +813,13 @@
     border-bottom: 1px solid var(--gray-200);
     white-space: nowrap;
   }
-  
+
   .items-table td {
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--gray-200);
     color: var(--gray-800);
   }
-  
+
   .items-table input,
   .items-table select {
     width: 100%;
@@ -816,26 +828,26 @@
     border-radius: 0.25rem;
     font-size: 0.875rem;
   }
-  
+
   .error-message {
     margin-top: 0.25rem;
     font-size: 0.75rem;
     color: #dc2626;
   }
-  
+
   .add-items-row {
     display: flex;
     justify-content: flex-end;
     margin-top: 1rem;
   }
-  
+
   .form-actions {
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
     margin-top: 1.5rem;
   }
-  
+
   .btn-icon {
     display: flex;
     align-items: center;
@@ -850,31 +862,31 @@
     transition: all 0.2s;
     cursor: pointer;
   }
-  
+
   .btn-icon:hover {
     background-color: var(--gray-200);
   }
-  
+
   .btn-icon.delete {
     color: #dc2626;
     background-color: #fee2e2;
     border-color: #dc2626;
   }
-  
+
   .btn-icon.delete:hover {
     background-color: #fecaca;
   }
-  
+
   .btn-icon.add {
     color: #059669;
     background-color: #d1fae5;
     border-color: #059669;
   }
-  
+
   .btn-icon.add:hover {
     background-color: #a7f3d0;
   }
-  
+
   /* Modal styles */
   .modal {
     position: fixed;
@@ -887,7 +899,7 @@
     justify-content: center;
     align-items: center;
   }
-  
+
   .modal-backdrop {
     position: fixed;
     top: 0;
@@ -897,7 +909,7 @@
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 50;
   }
-  
+
   .modal-content {
     background-color: white;
     border-radius: 0.5rem;
@@ -910,7 +922,7 @@
     display: flex;
     flex-direction: column;
   }
-  
+
   .modal-header {
     display: flex;
     justify-content: space-between;
@@ -918,13 +930,13 @@
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--gray-200);
   }
-  
+
   .modal-header h2 {
     font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
   }
-  
+
   .close-btn {
     background: none;
     border: none;
@@ -932,17 +944,17 @@
     cursor: pointer;
     font-size: 1rem;
   }
-  
+
   .modal-body {
     padding: 1.5rem;
     overflow-y: auto;
   }
-  
+
   .search-box {
     position: relative;
     margin-bottom: 1rem;
   }
-  
+
   .search-box input {
     width: 100%;
     padding: 0.5rem 2rem 0.5rem 0.75rem;
@@ -950,7 +962,7 @@
     border-radius: 0.375rem;
     font-size: 0.875rem;
   }
-  
+
   .search-box i {
     position: absolute;
     right: 0.75rem;
@@ -958,31 +970,31 @@
     transform: translateY(-50%);
     color: var(--gray-500);
   }
-  
+
   @media (max-width: 768px) {
     .po-selection {
       grid-template-columns: 1fr;
     }
-    
+
     .card-header {
       flex-direction: column;
       align-items: flex-start;
       gap: 1rem;
     }
-    
+
     .actions {
       width: 100%;
     }
-    
+
     .btn {
       flex: 1;
       justify-content: center;
     }
-    
+
     .form-actions {
       flex-direction: column;
     }
-    
+
     .form-actions button {
       width: 100%;
     }

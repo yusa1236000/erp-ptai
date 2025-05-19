@@ -10,13 +10,13 @@
             </router-link>
           </div>
         </div>
-  
+
         <div class="card-body">
           <!-- Loading indicator -->
           <div v-if="loading" class="loading-container">
             <i class="fas fa-spinner fa-spin"></i> Loading receipt details...
           </div>
-  
+
           <!-- Error state -->
           <div v-else-if="error" class="error-container">
             <i class="fas fa-exclamation-circle"></i>
@@ -26,7 +26,7 @@
               <i class="fas fa-sync"></i> Try Again
             </button>
           </div>
-  
+
           <!-- Not pending state -->
           <div v-else-if="receipt && receipt.status !== 'pending'" class="not-pending">
             <i class="fas fa-info-circle"></i>
@@ -36,7 +36,7 @@
               View Details
             </router-link>
           </div>
-  
+
           <!-- Confirmation view -->
           <div v-else-if="receipt">
             <div class="confirmation-header">
@@ -53,7 +53,7 @@
                 </div>
               </div>
             </div>
-  
+
             <!-- Receipt summary -->
             <div class="receipt-summary">
               <div class="info-card">
@@ -74,11 +74,11 @@
                 </div>
               </div>
             </div>
-  
+
             <!-- Item summary -->
             <div class="receipt-lines-section">
               <h3>Receipt Items</h3>
-              
+
               <div class="table-responsive">
                 <table class="items-table">
                   <thead>
@@ -112,11 +112,11 @@
                 </table>
               </div>
             </div>
-  
+
             <!-- PO Summary -->
             <div class="po-summary-section">
               <h3>Related Purchase Orders</h3>
-              
+
               <div class="po-status-summary">
                 <div v-for="po in poSummary" :key="po.po_id" class="po-status-item">
                   <span class="po-number">{{ po.po_number }}</span>
@@ -128,15 +128,15 @@
                 </div>
               </div>
             </div>
-  
+
             <!-- Confirmation buttons -->
             <div class="confirmation-actions">
               <button type="button" class="btn btn-secondary" @click="cancel">
                 Cancel
               </button>
-              <button 
-                type="button" 
-                class="btn btn-success" 
+              <button
+                type="button"
+                class="btn btn-success"
                 @click="confirmReceipt"
                 :disabled="confirming"
               >
@@ -149,10 +149,10 @@
       </div>
     </div>
   </template>
-  
+
   <script>
   import axios from 'axios';
-  
+
   export default {
     name: 'ReceiptConfirmation',
     props: {
@@ -178,8 +178,8 @@
       fetchReceipt() {
         this.loading = true;
         this.error = null;
-        
-        axios.get(`/api/goods-receipts/${this.receiptId}`)
+
+        axios.get(`/goods-receipts/${this.receiptId}`)
           .then(response => {
             const data = response.data.data;
             this.receipt = data.receipt;
@@ -197,10 +197,10 @@
       formatDate(dateString) {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
-        return date.toLocaleDateString('id-ID', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
+        return date.toLocaleDateString('id-ID', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
         });
       },
       getNewPOStatus(po) {
@@ -208,38 +208,57 @@
         if (po.status === 'received') {
           return 'received';
         }
-        
+
         // Calculate what the new status will be after confirmation
         const ordered = po.total_ordered;
         const received = po.total_received;
-        
+
         // Calculate how much will be received in this receipt for this PO
         const currentlyReceiving = this.receiptLines
           .filter(line => line.po_id === po.po_id)
           .reduce((sum, line) => sum + line.received_quantity, 0);
-        
+
         const totalReceived = received + currentlyReceiving;
-        
+
         // Determine new status
         if (totalReceived >= ordered) {
           return 'received';
         } else if (totalReceived > 0) {
           return 'partial';
         }
-        
+
         return po.status;
       },
       confirmReceipt() {
         this.confirming = true;
-        
-        axios.post(`/api/goods-receipts/${this.receiptId}/confirm`)
+
+        axios.post(`/goods-receipts/${this.receiptId}/confirm`)
           .then(() => {
-            this.$toast.success('Goods receipt confirmed successfully');
+            try {
+              this.$toast.success('Goods receipt confirmed successfully');
+            } catch (toastError) {
+              console.error('Toast success error:', toastError);
+            }
             this.$router.push(`/purchasing/goods-receipts/${this.receiptId}`);
           })
           .catch(error => {
             console.error('Error confirming receipt:', error);
-            this.$toast.error('Failed to confirm goods receipt: ' + (error.response?.data?.message || 'Unknown error'));
+            if (!error) {
+              try {
+                this.$toast.error('Failed to confirm goods receipt: Unknown error');
+              } catch (toastError) {
+                console.error('Toast error error:', toastError);
+              }
+              return;
+            }
+            const errorMessage = error.response && error.response.data && error.response.data.message
+              ? error.response.data.message
+              : 'Unknown error';
+            try {
+              this.$toast.error('Failed to confirm goods receipt: ' + errorMessage);
+            } catch (toastError) {
+              console.error('Toast error error:', toastError);
+            }
           })
           .finally(() => {
             this.confirming = false;
@@ -251,19 +270,19 @@
     }
   };
   </script>
-  
+
   <style scoped>
   .receipt-confirmation {
     max-width: 100%;
   }
-  
+
   .card {
     background-color: white;
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     margin-bottom: 2rem;
   }
-  
+
   .card-header {
     padding: 1.5rem;
     border-bottom: 1px solid var(--gray-200);
@@ -271,17 +290,17 @@
     justify-content: space-between;
     align-items: center;
   }
-  
+
   .card-header h2 {
     margin: 0;
     font-size: 1.5rem;
   }
-  
+
   .actions {
     display: flex;
     gap: 0.5rem;
   }
-  
+
   .btn {
     display: inline-flex;
     align-items: center;
@@ -295,46 +314,46 @@
     text-decoration: none;
     border: 1px solid transparent;
   }
-  
+
   .btn-primary {
     background-color: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
   }
-  
+
   .btn-primary:hover:not(:disabled) {
     background-color: var(--primary-dark);
   }
-  
+
   .btn-secondary {
     background-color: var(--gray-200);
     color: var(--gray-700);
     border-color: var(--gray-300);
   }
-  
+
   .btn-secondary:hover:not(:disabled) {
     background-color: var(--gray-300);
   }
-  
+
   .btn-success {
     background-color: #059669;
     color: white;
     border-color: #059669;
   }
-  
+
   .btn-success:hover:not(:disabled) {
     background-color: #047857;
   }
-  
+
   .btn:disabled {
     opacity: 0.7;
     cursor: not-allowed;
   }
-  
+
   .card-body {
     padding: 1.5rem;
   }
-  
+
   .loading-container,
   .error-container,
   .not-pending {
@@ -345,7 +364,7 @@
     padding: 3rem 0;
     text-align: center;
   }
-  
+
   .loading-container i,
   .error-container i,
   .not-pending i {
@@ -353,22 +372,22 @@
     margin-bottom: 1rem;
     color: var(--gray-500);
   }
-  
+
   .error-container i {
     color: #dc2626;
   }
-  
+
   .not-pending i {
     color: #0ea5e9;
   }
-  
+
   .error-container h3,
   .not-pending h3 {
     margin-top: 0;
     margin-bottom: 0.5rem;
     font-size: 1.25rem;
   }
-  
+
   .error-container p,
   .not-pending p {
     margin-bottom: 1.5rem;
@@ -594,25 +613,25 @@
     align-items: flex-start;
     gap: 1rem;
   }
-  
+
   .actions {
     width: 100%;
   }
-  
+
   .actions .btn {
     flex: 1;
     justify-content: center;
   }
-  
+
   .alert-info {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .confirmation-actions {
     flex-direction: column;
   }
-  
+
   .confirmation-actions button {
     width: 100%;
   }

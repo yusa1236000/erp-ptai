@@ -142,6 +142,89 @@
                     </router-link>
                 </div>
 
+                 <!-- Stock Management Section -->
+                <div class="menu-section">
+                <div
+                    @click="toggleMenuSection('stockManagement')"
+                    class="section-header"
+                >
+                    <div class="section-title-container">
+                    <i class="fas fa-boxes"></i>
+                    <span v-if="!sidebarCollapsed" class="section-title"
+                        >Stock Management</span
+                    >
+                    </div>
+                    <i
+                    v-if="!sidebarCollapsed"
+                    :class="
+                        menuSections.stockManagement
+                        ? 'fas fa-chevron-down'
+                        : 'fas fa-chevron-right'
+                    "
+                    class="section-icon"
+                    ></i>
+                </div>
+                </div>
+
+                <div
+                v-show="!sidebarCollapsed && menuSections.stockManagement"
+                class="submenu"
+                >
+                <router-link
+                    to="/item-stocks"
+                    class="menu-item"
+                    active-class="active"
+                >
+                    <i class="fas fa-box"></i>
+                    <span v-if="!sidebarCollapsed">Inventory Stock</span>
+                </router-link>
+
+                <router-link
+                    to="/item-stocks/warehouse"
+                    class="menu-item"
+                    active-class="active"
+                >
+                    <i class="fas fa-warehouse"></i>
+                    <span v-if="!sidebarCollapsed">Warehouse Stock</span>
+                </router-link>
+
+                <router-link
+                    to="/item-stocks/transfer"
+                    class="menu-item"
+                    active-class="active"
+                >
+                    <i class="fas fa-exchange-alt"></i>
+                    <span v-if="!sidebarCollapsed">Stock Transfer</span>
+                </router-link>
+
+                <router-link
+                    to="/item-stocks/adjust"
+                    class="menu-item"
+                    active-class="active"
+                >
+                    <i class="fas fa-sliders-h"></i>
+                    <span v-if="!sidebarCollapsed">Stock Adjustment</span>
+                </router-link>
+
+                <router-link
+                    to="/item-stocks/reserve"
+                    class="menu-item"
+                    active-class="active"
+                >
+                    <i class="fas fa-lock"></i>
+                    <span v-if="!sidebarCollapsed">Stock Reservation</span>
+                </router-link>
+
+                <router-link
+                    to="/item-stocks/negative"
+                    class="menu-item"
+                    active-class="active"
+                >
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span v-if="!sidebarCollapsed">Negative Stocks</span>
+                </router-link>
+                </div>
+
                 <!-- Stock Operations Section -->
                 <div class="menu-section">
                     <div
@@ -564,7 +647,7 @@
                     <i class="fas fa-sliders-h"></i>
                     <span v-if="!sidebarCollapsed">Quality Parameters</span>
                 </router-link>
-                
+
                 <router-link
                     to="/dashboard"
                     class="menu-item"

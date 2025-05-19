@@ -1,4 +1,4 @@
-<!-- src/views/sales/DeliveryForm.vue -->
+y<!-- src/views/sales/DeliveryForm.vue -->
 ```html
 <!-- src/views/sales/DeliveryForm.vue (Template section with English translations) -->
 <template>
@@ -11,6 +11,9 @@
         </button>
         <button class="btn btn-primary" @click="saveDelivery" :disabled="isSubmitting">
           <i class="fas fa-save"></i> {{ isSubmitting ? 'Saving...' : 'Save' }}
+        </button>
+        <button class="btn btn-info" @click="printDeliveryNote" :disabled="isSubmitting" style="margin-left: 0.5rem;">
+          <i class="fas fa-print"></i> Cetak Surat Jalan
         </button>
       </div>
     </div>
@@ -228,12 +231,6 @@
       </div>
 
       <div class="form-actions">
-        <!-- <button type="button" class="btn btn-secondary" @click="goBack">
-          Cancel
-        </button>
-        <button type="button" class="btn btn-primary" @click="saveDelivery" :disabled="isSubmitting">
-          {{ isSubmitting ? 'Saving...' : 'Save Delivery' }}
-        </button> -->
       </div>
     </div>
   </div>
@@ -615,6 +612,12 @@ export default {
       goBack,
       saveDelivery
     };
+  },
+  methods: {
+    printDeliveryNote() {
+      // Placeholder for print functionality
+      alert('Cetak Surat Jalan button clicked. Implement print logic here.');
+    }
   }
 };
 </script>

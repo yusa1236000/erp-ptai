@@ -56,7 +56,7 @@ class SalesInvoice extends Model
      */
     public function delivery(): BelongsTo
     {
-        return $this->belongsTo(Delivery::class, 'do_id');
+        return $this->belongsTo(Delivery::class, 'delivery_id');
     }
 
     /**
@@ -90,7 +90,7 @@ class SalesInvoice extends Model
     {
         return $this->hasMany(SalesCommission::class, 'invoice_id');
     }
-
+    
     /**
      * Convert amounts to specified currency.
      *
@@ -101,7 +101,7 @@ class SalesInvoice extends Model
     public function getAmountsInCurrency($toCurrency, $date = null)
     {
         $date = $date ?? $this->invoice_date;
-
+        
         // If already in requested currency, return original amounts
         if ($this->currency_code === $toCurrency) {
             return [
@@ -109,7 +109,7 @@ class SalesInvoice extends Model
                 'tax_amount' => $this->tax_amount
             ];
         }
-
+        
         // Try to convert via base currency first
         if ($toCurrency === $this->base_currency) {
             return [
@@ -117,10 +117,10 @@ class SalesInvoice extends Model
                 'tax_amount' => $this->base_currency_tax
             ];
         }
-
+        
         // Get rate from base currency to requested currency
         $rate = CurrencyRate::getCurrentRate($this->base_currency, $toCurrency, $date);
-
+        
         if (!$rate) {
             // Try direct conversion
             $rate = CurrencyRate::getCurrentRate($this->currency_code, $toCurrency, $date);
@@ -131,13 +131,13 @@ class SalesInvoice extends Model
                     'tax_amount' => $this->tax_amount
                 ];
             }
-
+            
             return [
                 'total_amount' => $this->total_amount * $rate,
                 'tax_amount' => $this->tax_amount * $rate
             ];
         }
-
+        
         return [
             'total_amount' => $this->base_currency_total * $rate,
             'tax_amount' => $this->base_currency_tax * $rate

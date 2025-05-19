@@ -1,6 +1,6 @@
 <!-- src/views/sales/DeliveryOrderPrint.vue -->
 <template>
-  <div class="delivery-print-container">
+  <div class="delivery-print-container" id="delivery-print-content">
     <!-- Company Header & Document Info Section -->
     <div class="top-header">
       <div class="company-info">
@@ -95,9 +95,9 @@
 
     <!-- Signature Section -->
     <div class="signature-section">
-      <div class="received-header">
+      <!-- <div class="received-header">
         Received the Abovementioned in Good Condition
-      </div>
+      </div> -->
       <div class="signature-code">
         <div class="signature-left">
           <span>Received BY</span>
@@ -113,21 +113,26 @@
     </div>
 
     <!-- Print Actions (only visible in screen view) -->
-    <div class="print-actions">
-      <button class="btn btn-primary" @click="printDeliveryOrder">
-        <i class="fas fa-print"></i> Cetak Surat Jalan
-      </button>
-      <button class="btn btn-secondary" @click="goBack">
+</div>
+<div class="print-actions">
+    <button class="btn btn-secondary" @click="goBack">
         <i class="fas fa-arrow-left"></i> Kembali
-      </button>
-    </div>
-  </div>
+    </button>
+    <button class="btn btn-primary" @click="printDeliveryOrder">
+      <i class="fas fa-print"></i> Print
+    </button>
+    <button class="btn btn-success" @click="printPDF">
+      <i class="fas fa-file-pdf"></i> Cetak PDF
+    </button>
+</div>
 </template>
 
 <script>
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
+
+import html2pdf from 'html2pdf.js';
 
 export default {
   name: 'DeliveryOrderPrint',
@@ -184,7 +189,30 @@ export default {
 
     // Print the delivery order
     const printDeliveryOrder = () => {
+      const printContents = document.getElementById('delivery-print-content').innerHTML;
+      const originalContents = document.body.innerHTML;
+
+      document.body.innerHTML = printContents;
       window.print();
+      document.body.innerHTML = originalContents;
+      window.location.reload(); // Reload to restore event listeners and Vue bindings
+    };
+
+    // Print PDF of the delivery order
+    const printPDF = () => {
+      const element = document.getElementById('delivery-print-content');
+      if (!element) {
+        alert('Content to print not found!');
+        return;
+      }
+      const opt = {
+        margin:       0.5,
+        filename:     `DeliveryOrder_${delivery.value?.delivery_number || 'unknown'}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
     };
 
     // Go back to the delivery detail page
@@ -206,6 +234,7 @@ export default {
       formatDate,
       getEmptyRows,
       printDeliveryOrder,
+      printPDF,
       goBack
     };
   }
@@ -354,6 +383,7 @@ export default {
 .received-header {
   font-weight: bold;
   margin-bottom: 10px;
+  text-align: left;
 }
 
 .signature-code {
@@ -411,6 +441,15 @@ export default {
 
 .btn-secondary:hover {
   background-color: #cbd5e1;
+}
+
+.btn-success {
+  background-color: #16a34a;
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #15803d;
 }
 
 /* Print media styles */

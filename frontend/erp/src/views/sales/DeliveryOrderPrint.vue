@@ -95,43 +95,51 @@
 
     <!-- Signature Section -->
     <div class="signature-section">
-      <!-- <div class="received-header">
-        Received the Abovementioned in Good Condition
-      </div> -->
-      <div class="signature-code">
-        <div class="signature-left">
-          <span>Received BY</span>
-          <div class="signature-space"></div>
-          <div class="signature-line"></div>
-        </div>
-        <div class="signature-right">
-          <span>Delivered By PT. ARMSTRONG INDUSTRI INDONESIA</span>
-          <div class="signature-space"></div>
-          <div class="signature-line"></div>
+      <div class="signature-container">
+        <p class="condition-text">Received the Abovementioned in Good Condition</p>
+
+        <div class="tables-container">
+          <table class="signature-table left-table">
+            <tr>
+              <td class="left-cell">Received BY</td>
+              <td class="right-cell">Delivered By</td>
+            </tr>
+            <tr>
+              <td class="left-cell empty-cell"></td>
+              <td class="right-cell empty-cell"></td>
+            </tr>
+          </table>
+
+          <table class="signature-table right-table">
+            <tr>
+              <td class="armstrong-header">PT. ARMSTRONG INDUSTRI INDONESIA</td>
+            </tr>
+            <tr>
+              <td class="armstrong-signature"></td>
+            </tr>
+          </table>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Print Actions (only visible in screen view) -->
-</div>
-<div class="print-actions">
+  <div class="print-actions">
     <button class="btn btn-secondary" @click="goBack">
-        <i class="fas fa-arrow-left"></i> Kembali
+      <i class="fas fa-arrow-left"></i> Kembali
     </button>
     <button class="btn btn-primary" @click="printDeliveryOrder">
       <i class="fas fa-print"></i> Print
     </button>
-    <button class="btn btn-danger" @click="printPDF">
-      <i class="fas fa-file-pdf"></i> Save as PDF
+    <button class="btn btn-success" @click="printPDF">
+      <i class="fas fa-file-pdf"></i> Cetak PDF
     </button>
-</div>
+  </div>
 </template>
 
 <script>
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
-
 import html2pdf from 'html2pdf.js';
 
 export default {
@@ -206,11 +214,11 @@ export default {
         return;
       }
       const opt = {
-        margin:       0.5,
-        filename:     `DeliveryOrder_${delivery.value?.delivery_number || 'unknown'}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        margin: 0.5,
+        filename: `DeliveryOrder_${delivery.value?.delivery_number || 'unknown'}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
       };
       html2pdf().set(opt).from(element).save();
     };
@@ -376,32 +384,66 @@ export default {
   border-bottom: 1px solid #000;
 }
 
+/* Signature Section Styles */
 .signature-section {
-  margin-top: 30px;
+  margin-top: 40px;
 }
 
-.received-header {
-  font-weight: bold;
-  margin-bottom: 10px;
+.signature-container {
+  width: 670px; /* Combined width of both tables + gap */
+  margin: 0 auto;
+}
+
+.condition-text {
+  font-size: 12px;
+  margin: 0 0 10px 0;
   text-align: left;
 }
 
-.signature-code {
+.tables-container {
   display: flex;
   justify-content: space-between;
+  gap: 20px;
 }
 
-.signature-left, .signature-right {
-  width: 48%;
+.signature-table {
+  border-collapse: collapse;
+  border: 1px dashed #000;
 }
 
-.signature-space {
-  height: 60px;
+.left-table {
+  width: 325px;
 }
 
-.signature-line {
-  border-top: 1px solid #000;
-  margin-top: 5px;
+.right-table {
+  width: 325px;
+}
+
+.left-cell, .right-cell {
+  border: 1px dashed #000;
+  padding: 8px;
+  text-align: center;
+  vertical-align: top;
+  width: 50%;
+  height: 25px;
+}
+
+.empty-cell {
+  height: 65px !important;
+}
+
+.armstrong-header {
+  border: 1px dashed #000;
+  padding: 8px;
+  text-align: center;
+  vertical-align: top;
+  height: 25px;
+}
+
+.armstrong-signature {
+  border: 1px dashed #000;
+  padding: 8px;
+  height: 65px;
 }
 
 /* Print actions - only visible in screen view */

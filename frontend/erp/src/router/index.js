@@ -14,7 +14,22 @@ import UnitOfMeasureDetail from "../views/inventory/UnitOfMeasureDetail.vue";
 // import ItemPriceList from "../views/inventory/ItemPriceList.vue";
 // import PriceComparison from "../views/inventory/PriceComparison.vue";
 import ItemPriceManagement from "../views/inventory/ItemPriceManagement.vue";
-//import StockTransactions from "../views/inventory/StockTransactions.vue";
+import ItemStockList from "../views/inventory/ItemStockList.vue";
+import ItemStockDetail from "../views/inventory/ItemStockDetail.vue";
+import WarehouseStock from "../views/inventory/WarehouseStock.vue";
+import StockTransfer from "../views/inventory/StockTransfer.vue";
+import StockAdjustment from "../views/inventory/StockAdjustment.vue";
+import StockReservation from "../views/inventory/StockReservation.vue";
+import NegativeStocks from "../views/inventory/NegativeStocks.vue";
+// import ItemCategories from "../views/inventory/ItemCategories.vue";
+// import ItemCategoriesEnhanced from "../views/inventory/ItemCategoriesEnhanced.vue";
+
+//Item Transaction
+import CycleCountList from "../views/inventory/CycleCountList.vue";
+import CycleCountForm from "../views/inventory/CycleCountForm.vue";
+import CycleCountDetail from "../views/inventory/CycleCountDetail.vue";
+import CycleCountApproval from "../views/inventory/CycleCountApproval.vue";
+import GenerateCycleCounts from "../views/inventory/GenerateCycleCounts.vue";
 import StockTransactionsList from "../views/inventory/StockTransactionsList.vue";
 import StockTransactionForm from "../views/inventory/StockTransactionForm.vue";
 import StockTransactionDetail from "../views/inventory/StockTransactionDetail.vue";
@@ -126,31 +141,6 @@ import QualityParameterForm from "../views/manufacturing/QualityParameterForm.vu
 import QualityAnalysisDashboard from "../views/manufacturing/QualityAnalysisDashboard.vue";
 import SalesOrderPrint from "../views/sales/SalesOrderPrint.vue";
 
-//Item Stock
-// import StockTransactionsList from "../views/inventory/StockTransactionsList.vue";
-// import StockTransactionForm from "../views/inventory/StockTransactionForm.vue";
-// import StockTransactionDetail from "../views/inventory/StockTransactionDetail.vue";
-// import StockAdjustmentList from "../views/inventory/StockAdjustmentList.vue";
-// import StockAdjustmentForm from "../views/inventory/StockAdjustmentForm.vue";
-// import StockAdjustmentDetail from "../views/inventory/StockAdjustmentDetail.vue";
-// import StockAdjustmentApproval from "../views/inventory/StockAdjustmentApproval.vue";
-// import ItemMovementHistory from "../views/inventory/ItemMovementHistory.vue";
-// import StockTransferForm from "../views/inventory/StockTransferForm.vue";
-import ItemStockList from "../views/inventory/ItemStockList.vue";
-import ItemStockDetail from "../views/inventory/ItemStockDetail.vue";
-import WarehouseStock from "../views/inventory/WarehouseStock.vue";
-import StockTransfer from "../views/inventory/StockTransfer.vue";
-import StockAdjustment from "../views/inventory/StockAdjustment.vue";
-import StockReservation from "../views/inventory/StockReservation.vue";
-import NegativeStocks from "../views/inventory/NegativeStocks.vue";
-// import ItemCategories from "../views/inventory/ItemCategories.vue";
-// import ItemCategoriesEnhanced from "../views/inventory/ItemCategoriesEnhanced.vue";
-import CycleCountList from "../views/inventory/CycleCountList.vue";
-import CycleCountForm from "../views/inventory/CycleCountForm.vue";
-import CycleCountDetail from "../views/inventory/CycleCountDetail.vue";
-import CycleCountApproval from "../views/inventory/CycleCountApproval.vue";
-import GenerateCycleCounts from "../views/inventory/GenerateCycleCounts.vue";
-
 // import SalesForecastFormModal from "../views/sales/SalesForecastFormModal.vue";
 // Import other components as needed
 
@@ -204,6 +194,23 @@ const routes = [
                 name: "ItemCategoriesEnhanced",
                 component: ItemCategoriesEnhanced,
             },
+            {
+                path: "/purchasing/goods-receipts/:id/print",
+                name: "PrintGoodsReceipt",
+                component: () =>
+                    import("../views/purchasing/GoodsReceiptPrint.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+            },
+            {
+                path: "/purchasing/vendor-invoices/:id/print",
+                name: "PrintVendorInvoice",
+                component: () =>
+                    import("../views/purchasing/VendorInvoicePrint.vue"),
+                props: true,
+                meta: { requiresAuth: true },
+            },
+
             // Add Unit of Measure route
             {
                 path: "unit-of-measures",

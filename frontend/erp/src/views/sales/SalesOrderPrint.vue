@@ -6,8 +6,8 @@
       <button class="btn btn-primary" @click="printDocument">
         <i class="fas fa-print"></i> Print Document
       </button>
-      <button class="btn btn-primary" @click="printPdf" style="margin-left: 0.5rem;">
-        <i class="fas fa-file-pdf"></i> Print PDF
+      <button class="btn btn-danger" @click="printPdf" style="margin-left: 0.5rem;">
+        <i class="fas fa-file-pdf"></i> Save as PDF
       </button>
       <button class="btn btn-secondary" @click="goBack">
         <i class="fas fa-arrow-left"></i> Back

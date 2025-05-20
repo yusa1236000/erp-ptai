@@ -130,8 +130,8 @@
     <button class="btn btn-primary" @click="printDeliveryOrder">
       <i class="fas fa-print"></i> Print
     </button>
-    <button class="btn btn-success" @click="printPDF">
-      <i class="fas fa-file-pdf"></i> Cetak PDF
+    <button class="btn btn-danger" @click="printPDF">
+      <i class="fas fa-file-pdf"></i> Save as PDF
     </button>
   </div>
 </template>

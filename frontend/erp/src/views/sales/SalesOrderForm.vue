@@ -64,7 +64,7 @@
                                 required
                                 @change="handleCustomerChange"
                             >
-                                <option value="">-- Customer Change --</option>
+                                <option value="">-- Select Customer --</option>
                                 <option
                                     v-for="customer in customers"
                                     :key="customer.customer_id"
@@ -153,8 +153,8 @@
                                Status cannot be changed because it is already
                                 {{
                                     form.status === "Invoiced"
-                                        ? "difakturkan"
-                                        : "selesai"
+                                        ? "invoiced"
+                                        : "closed"
                                 }}
                             </small>
                         </div>
@@ -183,7 +183,7 @@
                     <div v-else class="order-lines">
                         <div class="order-currency-info" v-if="form.currency_code !== 'IDR'">
                             <i class="fas fa-info-circle"></i>
-                            Semua harga dalam <strong>{{ form.currency_code }}</strong>
+                            All prices in <strong>{{ form.currency_code }}</strong>
                         </div>
 
                         <div class="line-headers">
@@ -191,7 +191,7 @@
                             <div class="line-header">Unit Price</div>
                             <div class="line-header">Quantity</div>
                             <div class="line-header">UOM</div>
-                            <div class="line-header">Dicount</div>
+                            <div class="line-header">Discount</div>
                             <div class="line-header">Tax</div>
                             <div class="line-header">Subtotal</div>
                             <div class="line-header">Total</div>
@@ -203,27 +203,36 @@
                             :key="index"
                             class="order-line"
                         >
-                        <div class="line-item" data-label="Item">
-                            <div class="item-code" v-if="line.item_code" style="font-weight: bold; margin-bottom: 0.25rem;">
-                                {{ line.item_code }}
+                            <div class="line-item" data-label="Item">
+                                <div class="item-code" v-if="line.item_code" style="font-weight: bold; margin-bottom: 0.25rem;">
+                                    {{ line.item_code }}
+                                </div>
+                                <div class="dropdown-container">
+                                    <input
+                                        type="text"
+                                        v-model="line.itemSearch"
+                                        class="form-control"
+                                        placeholder="Search for an item..."
+                                        @focus="line.showDropdown = true"
+                                        @input="line.showDropdown = true"
+                                    />
+                                    <div v-if="line.showDropdown" class="dropdown-menu">
+                                        <div
+                                            v-for="item in getFilteredItems(line.itemSearch)"
+                                            :key="item.item_id"
+                                            @mousedown="selectItem(item, index)"
+                                            class="dropdown-item"
+                                        >
+                                            {{ item.item_code }} - {{ item.name }}
+                                        </div>
+                                        <div v-if="getFilteredItems(line.itemSearch).length === 0" class="dropdown-item text-muted">
+                                            No items found
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <select
-                                v-model="line.item_id"
-                                required
-                                @change="(e) => handleItemChange(e, index)"
-                            >
-                                <option value="">-- Item Change --</option>
-                                <option
-                                    v-for="item in sellableItems"
-                                    :key="item.item_id"
-                                    :value="item.item_id"
-                                >
-                                    {{ item.item_code }} - {{ item.name }}
-                                </option>
-                            </select>
-                        </div>
 
-                            <div class="line-item" data-label="Harga Unit">
+                            <div class="line-item" data-label="Unit Price">
                                 <input
                                     type="number"
                                     v-model="line.unit_price"
@@ -234,7 +243,7 @@
                                 />
                             </div>
 
-                            <div class="line-item" data-label="Jumlah">
+                            <div class="line-item" data-label="Quantity">
                                 <input
                                     type="number"
                                     v-model="line.quantity"
@@ -258,7 +267,7 @@
                                 </select>
                             </div>
 
-                            <div class="line-item" data-label="Diskon">
+                            <div class="line-item" data-label="Discount">
                                 <input
                                     type="number"
                                     v-model="line.discount"
@@ -268,7 +277,7 @@
                                 />
                             </div>
 
-                            <div class="line-item" data-label="Pajak">
+                            <div class="line-item" data-label="Tax">
                                 <input
                                     type="number"
                                     v-model="line.tax"
@@ -293,7 +302,7 @@
                                 <button
                                     type="button"
                                     class="btn-icon delete"
-                                    title="Hapus Item"
+                                    title="Delete Item"
                                     @click="removeLine(index)"
                                 >
                                     <i class="fas fa-trash"></i>
@@ -334,8 +343,8 @@
             </div>
 
             <div class="form-actions">
-                <!-- <button type="button" class="btn btn-secondary" @click="goBack">
-                    Batal
+                <button type="button" class="btn btn-secondary" @click="goBack">
+                    Cancel
                 </button>
                 <button
                     type="button"
@@ -343,8 +352,8 @@
                     @click="saveOrder"
                     :disabled="isSubmitting"
                 >
-                    {{ isSubmitting ? "Menyimpan..." : "Simpan Order" }}
-                </button> -->
+                    {{ isSubmitting ? "Processing..." : "Save Order" }}
+                </button>
             </div>
         </div>
     </div>
@@ -425,7 +434,7 @@ export default {
                 unitOfMeasures.value = uomResponse.data.data;
             } catch (err) {
                 console.error("Error loading reference data:", err);
-                error.value = "Terjadi kesalahan saat memuat data referensi.";
+                error.value = "Error loading reference data.";
             }
         };
 
@@ -480,17 +489,24 @@ export default {
 
                 // Set line items
                 if (order.salesOrderLines && order.salesOrderLines.length > 0) {
-                    form.value.lines = order.salesOrderLines.map((line) => ({
-                        line_id: line.lineId,
-                        item_id: line.itemId,
-                        unit_price: line.unitPrice,
-                        quantity: line.quantity,
-                        uom_id: line.uomId,
-                        discount: line.discount || 0,
-                        tax: line.tax || 0,
-                        subtotal: line.subtotal,
-                        total: line.total,
-                    }));
+                    form.value.lines = order.salesOrderLines.map((line) => {
+                        const selectedItem = items.value.find(i => i.item_id == line.itemId);
+
+                        return {
+                            line_id: line.lineId,
+                            item_id: line.itemId,
+                            item_code: selectedItem ? selectedItem.item_code : '',
+                            itemSearch: selectedItem ? `${selectedItem.item_code} - ${selectedItem.name}` : '',
+                            showDropdown: false,
+                            unit_price: line.unitPrice,
+                            quantity: line.quantity,
+                            uom_id: line.uomId,
+                            discount: line.discount || 0,
+                            tax: line.tax || 0,
+                            subtotal: line.subtotal,
+                            total: line.total,
+                        };
+                    });
                 }
 
                 // Find selected customer
@@ -501,7 +517,7 @@ export default {
                 }
             } catch (err) {
                 console.error("Error loading order:", err);
-                error.value = "Terjadi kesalahan saat memuat data order.";
+                error.value = "Error loading order.";
             } finally {
                 isLoading.value = false;
             }
@@ -524,7 +540,58 @@ export default {
             }
         };
 
-        // Event handler for item change
+        // Method to filter items based on search input
+        const getFilteredItems = (searchInput) => {
+            if (!searchInput) {
+                return sellableItems.value;
+            }
+            return sellableItems.value.filter(item =>
+                item.name.toLowerCase().includes(searchInput.toLowerCase()) ||
+                item.item_code.toLowerCase().includes(searchInput.toLowerCase())
+            );
+        };
+
+        // Method to select an item from the dropdown
+        const selectItem = async (item, lineIndex) => {
+            const line = form.value.lines[lineIndex];
+            line.item_id = item.item_id;
+            line.item_code = item.item_code;
+            line.itemSearch = `${item.item_code} - ${item.name}`;
+            line.showDropdown = false;
+
+            // Set UOM automatically if available
+            if (item.uom_id) {
+                line.uom_id = item.uom_id;
+            }
+
+            // Get price information
+            try {
+                // Get best price in current currency
+                const response = await axios.get(`/items/${item.item_id}/best-sale-price`, {
+                    params: {
+                        customer_id: form.value.customer_id,
+                        quantity: line.quantity || 1,
+                        currency_code: form.value.currency_code
+                    }
+                });
+
+                if (response.data && response.data.price) {
+                    line.unit_price = response.data.price;
+                } else {
+                    // If no specific price, use default sale price
+                    line.unit_price = item.sale_price || 0;
+                }
+
+                calculateLineTotals(lineIndex);
+            } catch (err) {
+                console.error("Error fetching item price:", err);
+                // Use default sale price if API call fails
+                line.unit_price = item.sale_price || 0;
+                calculateLineTotals(lineIndex);
+            }
+        };
+
+        // Event handler for item change (for compatibility)
         const handleItemChange = async (event, index) => {
             const itemId = form.value.lines[index].item_id;
             if (!itemId) return;
@@ -536,6 +603,7 @@ export default {
 
                 // Set item_code in the line
                 form.value.lines[index].item_code = selectedItem.item_code || "";
+                form.value.lines[index].itemSearch = `${selectedItem.item_code} - ${selectedItem.name}`;
 
                 try {
                     // Get best price in current currency
@@ -568,6 +636,9 @@ export default {
         const addLine = () => {
             form.value.lines.push({
                 item_id: "",
+                item_code: "",
+                itemSearch: "",
+                showDropdown: false,
                 unit_price: 0,
                 quantity: 1,
                 uom_id: "",
@@ -666,7 +737,7 @@ export default {
                 ) {
                     error.value = `Item ${
                         i + 1
-                    }  has incomplete data.`;
+                    } has incomplete data.`;
                     return;
                 }
             }
@@ -675,12 +746,24 @@ export default {
             error.value = "";
 
             try {
-                // Prepare order data
+                // Prepare order data - Remove UI-specific properties
+                const orderLines = form.value.lines.map(line => ({
+                    line_id: line.line_id,
+                    item_id: line.item_id,
+                    unit_price: line.unit_price,
+                    quantity: line.quantity,
+                    uom_id: line.uom_id,
+                    discount: line.discount || 0,
+                    tax: line.tax || 0,
+                    subtotal: line.subtotal,
+                    total: line.total
+                }));
+
                 const orderData = {
                     ...form.value,
                     total_amount: calculateGrandTotal(),
                     tax_amount: calculateTotalTax(),
-                    lines: form.value.lines,
+                    lines: orderLines
                 };
 
                 if (isEditMode.value) {
@@ -712,8 +795,27 @@ export default {
             }
         };
 
-        // Initialize
+        // Close dropdowns when clicking outside
         onMounted(() => {
+            document.addEventListener('click', (e) => {
+                form.value.lines.forEach(line => {
+                    if (line.showDropdown) {
+                        const dropdownEls = document.querySelectorAll('.dropdown-container');
+                        let clickedInside = false;
+
+                        dropdownEls.forEach(el => {
+                            if (el.contains(e.target)) {
+                                clickedInside = true;
+                            }
+                        });
+
+                        if (!clickedInside) {
+                            line.showDropdown = false;
+                        }
+                    }
+                });
+            });
+
             loadReferenceData();
             loadOrder();
         });
@@ -729,6 +831,8 @@ export default {
             isEditMode,
             sellableItems,
             selectedCustomer,
+            getFilteredItems,
+            selectItem,
             handleCustomerChange,
             handleItemChange,
             addLine,
@@ -1036,13 +1140,40 @@ export default {
     background-color: #cbd5e1;
 }
 
-.currency-badge {
-    background-color: #dbeafe;
-    color: #2563eb;
-    font-size: 0.75rem;
-    font-weight: 500;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+/* Dropdown styling */
+.dropdown-container {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    margin-top: 0.25rem;
+}
+
+.dropdown-item {
+    padding: 0.625rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: #f1f5f9;
+}
+
+.dropdown-item.text-muted {
+    color: #94a3b8;
+    cursor: default;
 }
 
 @media (max-width: 1024px) {

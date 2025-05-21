@@ -1,184 +1,117 @@
 <!-- src/views/purchasing/VendorInvoicePrint.vue -->
 <template>
-  <div class="invoice-print-container">
-    <!-- Print Header Controls (visible on screen, hidden when printing) -->
-    <div class="print-controls">
-      <button @click="$router.push(`/purchasing/vendor-invoices/${$route.params.id}`)" class="btn btn-outline">
-        <i class="fas fa-arrow-left"></i> Back to Invoice
-      </button>
-      <div class="print-buttons">
-        <button @click="printInvoice" class="btn btn-primary">
-          <i class="fas fa-print"></i> Print Invoice
-        </button>
-        <button @click="printInvoicePDF" class="btn btn-danger">
-          <i class="fas fa-file-pdf"></i> Print PDF
-        </button>
-      </div>
+  <div class="print-container">
+  <div class="print-actions non-printable">
+    <button @click="goBack" class="btn"><i class="fas fa-arrow-left"></i> Back</button>
+    <div class="right-buttons">
+      <button @click="printInvoice" class="btn btn-primary"><i class="fas fa-print"></i> Print</button>
+      <button @click="saveAsPDF" class="btn btn-primary"><i class="fas fa-file-pdf"></i> Save as PDF</button>
     </div>
+  </div>
 
-    <!-- Printable Invoice Content -->
-    <div class="printable-area">
-      <div v-if="loading" class="loading">
-        <i class="fas fa-spinner fa-spin"></i> Loading invoice data...
-      </div>
+    <div class="invoice-page">
+      <div class="invoice-header">
+        <!-- Header Border -->
+        <div class="header-border"></div>
 
-      <div v-else-if="!invoice" class="error-message">
-        Invoice not found or has been deleted.
-      </div>
+        <div class="invoice-title">PURCHASE INVOICE</div>
 
-      <div v-else class="invoice-document">
-        <!-- Invoice Header -->
-        <div class="invoice-header">
-          <div class="company-info">
-            <h3>PT. ARMSTRONG INDUSTRI INDONESIA</h3>
-            <p>EJIP Industrial Park Plot 1 A-3</p>
-            <p>Desa Sukaresmi, Cikarang Selatan</p>
-            <p>TBekasi 17550, Indonesia</p>
-          </div>
-          <div class="invoice-title">
-            <h3>VENDOR INVOICE</h3>
-            <div class="invoice-number">{{ invoice.invoice_number }}</div>
-          </div>
-        </div>
-
-        <!-- Invoice Status Banner -->
-        <!-- <div class="invoice-status-banner" :class="getStatusClass(invoice.status)">
-          {{ capitalizeFirst(invoice.status) }}
-        </div> -->
-
-        <!-- Vendor & Invoice Details -->
-        <div class="invoice-details-section">
-          <div class="vendor-details">
-            <h3>Vendor</h3>
-            <div class="details-box">
-              <p class="vendor-name">{{ invoice.vendor?.name }}</p>
-              <p>{{ invoice.vendor?.address }}</p>
-              <p>{{ invoice.vendor?.city }}, {{ invoice.vendor?.state }} {{ invoice.vendor?.postal_code }}</p>
-              <p>{{ invoice.vendor?.country }}</p>
-              <p v-if="invoice.vendor?.phone">Phone: {{ invoice.vendor?.phone }}</p>
-              <p v-if="invoice.vendor?.email">Email: {{ invoice.vendor?.email }}</p>
-              <p v-if="invoice.vendor?.tax_id">Tax ID: {{ invoice.vendor?.tax_id }}</p>
+        <div class="invoice-header-content">
+          <!-- Vendor Information -->
+          <div class="vendor-info">
+            <div class="vendor-box">
+              <div class="vendor-name">{{ vendor.name }}</div>
+              <div>{{ vendor.address1 }}</div>
+              <div v-if="vendor.address2">{{ vendor.address2 }}</div>
+              <div>{{ vendor.city }}, {{ vendor.state }}</div>
+              <div class="vendor-contact">
+                TEL : {{ vendor.phone }} FAX : {{ vendor.fax }}
+              </div>
+              <div class="vendor-contact">
+                ATTN: {{ vendor.contact_person }}
+              </div>
             </div>
           </div>
 
-          <div class="invoice-details">
-            <h3>Invoice Details</h3>
-            <div class="details-box">
-              <table class="details-table">
-                <tr>
-                  <th>Invoice Date:</th>
-                  <td>{{ formatDate(invoice.invoice_date) }}</td>
-                </tr>
-                <tr>
-                  <th>Due Date:</th>
-                  <td>{{ formatDate(invoice.due_date) }}</td>
-                </tr>
-                <tr v-if="invoice.currency_code !== 'USD'">
-                  <th>Currency:</th>
-                  <td>{{ invoice.currency_code }}</td>
-                </tr>
-                <tr v-if="invoice.currency_code !== 'USD'">
-                  <th>Exchange Rate:</th>
-                  <td>{{ invoice.exchange_rate }} (to USD)</td>
-                </tr>
-                <tr v-if="invoice.po_id">
-                  <th>PO Reference:</th>
-                  <td>{{ invoice.purchaseOrder?.po_number || 'Multiple POs' }}</td>
-                </tr>
-                <tr>
-                  <th>Payment Status:</th>
-                  <td>{{ capitalizeFirst(invoice.status) }}</td>
-                </tr>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Invoice Items -->
-        <div class="invoice-items-section">
-          <h3>Invoice Items</h3>
-          <table class="items-table">
-            <thead>
+          <!-- Invoice Details -->
+          <div class="invoice-info">
+            <table class="invoice-details">
               <tr>
-                <th>Item</th>
-                <th>Description</th>
-                <th>PO Number</th>
-                <th>Quantity</th>
-                <th>Unit Price</th>
-                <th>Subtotal</th>
-                <th>Tax</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="line in invoice.lines" :key="line.line_id">
-                <td>{{ line.item?.item_code || 'N/A' }}</td>
-                <td>{{ line.item?.name || 'N/A' }}</td>
-                <td>{{ line.purchaseOrderLine?.purchaseOrder?.po_number || 'N/A' }}</td>
-                <td>{{ line.quantity }}</td>
-                <td>{{ formatCurrency(line.unit_price, invoice.currency_code) }}</td>
-                <td>{{ formatCurrency(line.subtotal, invoice.currency_code) }}</td>
-                <td>{{ formatCurrency(line.tax, invoice.currency_code) }}</td>
-                <td>{{ formatCurrency(line.total, invoice.currency_code) }}</td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="5" class="text-right"><strong>Totals:</strong></td>
-                <td>{{ formatCurrency(invoice.total_amount - invoice.tax_amount, invoice.currency_code) }}</td>
-                <td>{{ formatCurrency(invoice.tax_amount, invoice.currency_code) }}</td>
-                <td>{{ formatCurrency(invoice.total_amount, invoice.currency_code) }}</td>
-              </tr>
-              <tr v-if="invoice.currency_code !== 'USD'">
-                <td colspan="5" class="text-right"><strong>USD Equivalent:</strong></td>
-                <td>{{ formatCurrency(invoice.base_currency_total - invoice.base_currency_tax, 'USD') }}</td>
-                <td>{{ formatCurrency(invoice.base_currency_tax, 'USD') }}</td>
-                <td>{{ formatCurrency(invoice.base_currency_total, 'USD') }}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        <!-- Payment Information (if paid) -->
-        <div class="payment-section" v-if="invoice.status === 'paid'">
-          <h3>Payment Information</h3>
-          <div class="details-box">
-            <table class="details-table">
-              <tr>
-                <th>Payment Date:</th>
-                <td>{{ formatDate(invoice.payment_date) }}</td>
+                <td class="label">No.</td>
+                <td class="colon">:</td>
+                <td class="value">{{ invoice.invoice_number }}</td>
               </tr>
               <tr>
-                <th>Payment Method:</th>
-                <td>{{ invoice.payment_method || 'N/A' }}</td>
+                <td class="label">Our GRN No.</td>
+                <td class="colon">:</td>
+                <td class="value">{{ receiptNumbers }}</td>
               </tr>
-              <tr v-if="invoice.payment_reference">
-                <th>Reference:</th>
-                <td>{{ invoice.payment_reference }}</td>
+              <tr>
+                <td class="label">Terms</td>
+                <td class="colon">:</td>
+                <td class="value">Net {{ paymentTerms }} days</td>
+              </tr>
+              <tr>
+                <td class="label">Date</td>
+                <td class="colon">:</td>
+                <td class="value">{{ formatDate(invoice.invoice_date) }}</td>
+              </tr>
+              <tr>
+                <td class="label">Page</td>
+                <td class="colon">:</td>
+                <td class="value">1 of 1</td>
               </tr>
             </table>
           </div>
         </div>
+      </div>
 
-        <!-- Notes/Terms Section -->
-        <div class="notes-section">
-          <h3>Notes & Terms</h3>
-          <div class="details-box">
-            <p>Please include the invoice number when making payment. All payments are due within terms indicated above.</p>
-            <p>For any questions regarding this invoice, please contact your purchasing manager or accounts payable department.</p>
+      <div class="invoice-body">
+        <!-- Line Items Table -->
+        <table class="line-items-table">
+          <thead>
+            <tr>
+              <th class="no-column">No.</th>
+              <th class="description-column">Description</th>
+              <th class="uom-column">UOM</th>
+              <th class="qty-column">Qty</th>
+              <th class="price-column">Unit Price<br />{{ invoice.currency_code }}</th>
+              <th class="amount-column">Amount<br />{{ invoice.currency_code }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(line, index) in invoice.lines" :key="line.line_id">
+              <td class="center">{{ index + 1 }}</td>
+              <td>{{ line.item ? line.item.name : 'N/A' }}</td>
+              <td class="center">{{ line.item ? line.item.unitOfMeasure?.code : 'N/A' }}</td>
+              <td class="right">{{ formatNumber(line.quantity) }}</td>
+              <td class="right">{{ formatNumber(line.unit_price) }}</td>
+              <td class="right">{{ formatNumber(line.total) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="invoice-footer">
+          <!-- Amount in Words -->
+          <div class="amount-line"></div>
+
+        <!-- Total Amount -->
+        <div class="total-section">
+          <div class="total-line">
+            <span class="total-label">Total</span>
+            <div class="total-amount-box">{{ formatCurrency(invoice.total_amount) }}</div>
           </div>
         </div>
 
-        <!-- Footer -->
-        <div class="invoice-footer">
-          <div class="footer-signature">
-            <div class="signature-line">Approved By: _________________________</div>
-            <div class="signature-line">Date: _________________________</div>
-          </div>
-          <div class="footer-copy">
-            <p>Invoice generated on {{ formatDate(new Date()) }}</p>
-          </div>
+        <!-- E & O.E -->
+        <div class="disclaimer">
+          E & O.E
         </div>
+
+        <!-- Signature -->
+        <div class="signature-line"></div>
+        <div class="signature-text">Authorised Signature</div>
       </div>
     </div>
   </div>
@@ -192,10 +125,50 @@ export default {
   name: 'VendorInvoicePrint',
   data() {
     return {
-      loading: true,
-      invoice: null,
-      receiptDetails: []
+      invoice: {
+        invoice_number: '',
+        invoice_date: '',
+        due_date: '',
+        total_amount: 0,
+        tax_amount: 0,
+        status: '',
+        currency_code: '',
+        lines: []
+      },
+      vendor: {
+        name: '',
+        address1: '',
+        address2: '',
+        city: '',
+        state: '',
+        phone: '',
+        fax: '',
+        contact_person: '',
+        payment_term: 30
+      },
+      receiptDetails: [],
+      loading: true
     };
+  },
+  computed: {
+    receiptNumbers() {
+      if (!this.receiptDetails || this.receiptDetails.length === 0) {
+        return 'N/A';
+      }
+      return this.receiptDetails.map(r => r.receipt_number).join(', ');
+    },
+    paymentTerms() {
+      return this.vendor.payment_term || 30;
+    },
+    amountInWords() {
+      if (!this.invoice.total_amount) return '';
+
+      // Format currency to words - simplified version
+      const currencyName = this.getCurrencyName(this.invoice.currency_code);
+      const amountWords = this.numberToWords(this.invoice.total_amount);
+
+      return `${currencyName} ${amountWords} ONLY`.toUpperCase();
+    }
   },
   created() {
     this.loadInvoice();
@@ -208,6 +181,7 @@ export default {
 
         if (response.data.status === 'success') {
           this.invoice = response.data.data.invoice;
+          this.vendor = this.invoice.vendor || {};
           this.receiptDetails = response.data.data.receipt_details || [];
         }
       } catch (error) {
@@ -216,28 +190,219 @@ export default {
         this.loading = false;
       }
     },
+    goBack() {
+      this.$router.push(`/purchasing/vendor-invoices/${this.$route.params.id}`);
+    },
     printInvoice() {
-      const printContents = this.$el.querySelector('.printable-area').innerHTML;
-      const printWindow = window.open('', '', 'height=600,width=800');
-      printWindow.document.write('<html><head><title>Print Invoice</title>');
-      // Include styles for print
-      const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-        .map(style => style.outerHTML)
-        .join('');
-      printWindow.document.write(styles);
-      printWindow.document.write('</head><body>');
-      printWindow.document.write(printContents);
-      printWindow.document.write('</body></html>');
+      const printContents = this.$el.querySelector('.invoice-page').innerHTML;
+      const printWindow = window.open('', '', 'width=800,height=600');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Print Invoice</title>
+            <style>
+              @media print {
+                @page {
+                  size: A4;
+                  margin: 10mm;
+                }
+                body {
+                  margin: 0;
+                  padding: 0;
+                  font-family: Arial, sans-serif;
+                }
+                .invoice-page {
+                  width: 210mm;
+                  min-height: 297mm;
+                  margin: 0 auto;
+                  background-color: white;
+                  box-shadow: none;
+                  padding: 0;
+                  position: relative;
+                  display: flex;
+                  flex-direction: column;
+                }
+                .header-border {
+                  height: 1px;
+                  background-color: black;
+                  width: 100%;
+                  margin: 15px 0;
+                }
+                .invoice-header {
+                  padding: 20px;
+                }
+                .invoice-title {
+                  text-align: center;
+                  font-size: 22px;
+                  font-weight: bold;
+                  margin: 15px 0;
+                }
+                .invoice-header-content {
+                  display: flex;
+                  justify-content: space-between;
+                  margin-top: 20px;
+                }
+                .vendor-info {
+                  width: 45%;
+                }
+                .vendor-box {
+                  padding: 10px;
+                  font-size: 12px;
+                  line-height: 1.4;
+                }
+                .vendor-name {
+                  font-weight: bold;
+                }
+                .vendor-contact {
+                  margin-top: 5px;
+                }
+                .invoice-info {
+                  width: 50%;
+                }
+                .invoice-details {
+                  width: 100%;
+                  font-size: 12px;
+                }
+                .invoice-details .label {
+                  width: 30%;
+                  vertical-align: top;
+                }
+                .invoice-details .colon {
+                  width: 5%;
+                  vertical-align: top;
+                }
+                .invoice-details .value {
+                  width: 65%;
+                  vertical-align: top;
+                }
+                .invoice-body {
+                  padding: 0 20px;
+                  flex-grow: 1;
+                }
+                .line-items-table {
+                  width: 100%;
+                  border-collapse: collapse;
+                  font-size: 12px;
+                }
+                .line-items-table th,
+                .line-items-table td {
+                  padding: 8px;
+                  border: none;
+                }
+                .line-items-table thead {
+                  position: relative;
+                }
+                .line-items-table thead:before,
+                .line-items-table thead:after {
+                  content: "";
+                  position: absolute;
+                  left: 0;
+                  right: 0;
+                  height: 1px;
+                  background-color: black;
+                }
+                .line-items-table thead:before {
+                  top: 0;
+                }
+                .line-items-table thead:after {
+                  bottom: 0;
+                }
+                .line-items-table tbody tr {
+                  border-bottom: 1px solid #eee;
+                }
+                .line-items-table tbody tr:last-child {
+                  border-bottom: none;
+                }
+                .no-column {
+                  width: 5%;
+                }
+                .description-column {
+                  width: 40%;
+                }
+                .uom-column {
+                  width: 10%;
+                }
+                .qty-column {
+                  width: 10%;
+                }
+                .price-column {
+                  width: 15%;
+                }
+                .amount-column {
+                  width: 20%;
+                }
+                .center {
+                  text-align: center;
+                }
+                .right {
+                  text-align: right;
+                }
+                .invoice-footer {
+                  padding: 20px;
+                  margin-top: auto;
+                  position: relative;
+                }
+                .amount-line {
+                  width: 100%;
+                  height: 1px;
+                  background-color: black;
+                  margin-bottom: 5px;
+                }
+                .total-section {
+                  display: flex;
+                  justify-content: flex-end;
+                  margin-bottom: 5px;
+                  margin-top: 5px;
+                }
+                .total-line {
+                  display: flex;
+                  align-items: center;
+                }
+                .total-label {
+                  font-weight: normal;
+                  margin-right: 10px;
+                }
+                .total-amount-box {
+                  border: 1px solid black;
+                  padding: 2px 10px;
+                  min-width: 120px;
+                  text-align: right;
+                  font-weight: normal;
+                }
+                .disclaimer {
+                  font-size: 12px;
+                  margin: 0 0 40px 0;
+                  text-align: right;
+                }
+                .signature-line {
+                  height: 1px;
+                  background-color: rgb(0, 0, 0);
+                  width: 14%;
+                  margin-bottom: 5px;
+                }
+                .signature-text {
+                  font-size: 10px;
+                  font-weight: bold;
+                  text-align: start;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="invoice-page">${printContents}</div>
+          </body>
+        </html>
+      `);
       printWindow.document.close();
       printWindow.focus();
       printWindow.print();
       printWindow.close();
     },
-    printInvoicePDF() {
-      const element = this.$el.querySelector('.printable-area');
+    saveAsPDF() {
+      const element = this.$el.querySelector('.invoice-page');
       const opt = {
-        margin:       0.5,
-        filename:     `VendorInvoice_${this.invoice ? this.invoice.invoice_number : 'unknown'}.pdf`,
+        margin:       0.3,
+        filename:     `${this.invoice.invoice_number || 'invoice'}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2 },
         jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
@@ -245,335 +410,376 @@ export default {
       html2pdf().set(opt).from(element).save();
     },
     formatDate(dateString) {
-      if (!dateString) return 'N/A';
+      if (!dateString) return '';
+
       const date = new Date(dateString);
-      return date.toLocaleDateString();
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+
+      return `${day}/${month}/${year}`;
     },
-    formatCurrency(amount, currency) {
-      if (amount === null || amount === undefined) return 'N/A';
+    formatNumber(value) {
+      if (value === null || value === undefined) return '';
 
       return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency || 'USD',
-        minimumFractionDigits: 2
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(value);
+    },
+    formatCurrency(amount) {
+      if (amount === null || amount === undefined) return '';
+
+      return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
       }).format(amount);
     },
-    getStatusClass(status) {
-      const statusClasses = {
-        pending: 'status-pending',
-        approved: 'status-approved',
-        paid: 'status-paid',
-        cancelled: 'status-cancelled'
+    getCurrencyName(code) {
+      const currencies = {
+        'USD': 'UNITED STATES DOLLAR',
+        'IDR': 'INDONESIAN RUPIAH',
+        'EUR': 'EURO',
+        'JPY': 'JAPANESE YEN'
       };
 
-      return statusClasses[status] || '';
+      return currencies[code] || code;
     },
-    capitalizeFirst(str) {
-      if (!str) return '';
-      return str.charAt(0).toUpperCase() + str.slice(1);
+    numberToWords(num) {
+      const units = ['', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'TEN', 'ELEVEN', 'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN', 'SEVENTEEN', 'EIGHTEEN', 'NINETEEN'];
+      const tens = ['', '', 'TWENTY', 'THIRTY', 'FORTY', 'FIFTY', 'SIXTY', 'SEVENTY', 'EIGHTY', 'NINETY'];
+
+      function convertLessThanThousand(num) {
+        if (num === 0) return '';
+
+        if (num < 20) {
+          return units[num];
+        }
+
+        if (num < 100) {
+          return tens[Math.floor(num / 10)] + (num % 10 ? ' ' + units[num % 10] : '');
+        }
+
+        return units[Math.floor(num / 100)] + ' HUNDRED' + (num % 100 ? ' ' + convertLessThanThousand(num % 100) : '');
+      }
+
+      if (num === 0) return 'ZERO';
+
+      let words = '';
+      let chunk = 0;
+
+      // Handle millions
+      chunk = Math.floor(num / 1000000);
+      if (chunk > 0) {
+        words += convertLessThanThousand(chunk) + ' MILLION ';
+        num %= 1000000;
+      }
+
+      // Handle thousands
+      chunk = Math.floor(num / 1000);
+      if (chunk > 0) {
+        words += convertLessThanThousand(chunk) + ' THOUSAND ';
+        num %= 1000;
+      }
+
+      // Handle hundreds and tens
+      if (num > 0) {
+        words += convertLessThanThousand(num);
+      }
+
+      // Add cents
+      const cents = Math.round((num - Math.floor(num)) * 100);
+      if (cents > 0) {
+        words += ' AND ' + cents + '/100';
+      }
+
+      return words.trim();
     }
   }
 };
 </script>
 
-<style>
-/* General styles */
-.invoice-print-container {
-  font-family: 'Inter', sans-serif;
-  font-size: 12pt;
-  color: #333;
-  max-width: 210mm; /* A4 width */
-  margin: 0 auto;
-  padding: 1rem;
+<style scoped>
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  .non-printable {
+    display: none !important;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-container {
+    padding: 0;
+    background-color: white;
+  }
+
+  .invoice-page {
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+  }
 }
 
-.print-controls {
+.print-container {
+  padding: 20px;
+  background-color: #f1f5f9;
+}
+
+.print-actions {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 1rem;
+  margin-bottom: 20px;
 }
 
-.print-buttons {
+.right-buttons {
+  margin-left: auto;
   display: flex;
-  gap: 0.5rem;
+  gap: 10px;
+}
+
+.btn-danger {
+  background-color: #dc2626;
+  color: white;
+  border-color: #dc2626;
 }
 
 .btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  background-color: white;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
+  gap: 8px;
 }
 
 .btn-primary {
   background-color: #2563eb;
   color: white;
-  border: none;
+  border-color: #2563eb;
 }
 
-.btn-outline {
+.invoice-page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
   background-color: white;
-  color: #475569;
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
-.loading, .error-message {
-  text-align: center;
-  padding: 2rem;
-  font-size: 1rem;
-}
-
-/* Invoice Document Styles */
-.invoice-document {
-  background-color: white;
-  padding: 2rem;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.header-border {
+  height: 1px;
+  background-color: black;
+  width: 100%;
+  margin: 15px 0;
 }
 
 .invoice-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-}
-
-.company-info h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.5rem;
-  color: #1e293b;
-}
-
-.company-info p {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.875rem;
-  color: #64748b;
+  padding: 20px;
 }
 
 .invoice-title {
-  text-align: right;
-}
-
-.invoice-title h2 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.5rem;
-  color: #1e293b;
-}
-
-.invoice-number {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #2563eb;
-}
-
-.invoice-status-banner {
-  padding: 0.5rem;
   text-align: center;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  border-radius: 0.25rem;
+  font-size: 22px;
+  font-weight: bold;
+  margin: 15px 0;
 }
 
-.status-pending {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.status-approved {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.status-paid {
-  background-color: #dbeafe;
-  color: #1e40af;
-}
-
-.status-cancelled {
-  background-color: #fee2e2;
-  color: #b91c1c;
-}
-
-.invoice-details-section {
+.invoice-header-content {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin-top: 20px;
 }
 
-.vendor-details, .invoice-details {
-  width: 48%;
+.vendor-info {
+  width: 45%;
 }
 
-h3 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1rem;
-  color: #1e293b;
-  font-weight: 600;
-}
-
-.details-box {
-  border: 1px solid #e2e8f0;
-  border-radius: 0.25rem;
-  padding: 1rem;
-  background-color: #f8fafc;
+.vendor-box {
+  /* border: 1px solid black; */
+  padding: 10px;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .vendor-name {
-  font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
+  font-weight: bold;
 }
 
-.details-table {
-  width: 100%;
-  border-collapse: collapse;
+.vendor-contact {
+  margin-top: 5px;
 }
 
-.details-table th {
-  text-align: left;
-  font-weight: 600;
-  padding: 0.25rem 0;
-  width: 40%;
-  color: #475569;
-}
-
-.details-table td {
-  padding: 0.25rem 0;
-}
-
-.invoice-items-section {
-  margin-bottom: 1.5rem;
-}
-
-.items-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1rem;
-}
-
-.items-table th {
-  text-align: left;
-  padding: 0.5rem;
-  background-color: #f1f5f9;
-  border-bottom: 1px solid #cbd5e1;
-  font-weight: 600;
-  color: #475569;
-}
-
-.items-table td {
-  padding: 0.5rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.items-table tfoot td {
-  border-top: 2px solid #cbd5e1;
-  font-weight: 600;
-}
-
-.text-right {
-  text-align: right;
-}
-
-.related-receipts-section {
-  margin-bottom: 1.5rem;
-}
-
-.receipt-detail {
-  margin-bottom: 1rem;
-}
-
-.receipt-header {
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-}
-
-.receipt-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-}
-
-.receipt-table th {
-  text-align: left;
-  padding: 0.375rem;
-  background-color: #f1f5f9;
-  border-bottom: 1px solid #cbd5e1;
-  font-weight: 600;
-  color: #475569;
-}
-
-.receipt-table td {
-  padding: 0.375rem;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.payment-section, .notes-section {
-  margin-bottom: 1.5rem;
-}
-
-.invoice-footer {
-  margin-top: 2rem;
-  display: flex;
-  justify-content: space-between;
-}
-
-.footer-signature {
+.invoice-info {
   width: 50%;
 }
 
-.signature-line {
-  margin-bottom: 1.5rem;
+.invoice-details {
+  width: 100%;
+  font-size: 12px;
 }
 
-.footer-copy {
-  text-align: right;
-  font-size: 0.75rem;
-  color: #64748b;
+.invoice-details .label {
+  width: 30%;
+  vertical-align: top;
 }
 
-/* Print specific styles */
-  @media print {
-    body {
-      background-color: white;
-    }
+.invoice-details .colon {
+  width: 5%;
+  vertical-align: top;
+}
 
-    .print-controls {
-      display: none;
-    }
+.invoice-details .value {
+  width: 65%;
+  vertical-align: top;
+}
 
-    .invoice-print-container {
-      padding: 0;
-      font-size: 10pt;
-      max-width: 180mm;
-      margin-left: auto;
-      margin-right: 0;
-    }
+.invoice-body {
+  padding: 0 20px;
+  flex-grow: 1;
+}
 
-    .invoice-document {
-      border: none;
-      box-shadow: none;
-      padding: 0;
-    }
+.line-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
 
-    @page {
-      size: A4;
-      margin: 1cm;
-    }
-  }
-
-.btn-danger {
-  background-color: #dc2626;
-  color: white;
+.line-items-table th,
+.line-items-table td {
+  padding: 8px;
   border: none;
 }
 
-.btn-danger:hover {
-  background-color: #b91c1c;
+.line-items-table thead {
+  position: relative;
+}
+
+.line-items-table thead:before,
+.line-items-table thead:after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: black;
+}
+
+.line-items-table thead:before {
+  top: 0;
+}
+
+.line-items-table thead:after {
+  bottom: 0;
+}
+
+.line-items-table tbody tr {
+  border-bottom: 1px solid #eee;
+}
+
+.line-items-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.no-column {
+  width: 5%;
+}
+
+.description-column {
+  width: 40%;
+}
+
+.uom-column {
+  width: 10%;
+}
+
+.qty-column {
+  width: 10%;
+}
+
+.price-column {
+  width: 15%;
+}
+
+.amount-column {
+  width: 20%;
+}
+
+.center {
+  text-align: center;
+}
+
+.right {
+  text-align: right;
+}
+
+.invoice-footer {
+  padding: 20px;
+  margin-top: auto;
+  position: relative;
+}
+
+.amount-line {
+  width: 100%;
+  height: 1px;
+  background-color: black;
+  margin-bottom: 5px;
+}
+
+.total-section {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 5px;
+  margin-top: 5px;
+}
+
+.total-line {
+  display: flex;
+  align-items: center;
+}
+
+.total-label {
+  font-weight: normal;
+  margin-right: 10px;
+}
+
+.total-amount-box {
+  border: 1px solid black;
+  padding: 2px 10px;
+  min-width: 120px;
+  text-align: right;
+  font-weight: normal;
+}
+
+.disclaimer {
+  font-size: 12px;
+  margin: 0 0 40px 0;
+  text-align: right;
+}
+
+
+.signature-line {
+  height: 1px;
+  background-color: rgb(0, 0, 0);
+  width: 14%;
+  margin-bottom: 5px;
+}
+
+.signature-text {
+  font-size: 10px;
+  font-weight: bold;
+  text-align: start;
 }
 </style>

@@ -10,7 +10,7 @@
         <button @click="printInvoice" class="btn btn-primary">
           <i class="fas fa-print"></i> Print Invoice
         </button>
-        <button @click="downloadPDF" class="btn btn-info">
+        <button @click="downloadPDF" class="btn btn-danger">
           <i class="fas fa-file-pdf"></i> Save as PDF
         </button>
       </div>
@@ -200,6 +200,7 @@
 
 <script>
 import axios from 'axios';
+import html2pdf from 'html2pdf.js';
 
 export default {
   name: 'SalesInvoicePrint',
@@ -273,10 +274,57 @@ export default {
       return line.uom_id || 'PCS';
     },
     printInvoice() {
-      window.print();
+      const printContents = this.$refs.invoiceDoc.innerHTML;
+      const printWindow = window.open('', '', 'width=800,height=600');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Print Invoice</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                line-height: 1.4;
+                background: white;
+                margin: 10mm;
+              }
+              .header, .company-info, .invoice-info, .customer-section, .order-info, .items-table, .invoice-summary, .payment-terms, .signature-area, .invoice-footer {
+                width: 100%;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+              }
+              th, td {
+                border: 1px solid #94a3b8;
+                padding: 0.5rem;
+                font-size: 11px;
+                text-align: left;
+              }
+              th {
+                background-color: #f1f5f9;
+                font-weight: bold;
+              }
+              .right {
+                text-align: right;
+              }
+              .center {
+                text-align: center;
+              }
+            </style>
+          </head>
+          <body>
+            ${printContents}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
     },
     downloadPDF() {
-      if (window.html2pdf) {
+      if (html2pdf) {
         const element = this.$refs.invoiceDoc;
         const opt = {
           margin: 10,
@@ -285,9 +333,13 @@ export default {
           html2canvas: { scale: 2 },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
-        window.html2pdf().from(element).set(opt).save();
+        html2pdf().from(element).set(opt).save();
       } else {
-        this.$toast.error('PDF generation library not available. Please include html2pdf.js');
+        if (this.$toast && typeof this.$toast.error === 'function') {
+          this.$toast.error('PDF generation library not available. Please include html2pdf.js');
+        } else {
+          alert('PDF generation library not available. Please include html2pdf.js');
+        }
       }
     },
     goBack() {

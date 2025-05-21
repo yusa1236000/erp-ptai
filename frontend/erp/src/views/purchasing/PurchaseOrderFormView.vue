@@ -138,17 +138,30 @@
               <tbody>
                 <tr v-for="(line, lineIndex) in purchaseOrder.lines" :key="lineIndex">
                   <td>
-                    <select
-                      v-model="line.item_id"
-                      @change="updateLineItem(line)"
-                      :disabled="isEditMode && purchaseOrder.status !== 'draft'"
-                      required
-                    >
-                      <option value="" disabled>Select Item</option>
-                      <option v-for="item in items" :key="item.item_id" :value="item.item_id">
-                        {{ item.item_code }} - {{ item.name }}
-                      </option>
-                    </select>
+                    <div class="dropdown">
+                      <input
+                        type="text"
+                        v-model="line.itemSearch"
+                        @focus="line.showDropdown = true"
+                        @blur="hideDropdown(line)"
+                        :placeholder="'Search for an item...'"
+                        :disabled="isEditMode && purchaseOrder.status !== 'draft'"
+                        required
+                      />
+                      <div v-if="line.showDropdown" class="dropdown-menu">
+                        <div
+                          v-for="item in getFilteredItems(line.itemSearch)"
+                          :key="item.item_id"
+                          @click="selectItem(line, item)"
+                          class="dropdown-item"
+                        >
+                          {{ item.item_code }} - {{ item.name }}
+                        </div>
+                        <div v-if="getFilteredItems(line.itemSearch).length === 0" class="dropdown-item text-muted">
+                          No items found
+                        </div>
+                      </div>
+                    </div>
                   </td>
                   <td>
                     <input
@@ -164,7 +177,7 @@
                   <td>
                     <select
                       v-model="line.uom_id"
-                      :disabled="isEditMode && purchaseOrder.status !== 'draft'"
+                      :disabled="true"
                       required
                     >
                       <option value="" disabled>Select UOM</option>
@@ -359,6 +372,14 @@ export default {
           // Ensure lines array exists
           if (!this.purchaseOrder.lines) {
             this.purchaseOrder.lines = [];
+          } else {
+            // Add itemSearch and showDropdown properties to each line
+            this.purchaseOrder.lines.forEach(line => {
+              // Find the item to get its name
+              const item = this.items.find(i => i.item_id === line.item_id);
+              line.itemSearch = item ? `${item.item_code} - ${item.name}` : '';
+              line.showDropdown = false;
+            });
           }
 
           // If no lines, add one empty line
@@ -376,6 +397,8 @@ export default {
     addLine() {
       this.purchaseOrder.lines.push({
         item_id: '',
+        itemSearch: '',
+        showDropdown: false,
         quantity: 1,
         uom_id: '',
         unit_price: 0,
@@ -389,6 +412,37 @@ export default {
         this.purchaseOrder.lines.splice(lineIndex, 1);
         this.updateTotals();
       }
+    },
+    getFilteredItems(search) {
+      if (!search) {
+        return this.items;
+      }
+      const searchLower = search.toLowerCase();
+      return this.items.filter(item =>
+        item.name.toLowerCase().includes(searchLower) ||
+        item.item_code.toLowerCase().includes(searchLower)
+      );
+    },
+    selectItem(line, item) {
+      line.item_id = item.item_id;
+      line.itemSearch = `${item.item_code} - ${item.name}`;
+      line.showDropdown = false;
+
+      // Set UOM based on the selected item
+      if (item.uom_id) {
+        line.uom_id = item.uom_id;
+      }
+
+      // Set default price if available
+      if (item.cost_price && line.unit_price === 0) {
+        line.unit_price = item.cost_price;
+        this.updateLineTotal(line);
+      }
+    },
+    hideDropdown(line) {
+      setTimeout(() => {
+        line.showDropdown = false;
+      }, 200);
     },
     updateLineItem(line) {
       // Find the selected item
@@ -461,17 +515,29 @@ export default {
 
       this.isSaving = true;
       try {
+        // Clean up the lines object before sending to API
+        const cleanedPurchaseOrder = JSON.parse(JSON.stringify(this.purchaseOrder));
+        cleanedPurchaseOrder.lines = cleanedPurchaseOrder.lines.map(line => ({
+          item_id: line.item_id,
+          quantity: line.quantity,
+          uom_id: line.uom_id,
+          unit_price: line.unit_price,
+          subtotal: line.subtotal,
+          tax: line.tax,
+          total: line.total
+        }));
+
         let response;
 
         if (this.isEditMode) {
           // Update existing PO
           response = await axios.put(
-            `/purchase-orders/${this.purchaseOrder.po_id}`,
-            this.purchaseOrder
+            `/purchase-orders/${cleanedPurchaseOrder.po_id}`,
+            cleanedPurchaseOrder
           );
         } else {
           // Create new PO
-          response = await axios.post('/purchase-orders', this.purchaseOrder);
+          response = await axios.post('/purchase-orders', cleanedPurchaseOrder);
         }
 
         if (response.data.status === 'success') {
@@ -790,6 +856,40 @@ export default {
 
 .mt-4 {
   margin-top: 1.5rem;
+}
+
+/* Dropdown styles */
+.dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-top: 0.25rem;
+}
+
+.dropdown-item {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: var(--gray-100);
+}
+
+.text-muted {
+  color: var(--gray-500);
 }
 
 /* Responsive adjustments */

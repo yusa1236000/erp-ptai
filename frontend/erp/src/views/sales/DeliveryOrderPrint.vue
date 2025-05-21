@@ -125,7 +125,7 @@
 
   <div class="print-actions">
     <button class="btn btn-secondary" @click="goBack">
-      <i class="fas fa-arrow-left"></i> Kembali
+      <i class="fas fa-arrow-left"></i> Back
     </button>
     <button class="btn btn-primary" @click="printDeliveryOrder">
       <i class="fas fa-print"></i> Print

@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class BOMController extends Controller
 {
@@ -21,7 +20,6 @@ class BOMController extends Controller
      */
     public function index(Request $request)
     {
-        \Log::debug('BOMController@index status filter:', ['status' => $request->status]);
 
         $query = BOM::with(['item', 'unitOfMeasure']);
 
@@ -30,14 +28,19 @@ class BOMController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Filtering by item_id
+        if ($request->has('item_id') && $request->item_id !== '') {
+            $query->where('item_id', $request->item_id);
+        }
+
         // Search by bom_code or item name
         if ($request->has('search') && $request->search !== '') {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('bom_code', 'like', "%{$search}%")
-                  ->orWhereHas('item', function ($q2) use ($search) {
-                      $q2->where('name', 'like', "%{$search}%");
-                  });
+                    ->orWhereHas('item', function ($q2) use ($search) {
+                        $q2->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -48,8 +51,8 @@ class BOMController extends Controller
         // To support sorting by related item name, handle 'item.name' key
         if ($sortField === 'item.name') {
             $query->join('items', 'boms.item_id', '=', 'items.item_id')
-                  ->orderBy('items.name', $sortOrder)
-                  ->select('boms.*');
+                ->orderBy('items.name', $sortOrder)
+                ->select('boms.*');
         } else {
             $query->orderBy($sortField, $sortOrder);
         }
@@ -123,22 +126,22 @@ class BOMController extends Controller
                         'is_critical' => $line['is_critical'] ?? false,
                         'notes' => $line['notes'] ?? null,
                     ];
-                    
+
                     // Add yield-based fields if present
                     if (isset($line['is_yield_based']) && $line['is_yield_based']) {
                         $bomLine['is_yield_based'] = true;
                         $bomLine['yield_ratio'] = $line['yield_ratio'];
                         $bomLine['shrinkage_factor'] = $line['shrinkage_factor'] ?? 0;
                     }
-                    
+
                     BOMLine::create($bomLine);
                 }
             }
 
             DB::commit();
-            
+
             return response()->json([
-                'data' => $bom->load('bomLines'), 
+                'data' => $bom->load('bomLines'),
                 'message' => 'BOM created successfully'
             ], 201);
         } catch (\Exception $e) {
@@ -158,18 +161,17 @@ class BOMController extends Controller
         try {
             // Try loading only main relationships first
             $bom = BOM::with(['item', 'unitOfMeasure'])->find($id);
-            
+
             if (!$bom) {
                 return response()->json(['message' => 'BOM not found'], 404);
             }
-            
+
             // Load bomLines and their relations separately to isolate errors
             $bom->load(['bomLines.item', 'bomLines.unitOfMeasure']);
-            
+
             return response()->json(['data' => $bom]);
         } catch (\Exception $e) {
             // Log the exception message for debugging
-            Log::error('Error fetching BOM: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to fetch BOM', 'error' => $e->getMessage()], 500);
         }
     }
@@ -184,7 +186,7 @@ class BOMController extends Controller
     public function update(Request $request, $id)
     {
         $bom = BOM::find($id);
-        
+
         if (!$bom) {
             return response()->json(['message' => 'BOM not found'], 404);
         }
@@ -216,7 +218,7 @@ class BOMController extends Controller
     public function destroy($id)
     {
         $bom = BOM::find($id);
-        
+
         if (!$bom) {
             return response()->json(['message' => 'BOM not found'], 404);
         }
@@ -230,10 +232,10 @@ class BOMController extends Controller
         try {
             // Delete BOM lines first
             $bom->bomLines()->delete();
-            
+
             // Then delete the BOM
             $bom->delete();
-            
+
             DB::commit();
             return response()->json(['message' => 'BOM deleted successfully']);
         } catch (\Exception $e) {
@@ -299,15 +301,15 @@ class BOMController extends Controller
             }
 
             DB::commit();
-            
+
             // Calculate potential yield based on the added materials
             $bomWithLines = BOM::with(['item', 'unitOfMeasure', 'bomLines.item', 'bomLines.unitOfMeasure'])
                 ->find($bom->bom_id);
-            
+
             $materials = [];
             foreach ($bomWithLines->bomLines as $line) {
                 $potentialYield = $line->calculateYield();
-                
+
                 $materials[] = [
                     'item_id' => $line->item->item_id,
                     'item_code' => $line->item->item_code,
@@ -319,7 +321,7 @@ class BOMController extends Controller
                     'potential_yield' => $potentialYield,
                 ];
             }
-            
+
             return response()->json([
                 'data' => [
                     'bom' => $bomWithLines,

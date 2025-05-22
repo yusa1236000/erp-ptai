@@ -196,7 +196,7 @@ export default {
         // Filters
         const searchQuery = ref("");
         const statusFilter = ref("");
-        const dateRangeFilter = ref("month");
+        const dateRangeFilter = ref("all");
         const customDateRange = reactive({
             startDate: new Date().toISOString().substr(0, 10),
             endDate: new Date().toISOString().substr(0, 10),
@@ -258,11 +258,14 @@ export default {
                 // Prepare query parameters
                 const params = {
                     page: currentPage.value,
-                    status: statusFilter.value,
                     search: searchQuery.value,
                     sort_field: sortKey.value,
                     sort_direction: sortOrder.value,
                 };
+
+                if (statusFilter.value !== "") {
+                    params.status = statusFilter.value;
+                }
 
                 // Add date range filters if applicable
                 if (dateRangeFilter.value === "custom") {

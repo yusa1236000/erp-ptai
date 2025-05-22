@@ -16,13 +16,13 @@
           </button>
         </div>
       </div>
-  
+
       <!-- Loading indicator -->
       <div v-if="isLoading" class="text-center py-5">
         <i class="fas fa-spinner fa-spin fa-2x"></i>
         <p class="mt-2">Memuat data routing...</p>
       </div>
-  
+
       <div v-else>
         <!-- Routing Information Card -->
         <div class="card mb-4">
@@ -83,7 +83,7 @@
             </div>
           </div>
         </div>
-  
+
         <!-- Operations Card -->
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
@@ -104,26 +104,26 @@
           >
             <!-- Work Center column -->
             <!-- Removed scoped slot to allow default rendering of string -->
-  
+
               <!-- Run Time column -->
               <template #run_time="{ value }">
                 {{ value }} {{ getUnitName(value, item) }}
               </template>
-  
+
               <!-- Setup Time column -->
               <template #setup_time="{ value, item }">
                 {{ value }} {{ getUnitName(value, item) }}
               </template>
-  
+
               <!-- Cost columns -->
               <template #labor_cost="{ value }">
                 {{ formatCurrency(value) }}
               </template>
-  
+
               <template #overhead_cost="{ value }">
                 {{ formatCurrency(value) }}
               </template>
-  
+
               <!-- Actions column -->
               <template #actions="{ item }">
                 <div class="d-flex gap-2 justify-content-end">
@@ -147,7 +147,7 @@
           </div>
         </div>
       </div>
-  
+
       <!-- Operation Form Modal -->
       <div v-if="showOperationModal" class="modal">
         <div class="modal-backdrop" @click="cancelOperationForm"></div>
@@ -201,7 +201,7 @@
                   </div>
                 </div>
               </div>
-  
+
               <div class="row mt-3">
                 <div class="col-md-3">
                   <div class="form-group">
@@ -262,7 +262,7 @@
                       v-model.number="operationForm.run_time"
                       type="number"
                       min="0"
-                      step="0.1"
+                      step="0.01"
                       class="form-control"
                       required
                     />
@@ -272,7 +272,7 @@
                   </div>
                 </div>
               </div>
-  
+
               <div class="row mt-3">
                 <div class="col-md-6">
                   <div class="form-group">
@@ -309,7 +309,7 @@
                   </div>
                 </div>
               </div>
-  
+
               <div class="form-actions mt-4">
                 <button type="button" class="btn btn-secondary mr-2" @click="cancelOperationForm">
                   Batal
@@ -322,7 +322,7 @@
           </div>
         </div>
       </div>
-  
+
       <!-- Confirmation Modal for Delete Routing -->
       <ConfirmationModal
         v-if="showDeleteModal"
@@ -333,7 +333,7 @@
         @confirm="deleteRouting"
         @close="showDeleteModal = false"
       />
-  
+
       <!-- Confirmation Modal for Delete Operation -->
       <ConfirmationModal
         v-if="showDeleteOperationModal"
@@ -346,34 +346,34 @@
       />
     </div>
   </template>
-  
+
   <script>
   import { ref, reactive, computed, onMounted } from 'vue';
   import { useRouter, useRoute } from 'vue-router';
   import axios from 'axios';
-  
+
   export default {
     name: 'RoutingDetail',
     setup() {
       const router = useRouter();
       const route = useRoute();
       const routingId = computed(() => route.params.id);
-      
+
       const isLoading = ref(true);
       const isLoadingOperations = ref(true);
       const routing = ref({});
       const operations = ref([]);
       const workCenters = ref([]);
       const unitOfMeasures = ref([]);
-      
+
       const selectedOperation = ref(null);
       const showOperationModal = ref(false);
       const isSavingOperation = ref(false);
       const operationErrors = ref({});
-      
+
       const showDeleteModal = ref(false);
       const showDeleteOperationModal = ref(false);
-  
+
       // Initial operation form values
       const operationForm = reactive({
         workcenter_id: '',
@@ -385,7 +385,7 @@
         labor_cost: 0,
         overhead_cost: 0,
       });
-  
+
       // Operation table columns
       const operationColumns = [
         { key: 'sequence', label: 'Urutan', sortable: true },
@@ -396,12 +396,12 @@
         { key: 'labor_cost', label: 'Biaya Tenaga Kerja' },
         { key: 'overhead_cost', label: 'Biaya Overhead' },
       ];
-  
+
       // Sort operations by sequence
       const sortedOperations = computed(() => {
         return [...operations.value].sort((a, b) => a.sequence - b.sequence);
       });
-  
+
       // Format date
       const formatDate = (dateString) => {
         if (!dateString) return '-';
@@ -412,7 +412,7 @@
           year: 'numeric',
         });
       };
-  
+
       // Format currency
       const formatCurrency = (value) => {
         if (value === null || value === undefined) return '-';
@@ -423,13 +423,13 @@
           maximumFractionDigits: 0,
         }).format(value);
       };
-  
+
       // Get unit of measure name based on ID
       const getUnitName = (value, item) => {
         if (!item || !item.unitOfMeasure) return '';
         return item.unitOfMeasure.symbol || '';
       };
-  
+
       // Load routing data
       const loadRouting = async () => {
         isLoading.value = true;
@@ -443,7 +443,7 @@
           isLoading.value = false;
         }
       };
-  
+
       // Load operations
       const loadOperations = async () => {
         isLoadingOperations.value = true;
@@ -461,7 +461,7 @@
           isLoadingOperations.value = false;
         }
       };
-  
+
       // Load work centers for dropdown
       const loadWorkCenters = async () => {
         try {
@@ -471,7 +471,7 @@
           console.error('Error loading work centers:', error);
         }
       };
-  
+
       // Load units of measure for dropdown
       const loadUnitOfMeasures = async () => {
         try {
@@ -481,11 +481,11 @@
           console.error('Error loading units of measure:', error);
         }
       };
-  
+
       // Edit operation
       const editOperation = (operation) => {
         selectedOperation.value = operation;
-        
+
         // Copy operation data to form
         operationForm.workcenter_id = operation.workcenter_id;
         operationForm.operation_name = operation.operation_name;
@@ -495,17 +495,17 @@
         operationForm.uom_id = operation.uom_id;
         operationForm.labor_cost = operation.labor_cost;
         operationForm.overhead_cost = operation.overhead_cost;
-        
+
         showOperationModal.value = true;
       };
-  
+
       // Reset operation form
       const resetOperationForm = () => {
         selectedOperation.value = null;
         operationForm.workcenter_id = '';
         operationForm.operation_name = '';
-        operationForm.sequence = operations.value.length > 0 
-          ? Math.max(...operations.value.map(o => o.sequence)) + 10 
+        operationForm.sequence = operations.value.length > 0
+          ? Math.max(...operations.value.map(o => o.sequence)) + 10
           : 10;
         operationForm.setup_time = 0;
         operationForm.run_time = 0;
@@ -514,18 +514,18 @@
         operationForm.overhead_cost = 0;
         operationErrors.value = {};
       };
-  
+
       // Cancel operation form
       const cancelOperationForm = () => {
         showOperationModal.value = false;
         resetOperationForm();
       };
-  
+
       // Save operation
       const saveOperation = async () => {
         isSavingOperation.value = true;
         operationErrors.value = {};
-        
+
         try {
             if (selectedOperation.value) {
             // Update existing operation
@@ -540,13 +540,13 @@
                 operationForm
             );
             }
-          
+
             await loadOperations(); // Reload operations
             showOperationModal.value = false;
             resetOperationForm();
         } catch (error) {
             console.error('Error saving operation:', error);
-            
+
             if (error.response && error.response.data && error.response.data.errors) {
             operationErrors.value = error.response.data.errors;
             } else {
@@ -556,12 +556,12 @@
             isSavingOperation.value = false;
         }
         };
-  
+
       // Confirm delete routing
       const confirmDelete = () => {
         showDeleteModal.value = true;
       };
-  
+
       // Delete routing
       const deleteRouting = async () => {
         try {
@@ -569,23 +569,23 @@
           router.push('/manufacturing/routings');
         } catch (error) {
           console.error('Error deleting routing:', error);
-          
+
           if (error.response && error.response.data && error.response.data.message) {
             alert(error.response.data.message);
           } else {
             alert('Gagal menghapus routing. Silakan coba lagi.');
           }
-          
+
           showDeleteModal.value = false;
         }
       };
-  
+
       // Confirm delete operation
       const confirmDeleteOperation = (operation) => {
         selectedOperation.value = operation;
         showDeleteOperationModal.value = true;
       };
-  
+
       // Delete operation
       const deleteOperation = async () => {
         try {
@@ -596,17 +596,17 @@
           showDeleteOperationModal.value = false;
         } catch (error) {
           console.error('Error deleting operation:', error);
-          
+
           if (error.response && error.response.data && error.response.data.message) {
             alert(error.response.data.message);
           } else {
             alert('Gagal menghapus operasi. Silakan coba lagi.');
           }
-          
+
           showDeleteOperationModal.value = false;
         }
       };
-  
+
       // Load data on component mount
       onMounted(() => {
         loadRouting();
@@ -614,7 +614,7 @@
         loadWorkCenters();
         loadUnitOfMeasures();
       });
-  
+
       return {
         routingId,
         isLoading,
@@ -646,22 +646,22 @@
     },
   };
   </script>
-  
+
   <style scoped>
   .routing-detail-container {
     max-width: 1200px;
     margin: 0 auto;
   }
-  
+
   .detail-table th {
     font-weight: 600;
     color: var(--gray-600);
   }
-  
+
   .detail-table td {
     color: var(--gray-800);
   }
-  
+
   /* Modal Styles */
   .modal {
     position: fixed;
@@ -674,7 +674,7 @@
     justify-content: center;
     align-items: center;
   }
-  
+
   .modal-backdrop {
     position: fixed;
     top: 0;
@@ -684,7 +684,7 @@
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 1001;
   }
-  
+
   .modal-content {
     background-color: white;
     border-radius: 0.5rem;
@@ -695,7 +695,7 @@
     max-height: 90vh;
     overflow-y: auto;
   }
-  
+
   .modal-header {
     display: flex;
     justify-content: space-between;
@@ -703,16 +703,16 @@
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--gray-200);
   }
-  
+
   .modal-header h2 {
     margin: 0;
     font-size: 1.25rem;
   }
-  
+
   .modal-body {
     padding: 1.5rem;
   }
-  
+
   .close-btn {
     background: none;
     border: none;
@@ -720,14 +720,14 @@
     cursor: pointer;
     color: var(--gray-500);
   }
-  
+
   .form-actions {
     display: flex;
     justify-content: flex-end;
     padding-top: 1rem;
     border-top: 1px solid var(--gray-200);
   }
-  
+
   .modal-lg {
     max-width: 900px;
   }
